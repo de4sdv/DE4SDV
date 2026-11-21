@@ -8,6 +8,13 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_PREEMPT       "vm:n"  the n-th status read after the VM came up returns TERMINATED (once)
   FAKE_GPU_RUNNING   "project:name"  another GPU VM running in that project
   FAKE_FAIL_STEP     a step name whose `host_step.sh run|status` fails
+  FAKE_FAIL_AFTER_LOSS  1: the detached FAKE_FAIL_STEP reads "running" until a FAKE_LOST_AFTER loss is on record and
+                     the clock has passed into a later whole second than the loss; only then does its status report
+                     the failure. The session then takes the failure's time (abort's t_fail) in a later second than
+                     the preemption's insertTime, whatever its `date` makes of the insertTime's milliseconds: uutils
+                     date 0.8.0 and 0.10.0 read the fraction ".094" as ".940", and so does the date of CI's
+                     ubuntu-26.04 image (two CI runs logged losses at ".940" and ".980"). The error stays inside
+                     the second, so a failure one second on is read as after the loss on any date
   FAKE_STEP_RC       "step:rc,..."  the exit status a detached step reports (status, tail) in place of 0
   FAKE_HANG_STEP     "step:seconds"  `host_step.sh run <step>` sleeps that long before answering; a detached
                      step (`start`) reads "running" for that long after its start
@@ -296,8 +303,9 @@ if words[:2] == ["compute", "ssh"]:
     if n in lost and lost[n] in c and n not in st.setdefault("lost", []):
         st["vm"][n] = os.environ.get("FAKE_LOST_STATUS", "TERMINATED")   # reclaimed after this call (it answers)
         st["lost"].append(n)
+        st.setdefault("lost_at", {})[n] = now = time.time()   # FAKE_FAIL_AFTER_LOSS waits on it
         if os.environ.get("FAKE_LOST_NO_OP") != "1":
-            st.setdefault("preempted_at", {})[n] = time.time()
+            st.setdefault("preempted_at", {})[n] = now
     if c == "true":
         out("")
     m = re.search(r"host_step\.sh (run|start|status|tail|signal|pack)\s*(\S*)", c)
@@ -455,6 +463,11 @@ if words[:2] == ["compute", "ssh"]:
             hang = kv("FAKE_HANG_STEP").get(step)
             if t0 is not None and hang and time.time() - t0 < float(hang):
                 out("running\n")
+            if fail and os.environ.get("FAKE_FAIL_AFTER_LOSS") == "1":
+                # the failure only after the loss, in a later whole second than the loss (see the knob above)
+                lost_at = st.get("lost_at", {}).values()
+                if not lost_at or int(time.time()) <= int(max(lost_at)):
+                    out("running\n")
             out("rc %d\n" % code)
         if action == "tail":
             term = kv("FAKE_TERM_TAIL").get(step) if key in st.get("signalled", {}) else None

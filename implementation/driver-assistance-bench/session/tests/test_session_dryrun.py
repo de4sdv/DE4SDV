@@ -2142,9 +2142,12 @@ def test_r12b_the_host_watch_ends_where_the_trap_begins_its_stops(tmp_path: Path
 def test_r12b_a_step_that_fails_after_the_score_host_was_lost_names_the_loss_and_skips_its_ssh(
         tmp_path: Path) -> None:
     # the 20261119T203947Z order: the L4 lost after score_start_run1, the guest step fails on the missing offer before
-    # the host watch reads it; the S-CORE stop's SSH fails (rc 255) and reads the VM's state
+    # the host watch reads it; the S-CORE stop's SSH fails (rc 255) and reads the VM's state.
+    # FAKE_FAIL_AFTER_LOSS: the step fails only in a later second than the loss (87 s later in 20261119T203947Z).
+    # Without it a fast host failed it under a second after the loss, and CI's uutils date read the insertTime's
+    # ".094" as ".940": the preemption then read as after the failure (rc 5), two CI runs of five
     r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_LOST_AFTER=f"{L4}:tail score_start_run1",
-            FAKE_FAIL_STEP="app_restart_run1", DA_T_HOST_WATCH_S="600")
+            FAKE_FAIL_STEP="app_restart_run1", FAKE_FAIL_AFTER_LOSS="1", DA_T_HOST_WATCH_S="600")
     assert r.rc == 3, r.log
     rec = json.loads((r.incoming / "session.json").read_text())
     assert rec["failed_step"] == "app_restart_run1", rec["failed_step"]
