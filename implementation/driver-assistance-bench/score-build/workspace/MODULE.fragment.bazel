@@ -1,0 +1,17 @@
+# DE4SDV driver-assistance bench (INC-DRIVING-002): appended to FEO 313b3d84's MODULE.bazel after the bench diff
+# (implementation/closed-loop-driving-bench/agent/workspace/feo-313b3d84-bench.diff, the hunks of MODULE.bazel and
+# .bazelrc). build_score_bench.sh replaces @ROOT@ with its root directory. The diff's @libcarla entry is repointed to
+# the CARLA 1.0 client bundle and its @python312 entry is dropped, as DA-P8 e and h did.
+#
+# S-CORE Lifecycle is not declared here: the bench diff already declares score_lifecycle with a
+# single_version_override to 0.10.0 (eclipse-score/lifecycle tag v0.10.0, 2afae116), the version the Launch Manager
+# configuration and the lifecycle clients of VisionPilot and the actuation adapter are written for
+# (launch-manager/README.md); a second bazel_dep of the module would be an error. build_score_bench.sh checks that
+# declaration and records Bazel's resolved version in facts/score-mod-explain.txt.
+
+# ONNX Runtime, OpenCV, Rerun, Eigen, CppAD and Ipopt, the Boost headers and the host GStreamer headers
+new_local_repository(
+    name = "da_b2_thirdparty",
+    build_file = "//de4sdv_da_bench/score-build/workspace:thirdparty.BUILD",
+    path = "@ROOT@/thirdparty",
+)

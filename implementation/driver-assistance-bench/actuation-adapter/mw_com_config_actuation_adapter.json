@@ -1,0 +1,51 @@
+{
+    "serviceTypes": [
+        {
+            "serviceTypeName": "/de4sdv/driver_assistance/DrivingCommand",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "bindings": [
+                {
+                    "binding": "SHM",
+                    "serviceId": 7411,
+                    "events": [
+                        {
+                            "eventName": "driving_command",
+                            "eventId": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "serviceInstances": [
+        {
+            "instanceSpecifier": "de4sdv/driver_assistance/driving_command",
+            "serviceTypeName": "/de4sdv/driver_assistance/DrivingCommand",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "instances": [
+                {
+                    "instanceId": 1,
+                    "asil-level": "B",
+                    "binding": "SHM",
+                    "events": [
+                        {
+                            "eventName": "driving_command",
+                            "numberOfSampleSlots": 25,
+                            "maxSubscribers": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "global": {
+        "asil-level": "B",
+        "applicationID": 3413
+    }
+}

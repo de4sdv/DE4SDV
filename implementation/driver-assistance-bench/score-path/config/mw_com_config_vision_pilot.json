@@ -1,0 +1,133 @@
+{
+    "serviceTypes": [
+        {
+            "serviceTypeName": "/de4sdv/driver_assistance/DrivingCommand",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "bindings": [
+                {
+                    "binding": "SHM",
+                    "serviceId": 7411,
+                    "events": [
+                        {
+                            "eventName": "driving_command",
+                            "eventId": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "serviceTypeName": "/de4sdv/driver_assistance/WarningRequest",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "bindings": [
+                {
+                    "binding": "SHM",
+                    "serviceId": 7412,
+                    "events": [
+                        {
+                            "eventName": "warning_request",
+                            "eventId": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "serviceTypeName": "/de4sdv/driver_assistance/CandidateRecord",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "bindings": [
+                {
+                    "binding": "SHM",
+                    "serviceId": 7413,
+                    "events": [
+                        {
+                            "eventName": "candidate_record",
+                            "eventId": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "serviceInstances": [
+        {
+            "instanceSpecifier": "de4sdv/driver_assistance/driving_command",
+            "serviceTypeName": "/de4sdv/driver_assistance/DrivingCommand",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "instances": [
+                {
+                    "instanceId": 1,
+                    "asil-level": "B",
+                    "binding": "SHM",
+                    "events": [
+                        {
+                            "eventName": "driving_command",
+                            "numberOfSampleSlots": 25,
+                            "maxSubscribers": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "instanceSpecifier": "de4sdv/driver_assistance/warning_request",
+            "serviceTypeName": "/de4sdv/driver_assistance/WarningRequest",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "instances": [
+                {
+                    "instanceId": 1,
+                    "asil-level": "QM",
+                    "binding": "SHM",
+                    "events": [
+                        {
+                            "eventName": "warning_request",
+                            "numberOfSampleSlots": 20,
+                            "maxSubscribers": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "instanceSpecifier": "de4sdv/driver_assistance/candidate_record",
+            "serviceTypeName": "/de4sdv/driver_assistance/CandidateRecord",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "instances": [
+                {
+                    "instanceId": 1,
+                    "asil-level": "QM",
+                    "binding": "SHM",
+                    "events": [
+                        {
+                            "eventName": "candidate_record",
+                            "numberOfSampleSlots": 2,
+                            "maxSubscribers": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "global": {
+        "asil-level": "B",
+        "applicationID": 3412
+    }
+}

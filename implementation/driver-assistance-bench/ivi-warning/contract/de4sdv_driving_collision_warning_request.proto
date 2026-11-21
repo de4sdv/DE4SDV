@@ -1,0 +1,42 @@
+// DE4SDV INC-DRIVING-002, the driver-assistance bench: the warning request on the guests.
+// Draft, bench-only, not yet validated.
+//
+// The typed Data Tunnel message of the warning request (MAP-DRIVING-DA-WARNING-REQUEST: "on the
+// guest a new typed message for the warning request, open until phase 10"; "serialization to the
+// new message at the SOME/IP interop of SDV Core; no value changes on the path"). The message,
+// its field names and numbers are the proposal of interfaces/ICD.md (interfaces/service_ids.json);
+// none is model content until the phase 10b pull request types it.
+//
+//   requested          1 when the plan's warnings hold FCW or AEB, else 0. The model types it
+//                      by Vehicle_ADAS_AEBS_DriverWarning_IsActive (a boolean); the ICD carries
+//                      it as UINT32 0 or 1 on SOME/IP, and REFLECTION fills this uint32 from it.
+//   issue_time_sim_ms  the capture simulation time of the frame the plan was computed from, in
+//                      whole milliseconds (the 0.05 s step makes every issue time one).
+//
+// One file, two consumers, as the closed-loop driving bench's contract:
+//   1. the SDV Core catalog: the broker's publication type, staged by
+//      scripts/stage_sdv_core_interop.sh into samples/some_ip/catalog/de4sdv_driver_assistance/;
+//   2. the IVI warning presentation's compile-time type (the app's build, outside this folder).
+//
+// The SOME/IP broker matches a struct field to a protobuf field BY NAME, so the names here and
+// in interop/someip_type_definition.textproto must stay equal; tests/test_warning_contract.py
+// holds them equal and to the ICD.
+//
+// VSIDL annotations: the pdk29 catalog needs the publication option on a message the broker
+// publishes. The message has no string or repeated field, so no size annotation is needed.
+// message_count 32 as the closed-loop driving bench's publication; even and >= 2.
+syntax = "proto3";
+
+package de4sdv.driving.v1;
+
+import "sdv/vsidl/v1/annotations.proto";
+
+message CollisionWarningRequest {
+  option (.sdv.vsidl.v1.publication) = {
+    model : SINGLE_PUB
+    message_count : 32
+  };
+
+  uint32 requested = 1;          // 0 or 1
+  uint32 issue_time_sim_ms = 2;  // simulation ms
+}

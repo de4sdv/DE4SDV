@@ -1,0 +1,1860 @@
+diff --git a/VisionPilot/CMakeLists.txt b/VisionPilot/CMakeLists.txt
+index d1cb1fa3..f7b79ff2 100644
+--- a/VisionPilot/CMakeLists.txt
++++ b/VisionPilot/CMakeLists.txt
+@@ -34,6 +34,12 @@ option(GPU "Enable GPU support" ON)
+ # ROS2 packages
+ option(ENABLE_ROS2_INTERFACE "Enable ROS2 support" OFF)
+ 
++# DE4SDV S-CORE interface (INC-DRIVING-002): source.mode = score. Defined for every target, the config module too.
++option(ENABLE_SCORE_INTERFACE "Enable the DE4SDV S-CORE interface" OFF)
++if(ENABLE_SCORE_INTERFACE)
++    add_compile_definitions(ENABLE_SCORE_INTERFACE=1)
++endif()
++
+ # Build testing code
+ option(BUILD_TESTING "Build the testing tree" OFF)
+ 
+@@ -80,6 +86,10 @@ add_subdirectory(modules/visualization)
+ # DE4SDV VIS8: visualization recorder (side thread, NVENC) and loop stamps
+ add_subdirectory(modules/de4sdv/visualization_recorder)
+ 
++if(ENABLE_SCORE_INTERFACE)
++    add_subdirectory(modules/de4sdv/score_interface)  # DE4SDV S-CORE interface
++endif()
++
+ # Tests
+ if(BUILD_TESTING)
+     add_subdirectory(tests)
+diff --git a/VisionPilot/app/CMakeLists.txt b/VisionPilot/app/CMakeLists.txt
+index 7be62763..faad4514 100644
+--- a/VisionPilot/app/CMakeLists.txt
++++ b/VisionPilot/app/CMakeLists.txt
+@@ -19,6 +19,10 @@ if (ENABLE_ROS2_INTERFACE)
+     target_compile_definitions(VisionPilot PRIVATE ENABLE_ROS2_INTERFACE)
+ endif ()
+ 
++if (ENABLE_SCORE_INTERFACE)
++    target_link_libraries(VisionPilot PRIVATE de4sdv_score_interface)  # DE4SDV S-CORE interface
++endif ()
++
+ target_link_libraries(VisionPilot
+     PRIVATE
+     config           # VisionPilotConfig, load_vision_pilot_config
+diff --git a/VisionPilot/app/vision_pilot.cpp b/VisionPilot/app/vision_pilot.cpp
+index f72d19a6..0c0dbebd 100644
+--- a/VisionPilot/app/vision_pilot.cpp
++++ b/VisionPilot/app/vision_pilot.cpp
+@@ -18,6 +18,10 @@
+ #include <visualization/debug_display.hpp>
+ #include <de4sdv/visualization_recorder.hpp>  // DE4SDV VIS8: visualization recorder (side thread, NVENC)
+ #include <de4sdv/loop_stamps.hpp>       // DE4SDV VIS8: loop timing stamps
++#if ENABLE_SCORE_INTERFACE
++#include <de4sdv/score_interface/score_interface.hpp>  // DE4SDV S-CORE interface
++#include <de4sdv/score_interface/stop_signal.hpp>      // DE4SDV S-CORE interface
++#endif
+ 
+ #include <camera_interface/v4l2_camera_interface.hpp>
+ #include <camera_interface/file_interface.hpp>
+@@ -55,6 +59,10 @@ int main(int argc, char** argv)
+         if (arg == "--debug-viz") debug_viz = true;
+     }
+ 
++#if ENABLE_SCORE_INTERFACE
++    // DE4SDV S-CORE interface: declared first so that it is destroyed last, after the two interfaces it shares.
++    std::unique_ptr<de4sdv::score_interface::ScoreInterface> score_interface;
++#endif
+     std::shared_ptr<camera_interface::CameraInterface> camera_interface;
+     std::shared_ptr<VehicleInterface> vehicle_interface;
+     std::unique_ptr<VisualInterface> visual_interface;
+@@ -65,6 +73,17 @@ int main(int argc, char** argv)
+                                                                cfg.vehicle_steering_topic,
+                                                                cfg.vehicle_acceleration_topic);
+ #else
++#if ENABLE_SCORE_INTERFACE
++    // DE4SDV S-CORE interface: MAP-DRIVING-DA-CAMERA-IMAGE, -VEHICLE-SPEED, -COMMAND, -CANDIDATE-RECORD
++    if (cfg.source.mode == SourceMode::Score)
++    {
++        score_interface = de4sdv::score_interface::ScoreInterface::Start();
++        if (!score_interface || !de4sdv::score_interface::InstallStopHandler()) return 1;
++        camera_interface = score_interface->camera();
++        vehicle_interface = score_interface->vehicle();
++    }
++    else
++#endif
+     if (cfg.source.mode == SourceMode::Video)
+     {
+         camera_interface = std::make_unique<camera_interface::FileInterface>(
+@@ -128,6 +147,9 @@ int main(int argc, char** argv)
+ 
+     while (true)
+     {
++#if ENABLE_SCORE_INTERFACE
++        if (de4sdv::score_interface::StopRequested()) break;  // DE4SDV: SIGTERM leaves the loop, shutdown below runs
++#endif
+         frame = camera_interface->get_latest_frame();
+         if (frame.empty())
+         {
+@@ -190,6 +212,18 @@ int main(int argc, char** argv)
+ 
+             vehicle_interface->write(plan.steering.empty() ? 0.0 : plan.steering[1], plan.acceleration);
+             t_write = de4sdv::now_ns();  // DE4SDV VIS8
++#if ENABLE_SCORE_INTERFACE
++            // DE4SDV S-CORE interface: the one hand-off of the plan's warnings, one event per plan
++            // (MAP-DRIVING-DA-WARNING-REQUEST)
++            if (score_interface) score_interface->warning_request_publisher().Publish(plan);
++            // DE4SDV S-CORE interface: the pass's capture simulation time for the visualization's frames.csv (B3)
++            if (score_interface && visualization_recorder)
++                visualization_recorder->set_pass_sim_time(score_interface->pass_capture_time_s());
++            // DE4SDV S-CORE interface: a pass with a result, one alive notification to the Launch Manager; the first
++            // reports the process running. The first frame gives no result (inference.cpp:152-159, a two-frame
++            // buffer), so the first inference falls under the ready timeout, not under the alive supervision.
++            if (score_interface) score_interface->CycleCompleted();
++#endif
+ 
+             // DE4SDV VIS8: the one hand-off (copies, swaps into a single-slot mailbox, returns).
+             if (visualization_recorder)
+diff --git a/VisionPilot/modules/config/include/config/vision_pilot_config.hpp b/VisionPilot/modules/config/include/config/vision_pilot_config.hpp
+index 7ea81cf0..1d1b0c2c 100644
+--- a/VisionPilot/modules/config/include/config/vision_pilot_config.hpp
++++ b/VisionPilot/modules/config/include/config/vision_pilot_config.hpp
+@@ -7,7 +7,7 @@
+ namespace vpe = visionpilot::engine;
+ namespace vpm = visionpilot::models;
+ 
+-enum class SourceMode { Ros2 = 0, V4l2 = 1, Video = 2 };
++enum class SourceMode { Ros2 = 0, V4l2 = 1, Video = 2, Score = 3 /* DE4SDV S-CORE interface */ };
+ 
+ struct SourceConfig {
+     SourceMode  mode         = SourceMode::Video;
+diff --git a/VisionPilot/modules/config/src/vision_pilot_config.cpp b/VisionPilot/modules/config/src/vision_pilot_config.cpp
+index 76db1ddd..0b56a067 100644
+--- a/VisionPilot/modules/config/src/vision_pilot_config.cpp
++++ b/VisionPilot/modules/config/src/vision_pilot_config.cpp
+@@ -95,6 +95,9 @@ SourceMode parse_source_mode(const std::string& v)
+     if (v=="0"||v=="ros2")  return SourceMode::Ros2;
+     if (v=="1"||v=="v4l2")  return SourceMode::V4l2;
+     if (v=="2"||v=="video") return SourceMode::Video;
++#if ENABLE_SCORE_INTERFACE
++    if (v=="3"||v=="score") return SourceMode::Score;  // DE4SDV S-CORE interface
++#endif
+     throw std::runtime_error("Invalid source.mode: '" + v + "'. Use video|ros2|v4l2 (or 0/1/2)");
+ }
+ 
+@@ -104,6 +107,7 @@ std::string source_label(const SourceConfig& source)
+     case SourceMode::Video: return "video";
+     case SourceMode::V4l2:  return source.v4l2_device;
+     case SourceMode::Ros2:  return source.input_camera_topic;
++    case SourceMode::Score: return "score";  // DE4SDV S-CORE interface
+     }
+     return {};
+ }
+diff --git a/VisionPilot/modules/de4sdv/score_interface/CMakeLists.txt b/VisionPilot/modules/de4sdv/score_interface/CMakeLists.txt
+new file mode 100644
+index 00000000..e9797f9c
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/CMakeLists.txt
+@@ -0,0 +1,48 @@
++# DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
++# Built only with -DENABLE_SCORE_INTERFACE=ON. The S-CORE build of the bench is Bazel (brief item B2); this file lets
++# upstream's CMake build compile the portable part of the module.
++#
++#   DE4SDV_DA_INTERFACES_INCLUDE_DIR  the bench's interfaces/include (de4sdv/driver_assistance/payloads.h), used in
++#                                     place, never copied
++#   DE4SDV_SCORE_BINDINGS             a library or target that defines MakeLolaPorts, MakeCarlaClient and
++#                                     MakeLifecycleClient (seams.hpp): src/lola_bindings.cpp, src/carla_client.cpp and
++#                                     src/lifecycle_bindings.cpp need mw::com, the CARLA 1.0 client and S-CORE
++#                                     Lifecycle, which only the Bazel build provides
++cmake_minimum_required(VERSION 3.22.1)
++
++set(DE4SDV_DA_INTERFACES_INCLUDE_DIR "" CACHE PATH "DE4SDV driver-assistance bench interfaces/include")
++set(DE4SDV_SCORE_BINDINGS "" CACHE STRING "library defining MakeLolaPorts, MakeCarlaClient and MakeLifecycleClient")
++if(NOT EXISTS "${DE4SDV_DA_INTERFACES_INCLUDE_DIR}/de4sdv/driver_assistance/payloads.h")
++    message(FATAL_ERROR "ENABLE_SCORE_INTERFACE needs DE4SDV_DA_INTERFACES_INCLUDE_DIR with "
++                        "de4sdv/driver_assistance/payloads.h")
++endif()
++if(NOT DE4SDV_SCORE_BINDINGS)
++    message(FATAL_ERROR "ENABLE_SCORE_INTERFACE needs DE4SDV_SCORE_BINDINGS")
++endif()
++
++find_package(OpenCV REQUIRED COMPONENTS core)
++
++add_library(de4sdv_score_interface
++        src/adapters.cpp
++        src/core.cpp
++        src/score_interface.cpp
++        src/settings.cpp
++        src/stop_signal.cpp
++)
++
++target_include_directories(de4sdv_score_interface
++        PUBLIC
++        ${CMAKE_CURRENT_SOURCE_DIR}/include
++        ${DE4SDV_DA_INTERFACES_INCLUDE_DIR}
++)
++
++target_link_libraries(de4sdv_score_interface
++        PUBLIC
++        common
++        camera_interface
++        vehicle_interface
++        opencv_core
++        ${DE4SDV_SCORE_BINDINGS}
++)
++
++target_compile_features(de4sdv_score_interface PUBLIC cxx_std_17)
+diff --git a/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/core.hpp b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/core.hpp
+new file mode 100644
+index 00000000..593a8c8e
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/core.hpp
+@@ -0,0 +1,186 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
++//
++// The module's logic, free of upstream types, OpenCV, mw::com and CARLA. The adapters on upstream's seams
++// (score_camera_interface.hpp, score_vehicle_interface.hpp, score_warning_request_publisher.hpp) delegate to it.
++#pragma once
++
++#include <cstddef>
++#include <cstdint>
++#include <functional>
++#include <mutex>
++#include <string>
++#include <utility>
++
++#include "de4sdv/driver_assistance/payloads.h"
++#include "de4sdv/score_interface/seams.hpp"
++
++namespace de4sdv::score_interface {
++
++// One JSON object per line; empty when the run keeps no event log.
++using LineLog = std::function<void(const std::string&)>;
++
++// The capture time of the frame of the current pass of the loop (MAP-DRIVING-DA-CAMERA-IMAGE: "the module keeps its
++// capture time ... and the vehicle interface and the warning request publisher read it in the same pass"). Only the
++// loop thread touches it: the camera interface sets it when get_latest_frame() hands on an image, the vehicle
++// interface and the warning request publisher read it later in that pass.
++struct PassClock {
++  bool valid = false;
++  double capture_time_s = 0.0;  // simulation s
++  std::uint64_t frame = 0;      // the simulator's frame number of the image
++};
++
++// A single slot that keeps only the newest item. Put() replaces an unread item and counts it as dropped, as
++// upstream's ROS 2 camera interface counts a replaced frame (camera_ros2_interface.cpp:95-100). Put() runs on the
++// producer's thread, Take() on the loop's.
++template <typename T>
++class LatestSlot {
++ public:
++  // Returns true when the item replaced an unread one; that one goes to *replaced if given.
++  bool Put(T item, T* replaced = nullptr) {
++    std::lock_guard<std::mutex> lock(mutex_);
++    ++received_;
++    const bool dropped = full_;
++    if (dropped) {
++      ++dropped_;
++      if (replaced != nullptr) *replaced = std::move(item_);
++    }
++    item_ = std::move(item);
++    full_ = true;
++    return dropped;
++  }
++  bool Take(T* out) {
++    std::lock_guard<std::mutex> lock(mutex_);
++    if (!full_) return false;
++    *out = std::move(item_);
++    item_ = T{};
++    full_ = false;
++    return true;
++  }
++  std::uint64_t received() const {
++    std::lock_guard<std::mutex> lock(mutex_);
++    return received_;
++  }
++  std::uint64_t dropped() const {
++    std::lock_guard<std::mutex> lock(mutex_);
++    return dropped_;
++  }
++
++ private:
++  mutable std::mutex mutex_;
++  T item_{};
++  bool full_ = false;
++  std::uint64_t received_ = 0;
++  std::uint64_t dropped_ = 0;
++};
++
++// BGRA to BGR, no resampling (MAP-DRIVING-DA-CAMERA-IMAGE transformationRule). dst holds 3 * width * height bytes,
++// rows without padding. Returns false, writing nothing, for a size it cannot convert.
++bool ConvertBgraToBgr(const CameraImageView& image, std::uint8_t* dst, std::size_t dst_bytes);
++
++// |velocity| in m/s, the value VehicleInterface::read() returns (MAP-DRIVING-DA-VEHICLE-SPEED: the planner takes
++// m/s; the km/h value is the VSS typing at the port).
++double SpeedOf(const EgoVelocity& velocity);
++
++// steeringAngle = -steering[1] * 180 / pi (MAP-DRIVING-DA-COMMAND): the candidate's steering is a tyre angle in rad
++// in the sign of CARLA's steer, positive to the right; the VSS steering angle is in degrees, positive to the left.
++float SteeringAngleDegrees(double steering_rad);
++
++// One driving command with its check value (payloads.h, DrivingCommandCheckValue).
++driver_assistance::DrivingCommandEventPayload MakeDrivingCommand(double steering_rad, double acceleration,
++                                                                 double issue_time_s, std::uint32_t sequence_count);
++
++// The gate of REQ-DRIVING-044: open once a well-formed candidate record has arrived on its mw::com subscription,
++// and open from then on. Well-formed: NUL-terminated strings, 64 hex digits of SHA-256, 40 hex digits of revision,
++// a difference of more than 0 bytes (payloads.h: "never 0").
++class CandidateRecordGate {
++ public:
++  CandidateRecordGate(CandidateRecordSource* source, LineLog log);
++  bool Open();  // polls the source while closed
++  std::uint64_t rejected() const { return rejected_; }
++
++ private:
++  CandidateRecordSource* source_;
++  LineLog log_;
++  bool open_ = false;
++  std::uint64_t rejected_ = 0;
++};
++
++bool WellFormedCandidateRecord(const driver_assistance::CandidateRecordEventPayload& record);
++
++// The write of the vehicle interface (MAP-DRIVING-DA-COMMAND): adds issueTime (the capture time of the pass), a
++// sequence count from 1 in each run and the check value, and sends nothing before the record has arrived.
++class DrivingCommandWriter {
++ public:
++  struct Counters {
++    std::uint64_t sent = 0;
++    std::uint64_t send_failed = 0;               // the sequence count was used: the adapter sees a loss
++    std::uint64_t withheld_before_record = 0;
++    std::uint64_t withheld_without_capture_time = 0;
++  };
++  DrivingCommandWriter(DrivingCommandSink* sink, CandidateRecordGate* gate, const PassClock* clock, LineLog log);
++  // Returns true when a command was handed to the sink and the sink accepted it.
++  bool Write(double steering_rad, double acceleration);
++  const Counters& counters() const { return counters_; }
++
++ private:
++  DrivingCommandSink* sink_;
++  CandidateRecordGate* gate_;
++  const PassClock* clock_;
++  LineLog log_;
++  std::uint32_t last_sequence_ = 0;
++  Counters counters_{};
++};
++
++// The warning request publisher's core (MAP-DRIVING-DA-WARNING-REQUEST): one event per plan, issueTime the capture
++// time of the pass, the 8 bytes of EncodeWarningRequestSomeip.
++class WarningRequestWriter {
++ public:
++  struct Counters {
++    std::uint64_t sent = 0;
++    std::uint64_t requested = 0;  // events sent with requested = true
++    std::uint64_t send_failed = 0;
++    std::uint64_t not_encodable = 0;  // no capture time, or one EncodeWarningRequestSomeip refuses
++  };
++  WarningRequestWriter(WarningRequestSink* sink, const PassClock* clock, LineLog log);
++  bool Write(bool requested);
++  const Counters& counters() const { return counters_; }
++
++ private:
++  WarningRequestSink* sink_;
++  const PassClock* clock_;
++  LineLog log_;
++  Counters counters_{};
++};
++
++// The alive supervision of the candidate's process (the supervision decision of 2026-11-18). The loop calls
++// CycleCompleted() once in each pass with a result (a plan), after the warning hand-off. The first such pass reports
++// the process running before its alive notification, so the Launch Manager starts supervising after the network
++// sessions, the first frames and the first inference, which its ready timeout covers instead. Upstream's pipeline
++// gives no result for the first frame (inference.cpp:152-159 at the pin, a two-frame buffer), so the first inference
++// runs in the second pass, before the first call. Every such pass gives one alive notification; a pass without a
++// result gives none. Once a stop is requested, no notification follows. A null client: no supervision, nothing is
++// reported.
++class CycleSupervision {
++ public:
++  CycleSupervision(LifecycleClient* client, LineLog log);
++  void CycleCompleted(bool stop_requested);
++  // Ends the supervision on the module's side: no notification after it, and one supervision.stop line.
++  void Stop();
++  std::uint64_t alive_reported() const { return alive_reported_; }
++  bool running_reported() const { return running_reported_; }
++
++ private:
++  LifecycleClient* client_;
++  LineLog log_;
++  bool started_ = false;
++  bool running_reported_ = false;
++  bool stopped_ = false;
++  bool stop_logged_ = false;
++  std::uint64_t alive_reported_ = 0;
++};
++
++// Monotonic and real time of the host, ns, for the event log (the path share of REQ-DRIVING-042 is wall-clock).
++std::int64_t MonotonicNs();
++std::int64_t RealtimeNs();
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_camera_interface.hpp b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_camera_interface.hpp
+new file mode 100644
+index 00000000..9afdd787
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_camera_interface.hpp
+@@ -0,0 +1,51 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
++//
++// SCORECameraInterface of the model: upstream's camera seam (camera_interface.hpp:18, get_latest_frame) fed by the
++// CARLA 1.0 client (MAP-DRIVING-DA-CAMERA-IMAGE). The client's thread calls OnImage(); the module converts the
++// image from BGRA to BGR there and keeps only the newest one. get_latest_frame() hands it on to the loop
++// (vision_pilot.cpp:117) and sets the pass's capture time, the simulation time of the world snapshot the image was
++// rendered in. Every image replaced unread is counted and logged as dropped.
++#pragma once
++
++#include <atomic>
++#include <cstdint>
++
++#include <camera_interface/camera_interface.hpp>
++#include <opencv2/core/mat.hpp>
++
++#include "de4sdv/score_interface/core.hpp"
++#include "de4sdv/score_interface/seams.hpp"
++
++namespace de4sdv::score_interface {
++
++class ScoreCameraInterface : public camera_interface::CameraInterface {
++ public:
++  ScoreCameraInterface(PassClock* clock, LineLog log);
++  ~ScoreCameraInterface() override = default;
++
++  // On the simulator client's thread.
++  void OnImage(const CameraImageView& image);
++  void SetOpen(bool open) { open_.store(open); }
++
++  bool is_device_open() const override { return open_.load(); }
++  // An empty Mat when no new image arrived since the last call; the pass clock is left as it is then.
++  cv::Mat get_latest_frame() override;
++  CameraStats get_camera_stats() const override;
++
++ private:
++  struct Frame {
++    cv::Mat bgr;
++    std::uint64_t frame = 0;
++    double sim_time_s = 0.0;
++  };
++  PassClock* clock_;
++  LineLog log_;
++  LatestSlot<Frame> slot_;
++  std::atomic<bool> open_{false};
++  std::atomic<std::uint64_t> handed_on_{0};
++  std::atomic<std::uint64_t> conversion_errors_{0};
++  std::atomic<std::uint32_t> width_{0};
++  std::atomic<std::uint32_t> height_{0};
++};
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_interface.hpp b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_interface.hpp
+new file mode 100644
+index 00000000..424e7663
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_interface.hpp
+@@ -0,0 +1,80 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
++//
++// The module as the loop sees it: the S-CORE branch beside vision_pilot.cpp:59-79 calls Start() when
++// source.mode = score, takes camera() and vehicle() as its two interfaces, installs the SIGTERM handler, the
++// loop hands each plan to warning_request_publisher() after the write at vision_pilot.cpp:174, and it calls
++// CycleCompleted() in each pass with a result, after that hand-off (the Launch Manager's alive supervision).
++//
++// Ownership: the object owns the simulator client, the mw::com ports and every module; camera() and vehicle() share
++// two of them. Destroy it after the loop: it stops the client first, then prints and logs the run's counters.
++#pragma once
++
++#include <cstdio>
++#include <limits>
++#include <memory>
++#include <mutex>
++#include <string>
++
++#include "de4sdv/score_interface/core.hpp"
++#include "de4sdv/score_interface/score_camera_interface.hpp"
++#include "de4sdv/score_interface/score_vehicle_interface.hpp"
++#include "de4sdv/score_interface/score_warning_request_publisher.hpp"
++#include "de4sdv/score_interface/seams.hpp"
++#include "de4sdv/score_interface/settings.hpp"
++
++namespace de4sdv::score_interface {
++
++class ScoreInterface {
++ public:
++  // Reads the settings (SettingsPath()), makes the mw::com ports, the CARLA client and the lifecycle client with the
++  // three factories of seams.hpp, attaches and starts. nullptr, with the reason on stderr, on any failure; a missing
++  // lifecycle client is no failure: the run is then unsupervised, and the log says so (supervision.off).
++  static std::unique_ptr<ScoreInterface> Start();
++  // The same from given parts; the unit tests pass fakes. lifecycle may be null, with off_reason for the log.
++  static std::unique_ptr<ScoreInterface> Start(const Settings& settings, MwComPorts ports,
++                                               std::unique_ptr<SimulatorClient> client,
++                                               std::unique_ptr<LifecycleClient> lifecycle,
++                                               const std::string& off_reason, std::string* error);
++  // Without a lifecycle client.
++  static std::unique_ptr<ScoreInterface> Start(const Settings& settings, MwComPorts ports,
++                                               std::unique_ptr<SimulatorClient> client, std::string* error);
++  ~ScoreInterface();
++  ScoreInterface(const ScoreInterface&) = delete;
++  ScoreInterface& operator=(const ScoreInterface&) = delete;
++
++  std::shared_ptr<ScoreCameraInterface> camera() const { return camera_; }
++  std::shared_ptr<ScoreVehicleInterface> vehicle() const { return vehicle_; }
++  ScoreWarningRequestPublisher& warning_request_publisher() { return *publisher_; }
++  // A pass of the loop with a result, after its warning hand-off: one alive notification (CycleSupervision), none
++  // once SIGTERM has arrived.
++  void CycleCompleted();
++  // The capture simulation time of the frame of this pass (MAP-DRIVING-DA-CAMERA-IMAGE), NaN before the first: the
++  // loop hands it to the visualization recorder, whose frames.csv then aligns by simulation time (brief item B3).
++  double pass_capture_time_s() const {
++    return clock_.valid ? clock_.capture_time_s : std::numeric_limits<double>::quiet_NaN();
++  }
++
++  // The run's counters as one JSON object.
++  std::string Summary() const;
++
++ private:
++  ScoreInterface() = default;
++  void Log(const std::string& line);
++
++  std::mutex log_mutex_;
++  std::FILE* log_file_ = nullptr;
++  LineLog log_;
++  PassClock clock_;
++  MwComPorts ports_;
++  std::unique_ptr<SimulatorClient> client_;
++  std::unique_ptr<CandidateRecordGate> gate_;
++  std::unique_ptr<DrivingCommandWriter> command_writer_;
++  std::unique_ptr<WarningRequestWriter> warning_writer_;
++  std::shared_ptr<ScoreCameraInterface> camera_;
++  std::shared_ptr<ScoreVehicleInterface> vehicle_;
++  std::unique_ptr<ScoreWarningRequestPublisher> publisher_;
++  std::unique_ptr<LifecycleClient> lifecycle_;
++  std::unique_ptr<CycleSupervision> supervision_;
++};
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_vehicle_interface.hpp b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_vehicle_interface.hpp
+new file mode 100644
+index 00000000..4e4a4107
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_vehicle_interface.hpp
+@@ -0,0 +1,39 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
++//
++// SCOREVehicleInterface of the model: upstream's vehicle seam (vehicle_interface.hpp:11, 14).
++//   read():  the ego speed in m/s from the newest world snapshot (MAP-DRIVING-DA-VEHICLE-SPEED);
++//   write(): the driving command on mw::com (MAP-DRIVING-DA-COMMAND) through DrivingCommandWriter: issueTime, a
++//            sequence count from 1, the check value, and nothing before the candidate record (REQ-DRIVING-044).
++#pragma once
++
++#include <cstdint>
++#include <functional>
++
++#include <vehicle_interface/vehicle_interface.hpp>
++
++#include "de4sdv/score_interface/core.hpp"
++#include "de4sdv/score_interface/seams.hpp"
++
++namespace de4sdv::score_interface {
++
++class ScoreVehicleInterface : public VehicleInterface {
++ public:
++  using SpeedSource = std::function<bool(EgoVelocity*)>;
++  ScoreVehicleInterface(SpeedSource speed_source, DrivingCommandWriter* writer, LineLog log);
++  ~ScoreVehicleInterface() override = default;
++
++  // 0.0 while the client holds no snapshot of the hero yet (counted).
++  double read() override;
++  // steering: the plan's steering[1], a tyre angle in rad; acceleration in m/s^2 (vision_pilot.cpp:174).
++  void write(double steering, double acceleration) override;
++
++  std::uint64_t speed_unavailable() const { return speed_unavailable_; }
++
++ private:
++  SpeedSource speed_source_;
++  DrivingCommandWriter* writer_;
++  LineLog log_;
++  std::uint64_t speed_unavailable_ = 0;
++};
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_warning_request_publisher.hpp b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_warning_request_publisher.hpp
+new file mode 100644
+index 00000000..3436a7e5
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_warning_request_publisher.hpp
+@@ -0,0 +1,28 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
++//
++// SCOREWarningRequestPublisher of the model: the one hand-off of the plan's warnings added in the loop after
++// vision_pilot.cpp:174 (MAP-DRIVING-DA-PLANNED-WARNINGS in, MAP-DRIVING-DA-WARNING-REQUEST out). One event per plan:
++// requested is true when the plan's warnings hold FCW or AEB (planning.cpp:113-121), issueTime is the capture time
++// of the pass. The planner is not changed.
++#pragma once
++
++#include <vector>
++
++#include <common/types.hpp>
++
++#include "de4sdv/score_interface/core.hpp"
++
++namespace de4sdv::score_interface {
++
++bool HoldsForwardCollisionWarningOrEmergencyBraking(const std::vector<Warning>& warnings);
++
++class ScoreWarningRequestPublisher {
++ public:
++  explicit ScoreWarningRequestPublisher(WarningRequestWriter* writer);
++  void Publish(const Plan& plan);
++
++ private:
++  WarningRequestWriter* writer_;
++};
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/seams.hpp b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/seams.hpp
+new file mode 100644
+index 00000000..88448fd7
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/seams.hpp
+@@ -0,0 +1,115 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
++//
++// The three seams of the module. Everything behind them is a separate translation unit that only the S-CORE Bazel
++// build compiles:
++//   - SimulatorClient: the CARLA 1.0 C++ client (src/carla_client.cpp, C++20);
++//   - MwComPorts: the LoLa/mw::com skeletons and the proxy (src/lola_bindings.cpp, C++17);
++//   - LifecycleClient: S-CORE Lifecycle's report_running and Alive API (src/lifecycle_bindings.cpp, C++17).
++// The module's own units see only these abstract interfaces, so the unit tests replace them with fakes.
++#pragma once
++
++#include <cstddef>
++#include <cstdint>
++#include <functional>
++#include <memory>
++#include <string>
++
++#include "de4sdv/driver_assistance/payloads.h"
++
++namespace de4sdv::score_interface {
++
++// One front-camera image as the simulator client delivers it (MAP-DRIVING-DA-CAMERA-IMAGE, "in"): 8-bit BGRA
++// pixels, the frame number and the simulation time of the world snapshot the image was rendered in. The pixels are
++// valid only during the callback.
++struct CameraImageView {
++  std::uint64_t frame = 0;
++  double sim_time_s = 0.0;
++  int width = 0;
++  int height = 0;
++  std::size_t row_bytes = 0;  // bytes per row, at least 4 * width
++  const std::uint8_t* bgra = nullptr;
++};
++
++// The velocity of the ego vehicle in one world snapshot (MAP-DRIVING-DA-VEHICLE-SPEED, "in"), m/s.
++struct EgoVelocity {
++  std::uint64_t frame = 0;
++  double sim_time_s = 0.0;
++  double x = 0.0;
++  double y = 0.0;
++  double z = 0.0;
++};
++
++// The simulator client. It attaches to the hero and its front camera that the world side spawned; it never spawns,
++// ticks or controls anything.
++class SimulatorClient {
++ public:
++  using ImageHandler = std::function<void(const CameraImageView&)>;
++  virtual ~SimulatorClient() = default;
++  // Connects and waits for the hero and its front camera. Blocks up to the attach timeout.
++  virtual bool Attach(std::string* error) = 0;
++  // Starts listening on the front camera; the handler runs on the client's thread.
++  virtual bool Start(ImageHandler on_image, std::string* error) = 0;
++  // The hero's velocity in the newest world snapshot the client holds; false if there is none.
++  virtual bool NewestEgoVelocity(EgoVelocity* out) = 0;
++  virtual void Stop() = 0;  // idempotent
++};
++
++// mw::com, one port per event of the S-CORE path (interfaces/ICD.md).
++class DrivingCommandSink {  // de4sdv/driver_assistance/driving_command, MAP-DRIVING-DA-COMMAND
++ public:
++  virtual ~DrivingCommandSink() = default;
++  virtual bool Send(const driver_assistance::DrivingCommandEventPayload& payload) = 0;
++};
++
++class WarningRequestSink {  // de4sdv/driver_assistance/warning_request, MAP-DRIVING-DA-WARNING-REQUEST
++ public:
++  virtual ~WarningRequestSink() = default;
++  // The 8 SOME/IP bytes of EncodeWarningRequestSomeip, as they are.
++  virtual bool Send(const std::uint8_t* bytes, std::size_t size) = 0;
++};
++
++class CandidateRecordSource {  // de4sdv/driver_assistance/candidate_record, MAP-DRIVING-DA-CANDIDATE-RECORD
++ public:
++  virtual ~CandidateRecordSource() = default;
++  // Non-blocking: the newest sample received since the last call, if any.
++  virtual bool TakeNewest(driver_assistance::CandidateRecordEventPayload* out) = 0;
++};
++
++struct MwComPorts {
++  std::unique_ptr<DrivingCommandSink> command;
++  std::unique_ptr<WarningRequestSink> warning;
++  std::unique_ptr<CandidateRecordSource> record;
++};
++
++struct CarlaSettings {
++  std::string host;
++  int port = 2000;
++  double timeout_s = 10.0;
++  double attach_timeout_s = 300.0;
++  std::string hero_role;
++  std::string camera_role;
++};
++
++// The Launch Manager of S-CORE Lifecycle v0.10.0 as the module sees it, for the supervision decision of 2026-11-18:
++// the Launch Manager supervises the candidate's process by its alive notifications.
++class LifecycleClient {
++ public:
++  virtual ~LifecycleClient() = default;
++  // score_mw_lifecycle_report_running(): the process is ready; the Launch Manager then starts its alive supervision.
++  virtual bool ReportRunning() = 0;
++  // score::mw::lifecycle::Alive::ReportAlive(): one alive notification. Called from one thread only.
++  virtual void ReportAlive() = 0;
++};
++
++// Defined in src/lifecycle_bindings.cpp (S-CORE Lifecycle v0.10.0). nullptr, with the reason, when the Launch Manager
++// did not start this process as a supervised component (LCM_ALIVE_INTERFACE_PATH unset) or the Alive instance fails.
++std::unique_ptr<LifecycleClient> MakeLifecycleClient(std::string* reason);
++
++// Defined in src/carla_client.cpp (C++20, CARLA 1.0 client library).
++std::unique_ptr<SimulatorClient> MakeCarlaClient(const CarlaSettings& settings);
++
++// Defined in src/lola_bindings.cpp (mw::com). Initializes the mw::com runtime with the given configuration, offers
++// the two skeletons and starts finding the candidate record service. Ports are null on failure, with the reason.
++MwComPorts MakeLolaPorts(const std::string& mw_com_config_path, std::string* error);
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/settings.hpp b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/settings.hpp
+new file mode 100644
+index 00000000..f228fbea
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/settings.hpp
+@@ -0,0 +1,29 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
++//
++// The DE4SDV interface configuration, a key=value file in the format of upstream's vision_pilot.conf. The identity
++// recorder hashes it with the other configuration files (MAP-DRIVING-DA-CANDIDATE-RECORD).
++#pragma once
++
++#include <string>
++
++#include "de4sdv/score_interface/seams.hpp"
++
++namespace de4sdv::score_interface {
++
++inline constexpr const char* kSettingsPathVariable = "DE4SDV_SCORE_INTERFACE_CONFIG";
++inline constexpr const char* kDefaultSettingsPath = "config/de4sdv_score_interface.conf";
++
++struct Settings {
++  std::string mw_com_config;  // mw_com.config, required
++  CarlaSettings carla;        // carla.host, carla.hero_role, carla.camera_role required
++  std::string log_path;       // log.path, optional: JSON lines of every event the module sends or receives
++};
++
++// Reads the file; false with the reason on a missing file, a malformed line, a missing required key, an unknown
++// key or a value out of range.
++bool LoadSettings(const std::string& path, Settings* out, std::string* error);
++
++// The path from DE4SDV_SCORE_INTERFACE_CONFIG, else config/de4sdv_score_interface.conf in the working directory.
++std::string SettingsPath();
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/stop_signal.hpp b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/stop_signal.hpp
+new file mode 100644
+index 00000000..5d76fd58
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/stop_signal.hpp
+@@ -0,0 +1,16 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
++//
++// A clean exit from the main loop on SIGTERM, the signal the Launch Manager stops a process with. At the pin only
++// video mode leaves the loop (vision_pilot.cpp:120); with this flag the loop breaks and upstream's shutdown after
++// it runs, Rerun::shutdown() among it (vision_pilot.cpp:189). The handler only sets a flag.
++#pragma once
++
++namespace de4sdv::score_interface {
++
++// Installs the SIGTERM handler. Returns false if sigaction fails.
++bool InstallStopHandler();
++
++// True once SIGTERM arrived after InstallStopHandler(). Async-signal-safe to set, cheap to read.
++bool StopRequested();
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/src/adapters.cpp b/VisionPilot/modules/de4sdv/score_interface/src/adapters.cpp
+new file mode 100644
+index 00000000..4f032894
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/src/adapters.cpp
+@@ -0,0 +1,111 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
++// See score_camera_interface.hpp, score_vehicle_interface.hpp and score_warning_request_publisher.hpp.
++#include <algorithm>
++#include <cstdio>
++#include <string>
++
++#include "de4sdv/score_interface/score_camera_interface.hpp"
++#include "de4sdv/score_interface/score_vehicle_interface.hpp"
++#include "de4sdv/score_interface/score_warning_request_publisher.hpp"
++
++namespace de4sdv::score_interface {
++
++namespace {
++
++std::string ImageLine(const char* kind, std::uint64_t frame, double sim_time_s) {
++  char sim[32];
++  std::snprintf(sim, sizeof sim, "%.17g", sim_time_s);
++  return std::string("{\"kind\":\"") + kind + "\",\"frame\":" + std::to_string(frame) + ",\"sim_s\":" + sim +
++         ",\"mono_ns\":" + std::to_string(MonotonicNs()) + "}";
++}
++
++}  // namespace
++
++// ── SCORECameraInterface (MAP-DRIVING-DA-CAMERA-IMAGE) ──────────────────────────────────────────────────────────
++
++ScoreCameraInterface::ScoreCameraInterface(PassClock* clock, LineLog log) : clock_(clock), log_(std::move(log)) {}
++
++void ScoreCameraInterface::OnImage(const CameraImageView& image) {
++  if (image.width <= 0 || image.height <= 0) {
++    conversion_errors_.fetch_add(1);
++    return;
++  }
++  Frame f;
++  f.bgr.create(image.height, image.width, CV_8UC3);  // continuous
++  if (!ConvertBgraToBgr(image, f.bgr.data, f.bgr.total() * f.bgr.elemSize())) {
++    conversion_errors_.fetch_add(1);
++    if (log_) log_(ImageLine("error.camera_image", image.frame, image.sim_time_s));
++    return;
++  }
++  f.frame = image.frame;
++  f.sim_time_s = image.sim_time_s;
++  width_.store(static_cast<std::uint32_t>(image.width));
++  height_.store(static_cast<std::uint32_t>(image.height));
++  if (log_) log_(ImageLine("in.camera_image", image.frame, image.sim_time_s));
++  Frame replaced;
++  if (slot_.Put(std::move(f), &replaced) && log_) {
++    log_(ImageLine("drop.camera_image", replaced.frame, replaced.sim_time_s));
++  }
++}
++
++cv::Mat ScoreCameraInterface::get_latest_frame() {
++  Frame f;
++  if (!slot_.Take(&f)) return cv::Mat();
++  clock_->valid = true;  // the capture time of this pass (loop thread only)
++  clock_->capture_time_s = f.sim_time_s;
++  clock_->frame = f.frame;
++  handed_on_.fetch_add(1);
++  if (log_) log_(ImageLine("pass.camera_image", f.frame, f.sim_time_s));
++  return f.bgr;
++}
++
++CameraStats ScoreCameraInterface::get_camera_stats() const {
++  CameraStats s{};
++  s.frames_captured = handed_on_.load();  // handed on to the loop
++  s.capture_errors = 0;
++  s.current_width = width_.load();
++  s.current_height = height_.load();
++  s.current_fps = 0.0;  // the simulator paces the images in simulation time
++  s.frames_received = slot_.received();
++  s.frames_dropped = slot_.dropped();
++  s.conversion_errors = conversion_errors_.load();
++  return s;
++}
++
++// ── SCOREVehicleInterface (MAP-DRIVING-DA-VEHICLE-SPEED, MAP-DRIVING-DA-COMMAND) ────────────────────────────────
++
++ScoreVehicleInterface::ScoreVehicleInterface(SpeedSource speed_source, DrivingCommandWriter* writer, LineLog log)
++    : speed_source_(std::move(speed_source)), writer_(writer), log_(std::move(log)) {}
++
++double ScoreVehicleInterface::read() {
++  EgoVelocity v;
++  if (!speed_source_ || !speed_source_(&v)) {
++    ++speed_unavailable_;
++    return 0.0;
++  }
++  const double speed = SpeedOf(v);
++  if (log_) {
++    char text[96];
++    std::snprintf(text, sizeof text, "\"speed_mps\":%.17g,\"sim_s\":%.17g", speed, v.sim_time_s);
++    log_(std::string("{\"kind\":\"in.vehicle_speed\",") + text + ",\"frame\":" + std::to_string(v.frame) +
++         ",\"mono_ns\":" + std::to_string(MonotonicNs()) + "}");
++  }
++  return speed;
++}
++
++void ScoreVehicleInterface::write(double steering, double acceleration) { writer_->Write(steering, acceleration); }
++
++// ── SCOREWarningRequestPublisher (MAP-DRIVING-DA-WARNING-REQUEST) ───────────────────────────────────────────────
++
++bool HoldsForwardCollisionWarningOrEmergencyBraking(const std::vector<Warning>& warnings) {
++  return std::any_of(warnings.begin(), warnings.end(),
++                     [](Warning w) { return w == Warning::FCW || w == Warning::AEB; });
++}
++
++ScoreWarningRequestPublisher::ScoreWarningRequestPublisher(WarningRequestWriter* writer) : writer_(writer) {}
++
++void ScoreWarningRequestPublisher::Publish(const Plan& plan) {
++  writer_->Write(HoldsForwardCollisionWarningOrEmergencyBraking(plan.warnings));
++}
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/src/carla_client.cpp b/VisionPilot/modules/de4sdv/score_interface/src/carla_client.cpp
+new file mode 100644
+index 00000000..5f7bd27f
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/src/carla_client.cpp
+@@ -0,0 +1,154 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
++//
++// The CARLA 1.0 client behind seams.hpp (MakeCarlaClient), the one C++20 unit of the module: the client library of
++// CARLA 1.0 builds as C++20, so the readiness probe of 2026-11-15 compiled only the unit that calls it as C++20 and
++// the rest of the process as C++17. NOT COMPILED on the DE4SDV host: it needs the CARLA 1.0 client headers and
++// libraries, which only the S-CORE Bazel build (brief item B2) provides. The calls follow that probe's client unit
++// and the closed-loop driving bench's CARLA source.
++//
++// The world side spawns the hero and its front camera and ticks the world. This client only reads: it never spawns,
++// ticks, sets settings or controls anything (the actuation adapter applies the control).
++#include <atomic>
++#include <chrono>
++#include <cstdint>
++#include <memory>
++#include <mutex>
++#include <string>
++#include <thread>
++
++#include <carla/client/Actor.h>
++#include <carla/client/ActorList.h>
++#include <carla/client/Client.h>
++#include <carla/client/Sensor.h>
++#include <carla/client/World.h>
++#include <carla/client/WorldSnapshot.h>
++#include <carla/sensor/data/Image.h>
++
++#include "de4sdv/score_interface/seams.hpp"
++
++namespace de4sdv::score_interface {
++
++namespace {
++
++namespace cc = carla::client;
++
++std::string RoleOf(const cc::Actor& actor) {
++  for (const auto& attribute : actor.GetAttributes()) {
++    if (attribute.GetId() == "role_name") return attribute.GetValue();
++  }
++  return {};
++}
++
++class CarlaClient : public SimulatorClient {
++ public:
++  explicit CarlaClient(CarlaSettings settings) : settings_(std::move(settings)) {}
++  ~CarlaClient() override { Stop(); }
++
++  bool Attach(std::string* error) override {
++    try {
++      client_ = std::make_unique<cc::Client>(settings_.host, static_cast<std::uint16_t>(settings_.port));
++      client_->SetTimeout(std::chrono::milliseconds(static_cast<long>(settings_.timeout_s * 1000.0)));
++      world_ = std::make_unique<cc::World>(client_->GetWorld());
++      const auto deadline = std::chrono::steady_clock::now() +
++                            std::chrono::milliseconds(static_cast<long>(settings_.attach_timeout_s * 1000.0));
++      for (;;) {
++        carla::SharedPtr<cc::Actor> hero;
++        carla::SharedPtr<cc::Actor> camera;
++        const auto actors = world_->GetActors();
++        for (auto it = actors->begin(); it != actors->end(); ++it) {
++          const carla::SharedPtr<cc::Actor> actor = *it;
++          const std::string role = RoleOf(*actor);
++          if (role == settings_.hero_role && actor->GetTypeId().rfind("vehicle.", 0) == 0) hero = actor;
++          if (role == settings_.camera_role && actor->GetTypeId() == "sensor.camera.rgb") camera = actor;
++        }
++        if (hero && camera) {
++          if (camera->GetParent() == nullptr || camera->GetParent()->GetId() != hero->GetId()) {
++            *error = "the camera '" + settings_.camera_role + "' is not attached to the hero";
++            return false;
++          }
++          hero_id_ = hero->GetId();
++          camera_ = std::static_pointer_cast<cc::Sensor>(camera);
++          return true;
++        }
++        if (std::chrono::steady_clock::now() >= deadline) {
++          *error = "no hero '" + settings_.hero_role + "' with a camera '" + settings_.camera_role + "'";
++          return false;
++        }
++        std::this_thread::sleep_for(std::chrono::milliseconds(200));
++      }
++    } catch (const std::exception& e) {
++      *error = std::string("CARLA client: ") + e.what();
++      return false;
++    }
++  }
++
++  bool Start(ImageHandler on_image, std::string* error) override {
++    if (!camera_) {
++      *error = "Start before Attach";
++      return false;
++    }
++    handler_ = std::move(on_image);
++    running_.store(true);
++    try {
++      camera_->Listen([this](auto data) {
++        if (!running_.load()) return;
++        const auto image = std::static_pointer_cast<carla::sensor::data::Image>(data);
++        CameraImageView view;
++        view.frame = image->GetFrame();
++        view.sim_time_s = image->GetTimestamp();  // simulation s of the world snapshot the image was rendered in
++        view.width = static_cast<int>(image->GetWidth());
++        view.height = static_cast<int>(image->GetHeight());
++        view.row_bytes = static_cast<std::size_t>(image->GetWidth()) * sizeof(carla::sensor::data::Color);
++        view.bgra = reinterpret_cast<const std::uint8_t*>(image->data());  // Color is b, g, r, a
++        handler_(view);
++      });
++    } catch (const std::exception& e) {
++      *error = std::string("CARLA client: ") + e.what();
++      return false;
++    }
++    return true;
++  }
++
++  bool NewestEgoVelocity(EgoVelocity* out) override {
++    if (!world_) return false;
++    try {
++      const cc::WorldSnapshot snapshot = world_->GetSnapshot();  // the newest snapshot the client holds
++      const auto hero = snapshot.Find(hero_id_);
++      if (!hero) return false;
++      out->frame = snapshot.GetFrame();
++      out->sim_time_s = snapshot.GetTimestamp().elapsed_seconds;
++      out->x = hero->velocity.x;
++      out->y = hero->velocity.y;
++      out->z = hero->velocity.z;
++      return true;
++    } catch (const std::exception&) {
++      return false;
++    }
++  }
++
++  void Stop() override {
++    running_.store(false);
++    try {
++      if (camera_ && camera_->IsListening()) camera_->Stop();
++    } catch (const std::exception&) {
++      // the server may be gone at shutdown
++    }
++  }
++
++ private:
++  CarlaSettings settings_;
++  std::unique_ptr<cc::Client> client_;
++  std::unique_ptr<cc::World> world_;
++  carla::SharedPtr<cc::Sensor> camera_;
++  carla::ActorId hero_id_ = 0;
++  ImageHandler handler_;
++  std::atomic<bool> running_{false};
++};
++
++}  // namespace
++
++std::unique_ptr<SimulatorClient> MakeCarlaClient(const CarlaSettings& settings) {
++  return std::make_unique<CarlaClient>(settings);
++}
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/src/core.cpp b/VisionPilot/modules/de4sdv/score_interface/src/core.cpp
+new file mode 100644
+index 00000000..db3958b7
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/src/core.cpp
+@@ -0,0 +1,205 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot). See core.hpp.
++#include "de4sdv/score_interface/core.hpp"
++
++#include <time.h>
++
++#include <cmath>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <string>
++#include <utility>
++
++namespace de4sdv::score_interface {
++
++namespace da = driver_assistance;
++
++namespace {
++
++constexpr double kPi = 3.14159265358979323846;
++
++std::int64_t ClockNs(clockid_t id) {
++  timespec ts{};
++  clock_gettime(id, &ts);
++  return static_cast<std::int64_t>(ts.tv_sec) * 1000000000LL + ts.tv_nsec;
++}
++
++// A double as the shortest text that reads back to the same value.
++std::string Number(double v) {
++  char buf[32];
++  for (int precision = 15; precision <= 17; ++precision) {
++    std::snprintf(buf, sizeof buf, "%.*g", precision, v);
++    if (std::strtod(buf, nullptr) == v) break;
++  }
++  return buf;
++}
++
++bool TerminatedHex(const char* text, std::size_t capacity, std::size_t digits) {
++  if (std::memchr(text, '\0', capacity) == nullptr) return false;
++  if (std::strlen(text) != digits) return false;
++  for (std::size_t i = 0; i < digits; ++i) {
++    const char c = text[i];
++    if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) return false;
++  }
++  return true;
++}
++
++}  // namespace
++
++std::int64_t MonotonicNs() { return ClockNs(CLOCK_MONOTONIC); }
++std::int64_t RealtimeNs() { return ClockNs(CLOCK_REALTIME); }
++
++bool ConvertBgraToBgr(const CameraImageView& image, std::uint8_t* dst, std::size_t dst_bytes) {
++  if (image.bgra == nullptr || dst == nullptr || image.width <= 0 || image.height <= 0) return false;
++  const std::size_t width = static_cast<std::size_t>(image.width);
++  const std::size_t height = static_cast<std::size_t>(image.height);
++  if (image.row_bytes < 4 * width) return false;
++  if (dst_bytes < 3 * width * height) return false;
++  for (std::size_t y = 0; y < height; ++y) {
++    const std::uint8_t* s = image.bgra + y * image.row_bytes;
++    std::uint8_t* d = dst + y * 3 * width;
++    for (std::size_t x = 0; x < width; ++x, s += 4, d += 3) {
++      d[0] = s[0];
++      d[1] = s[1];
++      d[2] = s[2];
++    }
++  }
++  return true;
++}
++
++double SpeedOf(const EgoVelocity& v) { return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
++
++float SteeringAngleDegrees(double steering_rad) {
++  return static_cast<float>(-steering_rad * 180.0 / kPi);  // MAP-DRIVING-DA-COMMAND
++}
++
++da::DrivingCommandEventPayload MakeDrivingCommand(double steering_rad, double acceleration, double issue_time_s,
++                                                  std::uint32_t sequence_count) {
++  da::DrivingCommandEventPayload p{};
++  p.acceleration = static_cast<float>(acceleration);  // unchanged (MAP-DRIVING-DA-COMMAND)
++  p.steeringAngle = SteeringAngleDegrees(steering_rad);
++  p.issueTime = issue_time_s;
++  p.sequenceCount = sequence_count;
++  p.checkValue = da::DrivingCommandCheckValue(p);
++  return p;
++}
++
++bool WellFormedCandidateRecord(const da::CandidateRecordEventPayload& r) {
++  return TerminatedHex(r.recordSha256, sizeof r.recordSha256, 64) &&
++         TerminatedHex(r.upstreamRevision, sizeof r.upstreamRevision, 40) && r.diffBytes > 0u &&
++         std::memchr(r.recordPath, '\0', sizeof r.recordPath) != nullptr && r.recordPath[0] != '\0';
++}
++
++CandidateRecordGate::CandidateRecordGate(CandidateRecordSource* source, LineLog log)
++    : source_(source), log_(std::move(log)) {}
++
++bool CandidateRecordGate::Open() {
++  if (open_) return true;
++  da::CandidateRecordEventPayload record{};
++  if (source_ == nullptr || !source_->TakeNewest(&record)) return false;
++  const bool good = WellFormedCandidateRecord(record);
++  if (!good) ++rejected_;
++  if (log_) {
++    // Only the well-formed record's strings are printed; a malformed one may lack its terminator.
++    std::string line = "{\"kind\":\"in.candidate_record\",\"accepted\":";
++    line += good ? "true" : "false";
++    if (good) {
++      line += ",\"recordSha256\":\"" + std::string(record.recordSha256) + "\",\"upstreamRevision\":\"" +
++              std::string(record.upstreamRevision) + "\",\"diffBytes\":" + std::to_string(record.diffBytes);
++    }
++    line += ",\"mono_ns\":" + std::to_string(MonotonicNs()) + ",\"real_ns\":" + std::to_string(RealtimeNs()) + "}";
++    log_(line);
++  }
++  open_ = good;
++  return open_;
++}
++
++DrivingCommandWriter::DrivingCommandWriter(DrivingCommandSink* sink, CandidateRecordGate* gate,
++                                           const PassClock* clock, LineLog log)
++    : sink_(sink), gate_(gate), clock_(clock), log_(std::move(log)) {}
++
++bool DrivingCommandWriter::Write(double steering_rad, double acceleration) {
++  if (!gate_->Open()) {  // REQ-DRIVING-044: nothing before the record has arrived
++    ++counters_.withheld_before_record;
++    return false;
++  }
++  if (!clock_->valid) {
++    ++counters_.withheld_without_capture_time;
++    return false;
++  }
++  const da::DrivingCommandEventPayload p =
++      MakeDrivingCommand(steering_rad, acceleration, clock_->capture_time_s, ++last_sequence_);
++  const bool sent = sink_->Send(p);
++  if (sent) {
++    ++counters_.sent;
++  } else {
++    ++counters_.send_failed;
++  }
++  if (log_) {
++    char crc[11];
++    std::snprintf(crc, sizeof crc, "0x%08x", p.checkValue);
++    log_(std::string("{\"kind\":\"out.driving_command\",\"seq\":") + std::to_string(p.sequenceCount) +
++         ",\"crc\":\"" + crc + "\",\"issueTime_sim_s\":" + Number(p.issueTime) +
++         ",\"frame\":" + std::to_string(clock_->frame) + ",\"acceleration\":" + Number(p.acceleration) +
++         ",\"steeringAngle_deg\":" + Number(p.steeringAngle) + ",\"sent\":" + (sent ? "true" : "false") +
++         ",\"mono_ns\":" + std::to_string(MonotonicNs()) + ",\"real_ns\":" + std::to_string(RealtimeNs()) + "}");
++  }
++  return sent;
++}
++
++WarningRequestWriter::WarningRequestWriter(WarningRequestSink* sink, const PassClock* clock, LineLog log)
++    : sink_(sink), clock_(clock), log_(std::move(log)) {}
++
++bool WarningRequestWriter::Write(bool requested) {
++  std::uint8_t bytes[da::kWarningRequestSomeipSize];
++  if (!clock_->valid || !da::EncodeWarningRequestSomeip({requested, clock_->capture_time_s}, bytes)) {
++    ++counters_.not_encodable;
++    return false;
++  }
++  const bool sent = sink_->Send(bytes, sizeof bytes);
++  if (sent) {
++    ++counters_.sent;
++    if (requested) ++counters_.requested;
++  } else {
++    ++counters_.send_failed;
++  }
++  if (log_) {
++    char hex[2 * sizeof bytes + 1];
++    for (std::size_t i = 0; i < sizeof bytes; ++i) std::snprintf(hex + 2 * i, 3, "%02x", bytes[i]);
++    log_(std::string("{\"kind\":\"out.warning_request\",\"requested\":") + (requested ? "true" : "false") +
++         ",\"issueTime_sim_s\":" + Number(clock_->capture_time_s) + ",\"frame\":" + std::to_string(clock_->frame) +
++         ",\"bytes\":\"" + hex + "\",\"sent\":" + (sent ? "true" : "false") +
++         ",\"mono_ns\":" + std::to_string(MonotonicNs()) + ",\"real_ns\":" + std::to_string(RealtimeNs()) + "}");
++  }
++  return sent;
++}
++
++CycleSupervision::CycleSupervision(LifecycleClient* client, LineLog log) : client_(client), log_(std::move(log)) {}
++
++void CycleSupervision::CycleCompleted(bool stop_requested) {
++  if (stop_requested) stopped_ = true;
++  if (client_ == nullptr || stopped_) return;
++  if (!started_) {
++    started_ = true;
++    running_reported_ = client_->ReportRunning();
++    if (log_) {
++      log_(std::string(running_reported_ ? "{\"kind\":\"supervision.start\"" : "{\"kind\":\"error.supervision\",\"what\":\"report_running failed\"") +
++           ",\"mono_ns\":" + std::to_string(MonotonicNs()) + ",\"real_ns\":" + std::to_string(RealtimeNs()) + "}");
++    }
++  }
++  client_->ReportAlive();
++  ++alive_reported_;
++}
++
++void CycleSupervision::Stop() {
++  stopped_ = true;
++  if (client_ == nullptr || stop_logged_) return;
++  stop_logged_ = true;
++  if (log_) {
++    log_("{\"kind\":\"supervision.stop\",\"alive_reported\":" + std::to_string(alive_reported_) +
++         ",\"mono_ns\":" + std::to_string(MonotonicNs()) + ",\"real_ns\":" + std::to_string(RealtimeNs()) + "}");
++  }
++}
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/src/lifecycle_bindings.cpp b/VisionPilot/modules/de4sdv/score_interface/src/lifecycle_bindings.cpp
+new file mode 100644
+index 00000000..c5d757ae
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/src/lifecycle_bindings.cpp
+@@ -0,0 +1,54 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot). See seams.hpp.
++//
++// The lifecycle client on S-CORE Lifecycle v0.10.0 (eclipse-score/lifecycle 2afae116): report_running from
++// //score/launch_manager:lifecycle_cc and the Alive API from //score/launch_manager:alive_cc, in the pattern of
++// upstream's examples/c_supervised_app/main.c:42-58 (initialize, report running, report alive in the loop). Only the
++// S-CORE Bazel build compiles this unit (brief item B2); the host's tests replace it with a fake.
++//
++// The Launch Manager sets LCM_ALIVE_INTERFACE_PATH only for a component of type Reporting_And_Supervised or
++// State_Manager. Without it the process was not started as a supervised component: the factory returns nullptr and
++// the module runs unsupervised, which its log states (supervision.off).
++#include <cstdint>
++#include <cstdlib>
++#include <exception>
++#include <memory>
++#include <string>
++#include <utility>
++
++#include "de4sdv/score_interface/seams.hpp"
++#include "score/mw/lifecycle/alive.h"
++#include "score/mw/lifecycle/report_running.h"
++
++namespace de4sdv::score_interface {
++
++namespace {
++
++constexpr const char* kAliveInstance = "de4sdv/driver_assistance/vision_pilot";  // unused by Lifecycle v0.10.0
++
++class ScoreLifecycleClient final : public LifecycleClient {
++ public:
++  explicit ScoreLifecycleClient(std::unique_ptr<score::mw::lifecycle::Alive> alive) : alive_(std::move(alive)) {}
++  bool ReportRunning() override { return score_mw_lifecycle_report_running() == 0; }
++  void ReportAlive() override { alive_->ReportAlive(); }
++
++ private:
++  std::unique_ptr<score::mw::lifecycle::Alive> alive_;
++};
++
++}  // namespace
++
++std::unique_ptr<LifecycleClient> MakeLifecycleClient(std::string* reason) {
++  const char* path = std::getenv("LCM_ALIVE_INTERFACE_PATH");
++  if (path == nullptr || path[0] == '\0') {
++    *reason = "LCM_ALIVE_INTERFACE_PATH is unset: the Launch Manager did not start this process as a supervised component";
++    return nullptr;
++  }
++  try {
++    return std::make_unique<ScoreLifecycleClient>(std::make_unique<score::mw::lifecycle::Alive>(kAliveInstance));
++  } catch (const std::exception& e) {
++    *reason = std::string("the Alive instance failed: ") + e.what();
++    return nullptr;
++  }
++}
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/src/lola_bindings.cpp b/VisionPilot/modules/de4sdv/score_interface/src/lola_bindings.cpp
+new file mode 100644
+index 00000000..1bae2535
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/src/lola_bindings.cpp
+@@ -0,0 +1,203 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
++//
++// The LoLa/mw::com bindings behind seams.hpp (MakeLolaPorts). NOT COMPILED on the DE4SDV host: it needs the S-CORE
++// Communication headers and library, which only the S-CORE Bazel build (brief item B2) provides. The calls follow the
++// API that the readiness probe of 2026-11-15 compiled (Communication 0.6.0) and the closed-loop driving bench's state
++// publisher.
++//
++// Events (interfaces/ICD.md; ids and the instance specifiers are bench proposals, the service ids live in the mw::com
++// configuration):
++//   de4sdv/driver_assistance/driving_command   skeleton, event "driving_command", DrivingCommandEventPayload
++//   de4sdv/driver_assistance/warning_request   skeleton, event "warning_request", the 8 SOME/IP bytes in a
++//                                              PreSerializedData sample for gatewayd (size = 8, data[0..8))
++//   de4sdv/driver_assistance/candidate_record  proxy, event "candidate_record", CandidateRecordEventPayload
++#include <cstring>
++#include <memory>
++#include <mutex>
++#include <optional>
++#include <string>
++#include <type_traits>
++#include <utility>
++
++#include "de4sdv/driver_assistance/payloads.h"
++#include "de4sdv/score_interface/seams.hpp"
++#include "score/mw/com/runtime.h"
++#include "score/mw/com/types.h"
++#include "score/serializer/pre_serialized_data.h"
++
++namespace de4sdv::score_interface {
++
++namespace da = driver_assistance;
++
++namespace {
++
++// OPEN: the capacity of the warning-request sample. ICD.md fixes the 8 bytes, not the container; gatewayd's null
++// serializer reads a PreSerializedData sample, whose capacity must equal the gateway's max_message_size in the
++// gateway configuration (brief item B6). 2048 is the closed-loop driving bench's value.
++constexpr std::size_t kWarningRequestSampleCapacity = 2048;
++using WarningRequestSample = score::someip_gateway::serializer::PreSerializedData<kWarningRequestSampleCapacity>;
++static_assert(std::is_standard_layout_v<WarningRequestSample>);
++static_assert(da::kWarningRequestSomeipSize <= kWarningRequestSampleCapacity);
++
++// OPEN: the subscriber's max sample count (ICD.md gives none). The record is re-published every 1 s; one sample is
++// enough. The mw::com configuration's slots must allow it.
++constexpr std::size_t kRecordMaxSampleCount = 1;
++
++constexpr const char* kCommandSpecifier = "de4sdv/driver_assistance/driving_command";
++constexpr const char* kWarningSpecifier = "de4sdv/driver_assistance/warning_request";
++constexpr const char* kRecordSpecifier = "de4sdv/driver_assistance/candidate_record";
++
++template <typename Trait>
++struct DrivingCommandService : public Trait::Base {
++  using Trait::Base::Base;
++  typename Trait::template Event<da::DrivingCommandEventPayload> driving_command{*this, "driving_command"};
++};
++using DrivingCommandSkeleton = score::mw::com::AsSkeleton<DrivingCommandService>;
++
++template <typename Trait>
++struct WarningRequestService : public Trait::Base {
++  using Trait::Base::Base;
++  typename Trait::template Event<WarningRequestSample> warning_request{*this, "warning_request"};
++};
++using WarningRequestSkeleton = score::mw::com::AsSkeleton<WarningRequestService>;
++
++template <typename Trait>
++struct CandidateRecordService : public Trait::Base {
++  using Trait::Base::Base;
++  typename Trait::template Event<da::CandidateRecordEventPayload> candidate_record{*this, "candidate_record"};
++};
++using CandidateRecordProxy = score::mw::com::AsProxy<CandidateRecordService>;
++
++class LolaCommandSink : public DrivingCommandSink {
++ public:
++  explicit LolaCommandSink(DrivingCommandSkeleton skeleton) : skeleton_(std::move(skeleton)) {}
++  ~LolaCommandSink() override { skeleton_.StopOfferService(); }
++  bool Send(const da::DrivingCommandEventPayload& payload) override {
++    auto slot = skeleton_.driving_command.Allocate();
++    if (!slot.has_value()) return false;
++    auto sample = std::move(slot).value();
++    *sample = payload;
++    return skeleton_.driving_command.Send(std::move(sample)).has_value();
++  }
++
++ private:
++  DrivingCommandSkeleton skeleton_;
++};
++
++class LolaWarningSink : public WarningRequestSink {
++ public:
++  explicit LolaWarningSink(WarningRequestSkeleton skeleton) : skeleton_(std::move(skeleton)) {}
++  ~LolaWarningSink() override { skeleton_.StopOfferService(); }
++  bool Send(const std::uint8_t* bytes, std::size_t size) override {
++    if (size > kWarningRequestSampleCapacity) return false;
++    auto slot = skeleton_.warning_request.Allocate();
++    if (!slot.has_value()) return false;
++    auto sample = std::move(slot).value();
++    sample->size = size;  // gatewayd copies data[0..size) onto the SOME/IP payload, no prefix
++    std::memcpy(sample->data, bytes, size);
++    return skeleton_.warning_request.Send(std::move(sample)).has_value();
++  }
++
++ private:
++  WarningRequestSkeleton skeleton_;
++};
++
++// Finds the record service asynchronously; the loop thread creates the proxy and subscribes in TakeNewest(), as the
++// closed-loop bench's state publisher does, so every proxy call happens on one thread.
++class LolaRecordSource : public CandidateRecordSource {
++ public:
++  using HandleType = CandidateRecordProxy::HandleType;
++  ~LolaRecordSource() override {
++    if (find_handle_.has_value()) static_cast<void>(CandidateRecordProxy::StopFindService(find_handle_.value()));
++  }
++  bool StartFind(std::string* error) {
++    auto specifier = score::mw::com::InstanceSpecifier::Create(std::string{kRecordSpecifier});
++    if (!specifier.has_value()) {
++      *error = std::string("instance specifier ") + kRecordSpecifier;
++      return false;
++    }
++    auto started = CandidateRecordProxy::StartFindService(
++        [this](score::mw::com::ServiceHandleContainer<HandleType> handles, score::mw::com::FindServiceHandle) {
++          std::lock_guard<std::mutex> lock(mutex_);
++          if (handle_.has_value() || handles.empty()) return;
++          handle_.emplace(handles.front());
++        },
++        specifier.value());
++    if (!started.has_value()) {
++      *error = "StartFindService " + std::string(kRecordSpecifier);
++      return false;
++    }
++    find_handle_.emplace(started.value());
++    return true;
++  }
++  bool TakeNewest(da::CandidateRecordEventPayload* out) override {
++    if (!proxy_) {
++      std::optional<HandleType> handle;
++      {
++        std::lock_guard<std::mutex> lock(mutex_);
++        handle = handle_;
++      }
++      if (!handle.has_value()) return false;
++      auto created = CandidateRecordProxy::Create(handle.value());
++      if (!created.has_value()) return false;
++      proxy_ = std::make_unique<CandidateRecordProxy>(std::move(created).value());
++      if (!proxy_->candidate_record.Subscribe(kRecordMaxSampleCount).has_value()) {
++        proxy_.reset();
++        return false;
++      }
++    }
++    bool got = false;
++    static_cast<void>(proxy_->candidate_record.GetNewSamples(
++        [&](score::mw::com::SamplePtr<da::CandidateRecordEventPayload> sample) {
++          *out = *sample;
++          got = true;
++        },
++        kRecordMaxSampleCount));
++    return got;
++  }
++
++ private:
++  std::mutex mutex_;
++  std::optional<HandleType> handle_;
++  std::optional<score::mw::com::FindServiceHandle> find_handle_;
++  std::unique_ptr<CandidateRecordProxy> proxy_;
++};
++
++template <typename Skeleton>
++std::optional<Skeleton> Offer(const char* specifier_text, std::string* error) {
++  auto specifier = score::mw::com::InstanceSpecifier::Create(std::string{specifier_text});
++  if (!specifier.has_value()) {
++    *error = std::string("instance specifier ") + specifier_text;
++    return std::nullopt;
++  }
++  auto created = Skeleton::Create(specifier.value());
++  if (!created.has_value()) {
++    *error = std::string("skeleton ") + specifier_text;
++    return std::nullopt;
++  }
++  Skeleton skeleton = std::move(created).value();
++  if (!skeleton.OfferService().has_value()) {
++    *error = std::string("OfferService ") + specifier_text;
++    return std::nullopt;
++  }
++  return std::optional<Skeleton>(std::move(skeleton));
++}
++
++}  // namespace
++
++MwComPorts MakeLolaPorts(const std::string& mw_com_config_path, std::string* error) {
++  score::mw::com::runtime::InitializeRuntime(score::mw::com::runtime::RuntimeConfiguration{mw_com_config_path});
++  MwComPorts ports;
++  auto command = Offer<DrivingCommandSkeleton>(kCommandSpecifier, error);
++  if (!command) return ports;
++  auto warning = Offer<WarningRequestSkeleton>(kWarningSpecifier, error);
++  if (!warning) return ports;
++  auto record = std::make_unique<LolaRecordSource>();
++  if (!record->StartFind(error)) return ports;
++  ports.command = std::make_unique<LolaCommandSink>(std::move(*command));
++  ports.warning = std::make_unique<LolaWarningSink>(std::move(*warning));
++  ports.record = std::move(record);
++  return ports;
++}
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/src/score_interface.cpp b/VisionPilot/modules/de4sdv/score_interface/src/score_interface.cpp
+new file mode 100644
+index 00000000..386d5b27
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/src/score_interface.cpp
+@@ -0,0 +1,154 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot). See
++// score_interface.hpp.
++#include "de4sdv/score_interface/score_interface.hpp"
++
++#include <cstdio>
++#include <string>
++#include <utility>
++
++#include "de4sdv/score_interface/stop_signal.hpp"
++
++namespace de4sdv::score_interface {
++
++std::unique_ptr<ScoreInterface> ScoreInterface::Start() {
++  const std::string path = SettingsPath();
++  Settings settings;
++  std::string error;
++  if (!LoadSettings(path, &settings, &error)) {
++    std::fprintf(stderr, "[DE4SDV] S-CORE interface: %s\n", error.c_str());
++    return nullptr;
++  }
++  MwComPorts ports = MakeLolaPorts(settings.mw_com_config, &error);
++  if (!ports.command || !ports.warning || !ports.record) {
++    std::fprintf(stderr, "[DE4SDV] S-CORE interface: mw::com: %s\n", error.c_str());
++    return nullptr;
++  }
++  std::unique_ptr<SimulatorClient> client = MakeCarlaClient(settings.carla);
++  std::string off_reason;
++  std::unique_ptr<LifecycleClient> lifecycle = MakeLifecycleClient(&off_reason);
++  if (!lifecycle) std::fprintf(stderr, "[DE4SDV] S-CORE interface: unsupervised: %s\n", off_reason.c_str());
++  auto module = Start(settings, std::move(ports), std::move(client), std::move(lifecycle), off_reason, &error);
++  if (!module) std::fprintf(stderr, "[DE4SDV] S-CORE interface: %s\n", error.c_str());
++  return module;
++}
++
++std::unique_ptr<ScoreInterface> ScoreInterface::Start(const Settings& settings, MwComPorts ports,
++                                                      std::unique_ptr<SimulatorClient> client, std::string* error) {
++  return Start(settings, std::move(ports), std::move(client), nullptr, "no lifecycle client given", error);
++}
++
++namespace {
++
++// A reason as a JSON string body: quotes, backslashes and control characters escaped.
++std::string Escaped(const std::string& text) {
++  std::string out;
++  for (const char c : text) {
++    if (c == '"' || c == '\\') {
++      out += '\\';
++      out += c;
++    } else if (static_cast<unsigned char>(c) < 0x20) {
++      char buf[8];
++      std::snprintf(buf, sizeof buf, "\\u%04x", static_cast<unsigned>(static_cast<unsigned char>(c)));
++      out += buf;
++    } else {
++      out += c;
++    }
++  }
++  return out;
++}
++
++}  // namespace
++
++std::unique_ptr<ScoreInterface> ScoreInterface::Start(const Settings& settings, MwComPorts ports,
++                                                      std::unique_ptr<SimulatorClient> client,
++                                                      std::unique_ptr<LifecycleClient> lifecycle,
++                                                      const std::string& off_reason, std::string* error) {
++  if (!ports.command || !ports.warning || !ports.record || !client) {
++    *error = "a port or the simulator client is missing";
++    return nullptr;
++  }
++  std::unique_ptr<ScoreInterface> m(new ScoreInterface());
++  if (!settings.log_path.empty()) {
++    m->log_file_ = std::fopen(settings.log_path.c_str(), "a");
++    if (m->log_file_ == nullptr) {
++      *error = "cannot open log.path " + settings.log_path;
++      return nullptr;
++    }
++    ScoreInterface* self = m.get();
++    m->log_ = [self](const std::string& line) { self->Log(line); };
++  }
++  m->ports_ = std::move(ports);
++  m->client_ = std::move(client);
++  m->gate_ = std::make_unique<CandidateRecordGate>(m->ports_.record.get(), m->log_);
++  m->command_writer_ =
++      std::make_unique<DrivingCommandWriter>(m->ports_.command.get(), m->gate_.get(), &m->clock_, m->log_);
++  m->warning_writer_ = std::make_unique<WarningRequestWriter>(m->ports_.warning.get(), &m->clock_, m->log_);
++  m->camera_ = std::make_shared<ScoreCameraInterface>(&m->clock_, m->log_);
++  SimulatorClient* raw_client = m->client_.get();
++  m->vehicle_ = std::make_shared<ScoreVehicleInterface>(
++      [raw_client](EgoVelocity* v) { return raw_client->NewestEgoVelocity(v); }, m->command_writer_.get(), m->log_);
++  m->publisher_ = std::make_unique<ScoreWarningRequestPublisher>(m->warning_writer_.get());
++  m->lifecycle_ = std::move(lifecycle);
++  m->supervision_ = std::make_unique<CycleSupervision>(m->lifecycle_.get(), m->log_);
++
++  if (!m->client_->Attach(error)) return nullptr;
++  ScoreCameraInterface* camera = m->camera_.get();
++  if (!m->client_->Start([camera](const CameraImageView& image) { camera->OnImage(image); }, error)) {
++    return nullptr;
++  }
++  m->camera_->SetOpen(true);
++  m->Log(std::string("{\"kind\":\"start\",\"mono_ns\":") + std::to_string(MonotonicNs()) +
++         ",\"real_ns\":" + std::to_string(RealtimeNs()) + "}");
++  if (!m->lifecycle_) {
++    m->Log("{\"kind\":\"supervision.off\",\"reason\":\"" + Escaped(off_reason) + "\",\"mono_ns\":" +
++           std::to_string(MonotonicNs()) + ",\"real_ns\":" + std::to_string(RealtimeNs()) + "}");
++  }
++  return m;
++}
++
++void ScoreInterface::CycleCompleted() {
++  if (supervision_) supervision_->CycleCompleted(StopRequested());
++}
++
++ScoreInterface::~ScoreInterface() {
++  if (supervision_) supervision_->Stop();  // no alive notification after this
++  if (client_) client_->Stop();  // no image callback after this
++  const std::string summary = Summary();
++  std::fprintf(stderr, "[DE4SDV] S-CORE interface summary %s\n", summary.c_str());
++  Log(summary);
++  if (log_file_ != nullptr) std::fclose(log_file_);
++}
++
++void ScoreInterface::Log(const std::string& line) {
++  std::lock_guard<std::mutex> lock(log_mutex_);
++  if (log_file_ == nullptr) return;
++  std::fputs(line.c_str(), log_file_);
++  std::fputc('\n', log_file_);
++  std::fflush(log_file_);
++}
++
++std::string ScoreInterface::Summary() const {
++  const CameraStats cs = camera_ ? camera_->get_camera_stats() : CameraStats{};
++  const DrivingCommandWriter::Counters cc = command_writer_ ? command_writer_->counters() : DrivingCommandWriter::Counters{};
++  const WarningRequestWriter::Counters wc = warning_writer_ ? warning_writer_->counters() : WarningRequestWriter::Counters{};
++  std::string s = "{\"kind\":\"summary\"";
++  s += ",\"images_received\":" + std::to_string(cs.frames_received);
++  s += ",\"images_dropped\":" + std::to_string(cs.frames_dropped);
++  s += ",\"images_handed_on\":" + std::to_string(cs.frames_captured);
++  s += ",\"image_conversion_errors\":" + std::to_string(cs.conversion_errors);
++  s += ",\"commands_sent\":" + std::to_string(cc.sent);
++  s += ",\"commands_send_failed\":" + std::to_string(cc.send_failed);
++  s += ",\"commands_withheld_before_record\":" + std::to_string(cc.withheld_before_record);
++  s += ",\"commands_withheld_without_capture_time\":" + std::to_string(cc.withheld_without_capture_time);
++  s += ",\"candidate_records_rejected\":" + std::to_string(gate_ ? gate_->rejected() : 0);
++  s += ",\"warning_events_sent\":" + std::to_string(wc.sent);
++  s += ",\"warning_events_requested\":" + std::to_string(wc.requested);
++  s += ",\"warning_events_send_failed\":" + std::to_string(wc.send_failed);
++  s += ",\"warning_events_not_encodable\":" + std::to_string(wc.not_encodable);
++  s += ",\"speed_unavailable\":" + std::to_string(vehicle_ ? vehicle_->speed_unavailable() : 0);
++  s += ",\"alive_reported\":" + std::to_string(supervision_ ? supervision_->alive_reported() : 0);
++  s += ",\"mono_ns\":" + std::to_string(MonotonicNs()) + "}";
++  return s;
++}
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/src/settings.cpp b/VisionPilot/modules/de4sdv/score_interface/src/settings.cpp
+new file mode 100644
+index 00000000..097b9031
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/src/settings.cpp
+@@ -0,0 +1,104 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot). See settings.hpp.
++#include "de4sdv/score_interface/settings.hpp"
++
++#include <cstdlib>
++#include <fstream>
++#include <map>
++#include <string>
++
++namespace de4sdv::score_interface {
++
++namespace {
++
++std::string Trim(const std::string& s) {
++  const auto a = s.find_first_not_of(" \t\r\n");
++  if (a == std::string::npos) return "";
++  return s.substr(a, s.find_last_not_of(" \t\r\n") - a + 1);
++}
++
++bool ParseNumber(const std::string& text, double low, double high, double* out) {
++  char* end = nullptr;
++  const double v = std::strtod(text.c_str(), &end);
++  if (end == text.c_str() || *end != '\0' || !(v >= low && v <= high)) return false;
++  *out = v;
++  return true;
++}
++
++}  // namespace
++
++bool LoadSettings(const std::string& path, Settings* out, std::string* error) {
++  std::ifstream file(path);
++  if (!file) {
++    *error = "cannot open " + path;
++    return false;
++  }
++  std::map<std::string, std::string> kv;
++  std::string line;
++  int number = 0;
++  while (std::getline(file, line)) {
++    ++number;
++    line = Trim(line);
++    if (line.empty() || line[0] == '#') continue;
++    const auto eq = line.find('=');
++    if (eq == std::string::npos || Trim(line.substr(0, eq)).empty()) {
++      *error = path + ":" + std::to_string(number) + ": expected key = value";
++      return false;
++    }
++    kv[Trim(line.substr(0, eq))] = Trim(line.substr(eq + 1));
++  }
++  static const char* const kKnown[] = {"mw_com.config",     "carla.host",      "carla.port",
++                                       "carla.timeout_s",   "carla.attach_timeout_s",
++                                       "carla.hero_role",   "carla.camera_role", "log.path"};
++  for (const auto& entry : kv) {
++    bool known = false;
++    for (const char* k : kKnown) known = known || entry.first == k;
++    if (!known) {
++      *error = path + ": unknown key " + entry.first;
++      return false;
++    }
++  }
++  for (const char* k : {"mw_com.config", "carla.host", "carla.hero_role", "carla.camera_role"}) {
++    const auto it = kv.find(k);
++    if (it == kv.end() || it->second.empty()) {
++      *error = path + ": missing required key " + k;
++      return false;
++    }
++  }
++  Settings s;
++  s.mw_com_config = kv["mw_com.config"];
++  s.carla.host = kv["carla.host"];
++  s.carla.hero_role = kv["carla.hero_role"];
++  s.carla.camera_role = kv["carla.camera_role"];
++  if (kv.count("log.path") != 0) s.log_path = kv["log.path"];
++  double v = 0.0;
++  if (kv.count("carla.port") != 0) {
++    if (!ParseNumber(kv["carla.port"], 1.0, 65535.0, &v) || v != static_cast<int>(v)) {
++      *error = path + ": carla.port must be an integer from 1 to 65535";
++      return false;
++    }
++    s.carla.port = static_cast<int>(v);
++  }
++  if (kv.count("carla.timeout_s") != 0) {
++    if (!ParseNumber(kv["carla.timeout_s"], 0.1, 600.0, &v)) {
++      *error = path + ": carla.timeout_s must be from 0.1 to 600";
++      return false;
++    }
++    s.carla.timeout_s = v;
++  }
++  if (kv.count("carla.attach_timeout_s") != 0) {
++    if (!ParseNumber(kv["carla.attach_timeout_s"], 0.1, 3600.0, &v)) {
++      *error = path + ": carla.attach_timeout_s must be from 0.1 to 3600";
++      return false;
++    }
++    s.carla.attach_timeout_s = v;
++  }
++  *out = s;
++  return true;
++}
++
++std::string SettingsPath() {
++  const char* path = std::getenv(kSettingsPathVariable);
++  return (path != nullptr && path[0] != '\0') ? path : kDefaultSettingsPath;
++}
++
++}  // namespace de4sdv::score_interface
+diff --git a/VisionPilot/modules/de4sdv/score_interface/src/stop_signal.cpp b/VisionPilot/modules/de4sdv/score_interface/src/stop_signal.cpp
+new file mode 100644
+index 00000000..5b477d16
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/src/stop_signal.cpp
+@@ -0,0 +1,30 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot). See stop_signal.hpp.
++#include "de4sdv/score_interface/stop_signal.hpp"
++
++#include <signal.h>
++
++#include <csignal>
++#include <cstring>
++
++namespace de4sdv::score_interface {
++
++namespace {
++
++volatile std::sig_atomic_t g_stop = 0;
++
++extern "C" void OnStopSignal(int /*signal*/) { g_stop = 1; }
++
++}  // namespace
++
++bool InstallStopHandler() {
++  struct sigaction action;
++  std::memset(&action, 0, sizeof action);
++  action.sa_handler = OnStopSignal;
++  sigemptyset(&action.sa_mask);
++  action.sa_flags = 0;  // no SA_RESTART: a blocking call returns EINTR and the loop gets to the flag
++  return sigaction(SIGTERM, &action, nullptr) == 0;
++}
++
++bool StopRequested() { return g_stop != 0; }
++
++}  // namespace de4sdv::score_interface

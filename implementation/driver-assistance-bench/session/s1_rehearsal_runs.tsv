@@ -1,0 +1,6 @@
+# The run list of the two-host rehearsal of s1 (da_session.sh --kind s1 --rehearsal --runs <this file>; README,
+# "A rehearsal"): the first judged setting's first run, then the further run in which the S-CORE path is stopped.
+# Every line is a line of s1_runs.tsv. One run a line: <run id> TAB <run>. Not evidence: session.json says
+# rehearsal: true.
+SC-DRIVING-012@20	r1
+stop	further

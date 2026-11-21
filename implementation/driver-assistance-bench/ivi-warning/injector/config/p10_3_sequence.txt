@@ -1,0 +1,29 @@
+# DE4SDV driver-assistance bench (INC-DRIVING-002): the default sequence of injected warning requests for P10-3
+# (ivi-warning/scripts/inject_warning_requests.sh). Evidence of the warning path, not of the candidate (brief R1).
+#
+# <offset_s from the end of the lead-in> <requested> <issue_time_sim_s>
+# Ten warnings: a false first (the app treats a first true as after a false; the session restarts the app before
+# the window anyway), then each true held 3 s and each false 4 s, so every edge has the display's and the
+# sound's 0.1 s well behind it before the next. Issue times are invented simulation times from 1000 s, unique
+# whole milliseconds, so each guest receipt matches one send by its 8 bytes. Synthetic values, not a run's.
+0.0   false 1000.000
+2.0   true  1002.000
+5.0   false 1005.000
+9.0   true  1009.000
+12.0  false 1012.000
+16.0  true  1016.000
+19.0  false 1019.000
+23.0  true  1023.000
+26.0  false 1026.000
+30.0  true  1030.000
+33.0  false 1033.000
+37.0  true  1037.000
+40.0  false 1040.000
+44.0  true  1044.000
+47.0  false 1047.000
+51.0  true  1051.000
+54.0  false 1054.000
+58.0  true  1058.000
+61.0  false 1061.000
+65.0  true  1065.000
+68.0  false 1068.000

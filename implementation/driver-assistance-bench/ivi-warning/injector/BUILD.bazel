@@ -1,0 +1,47 @@
+# DE4SDV driver-assistance bench (INC-DRIVING-002): the test publisher of the warning request for P10-3.
+#
+# For the S-CORE workspace of build item B2 (score-build/), which stages this folder as the package
+# //de4sdv_da_bench/ivi-warning/injector. The labels it needs:
+#   - S-CORE Communication v0.6.0     @score_communication//score/mw/com
+#   - the gateway's sample type       //de4sdv_da_bench/score-build/workspace:gateway_pre_serialized_data
+#   - the bench's interface headers   //de4sdv_da_bench/interfaces:driver_assistance (payloads.h)
+#   - the adapter's run log           //de4sdv_da_bench/actuation-adapter:adapter_config (run_log.h)
+# Nothing here has been built with Bazel; the host's g++ builds the pure parts (tests/).
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "mw_com_config_warning_injector.json",
+    "config/p10_3_sequence.txt",
+])
+
+cc_library(
+    name = "injector_core",
+    srcs = [
+        "injection_plan.cpp",
+        "injector_shell.cpp",
+    ],
+    hdrs = [
+        "injection_plan.h",
+        "injector_shell.h",
+    ],
+    includes = ["."],
+    deps = [
+        "//de4sdv_da_bench/actuation-adapter:adapter_config",
+        "//de4sdv_da_bench/interfaces:driver_assistance",
+    ],
+)
+
+cc_binary(
+    name = "warning_injector",
+    srcs = ["warning_injector_main.cpp"],
+    linkopts = ["-lpthread"],
+    deps = [
+        ":injector_core",
+        "//de4sdv_da_bench/interfaces:driver_assistance",
+        "//de4sdv_da_bench/score-build/workspace:gateway_pre_serialized_data",
+        "@score_communication//score/mw/com",
+    ],
+)
