@@ -742,11 +742,12 @@ systemd-run --user --unit=da-chase-$SID --collect --working-directory="$PWD" \
   /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
   /bin/bash $S/fetch_chase.sh "$HOME/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_$SID"
 # then read sim/fetch_chase/fetch_chase.json: result ok, vm_status_after TERMINATED
-# then the candidate's visualization videos, the S-CORE host alone, once da-chase-$SID is inactive:
+# then the candidate's visualization videos, the S-CORE host alone, once da-chase-$SID is inactive (SCORE_EUR_H=0.806:
+# the same on-demand L4, which fetch_visualization.json records):
 systemd-run --user --unit=da-vis-$SID --collect --working-directory="$PWD" \
   -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
   -p StandardOutput=append:$HOME/s1-vis-$SID.out -p StandardError=append:$HOME/s1-vis-$SID.out \
-  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
+  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin SCORE_EUR_H=0.806 \
   /bin/bash $S/fetch_chase.sh --role score "$HOME/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_$SID"
 # then read score/fetch_visualization/fetch_visualization.json: result ok, vm_status_after TERMINATED
 ```
