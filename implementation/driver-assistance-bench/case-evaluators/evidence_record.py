@@ -39,8 +39,8 @@ COMPLETE = "complete"
 INCONCLUSIVE = "inconclusiveMissingEvidence"
 SCHEMA = "de4sdv.driving.retained-assistance-run-evidence.v1"
 PROPOSAL = "OBSERVABLES.md PROPOSAL, lane D: no producer writes it yet"
-NOT_PROVED = ("validation of the needs (this slice has no validation case); compliance with or approval under UN R152; "
-              "that a driver perceives the warning; the candidate's behaviour outside the settings and the runs "
+NOT_PROVED = ("validation of the needs (this slice has no validation case); compliance with or approval under UNECE R152; "
+              "that a driver perceives the warning; the candidate's behavior outside the settings and the runs "
               "recorded here; VC-DRIVING-036 and VC-DRIVING-037 are conditional on ASM-DRIVING-005, the calibration of "
               "the simulated deceleration")
 
