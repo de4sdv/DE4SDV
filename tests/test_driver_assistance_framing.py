@@ -1321,8 +1321,9 @@ def test_the_baseline_states_where_the_images_drop_and_no_rate():
     assert gpu in FILLS[5]
     # the stop clauses: after the stop the interface drops the images that the candidate no longer takes, so
     # a camera path that keeps every image does not make them judgeable (review P3 of 2026-11-21)
-    assert counts["stop"]["droppedAtStreamEnd"] > 0 and counts["stop"]["lastImageSimS"] < counts["stop"][
-        "wholeRunWindow"]["lastTickSimS"], "the stop run's image stream ends, with drops, before its last world tick"
+    assert counts["stop"]["stopInstant"]["droppedAfterStop"] > 0 and counts["stop"]["lastImageSimS"] < counts[
+        "stop"]["wholeRunWindow"]["lastTickSimS"], \
+        "after the stop instant the interface drops images, and the image stream ends before the last world tick"
     stop_clauses = ("for the stop clauses of VC-DRIVING-038 and VC-DRIVING-043 a judged window that ends at the stop "
                     "instant or a camera input that stops with the candidate, since after the stop the interface "
                     "drops the images that the candidate no longer takes")
@@ -1368,6 +1369,11 @@ def test_the_figures_of_the_baseline_come_from_the_evidence_directory():
     assert "simS" in STOP_INSTANT, "drop_counts.json states no stop instant of the run that stops the path"
     assert STOP_INSTANT["file"] == "score/out/path_stop_stop/path_stop.json"
     assert STOP_INSTANT["simS"] < _COUNTS["stop"]["lastImageSimS"] - 0.5, "the stop comes before the last image"
+    # the drops "in the last 0.8 s of its image stream, which goes on about 0.8 s after the stop instant" are the drops
+    # after the stop instant, and the stop instant follows the candidate's last driving command (review Z3)
+    assert STOP_INSTANT["droppedAfterStop"] == _COUNTS["stop"]["droppedAtStreamEnd"], STOP_INSTANT
+    assert abs(STOP_INSTANT["imageStreamAfterStopS"] - _COUNTS["stop"]["streamEndDropsWithinS"]) <= 0.05, STOP_INSTANT
+    assert STOP_INSTANT["lastCommandIssueSimS"] < STOP_INSTANT["simS"], STOP_INSTANT
     assert JUDGED == ["012_20_r1", "012_42_r1", "012_42_r2", "012_60_r1", "012_60_r2", "013_30_r1"], JUDGED
     assert not any(e["run"].startswith(("014_", "015_")) for e in _case_runs("VC-DRIVING-036")), \
         "the runs of SC-DRIVING-014 and SC-DRIVING-015 have no judged-run term"

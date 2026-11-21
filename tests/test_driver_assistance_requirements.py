@@ -400,20 +400,34 @@ def test_each_requirement_has_its_subject_one_statement_and_its_attributes():
 
 #: the evidence directory of the judged session S1, whose verdict files the statuses follow
 EVIDENCE = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z"
+#: the phase 10 slice, whose MapAssistanceEvidenceOutcomeToVerdict maps the outcome of the desk analysis
+VERIFICATION = DRIVING / "driver_assistance_verification_evidence.sysml"
 #: the status rule of the status decision of 2026-11-21: a case that reached a pass or a fail completed its
 #: verification; an inconclusive case could not complete it
 STATUS_RULE = {"pass": "Completed", "fail": "Completed", "inconclusive": "CompletedUnsuccessful"}
 
 
+def _verdict_039(outcome: str) -> str:
+    """The verdict of VC-DRIVING-039 from the outcome literal of its desk analysis, as the phase 10 slice's
+    MapAssistanceEvidenceOutcomeToVerdict maps it (review Z2 of 2026-11-21)."""
+    calc = " ".join(VERIFICATION.read_text(encoding="utf-8").split(
+        "calc def MapAssistanceEvidenceOutcomeToVerdict", 1)[1].split("}", 1)[0].split())
+    mapped = dict(re.findall(r"outcome == AssistanceEvidenceOutcome::(\w+)\? VerdictKind::(\w+)", calc))
+    other = re.search(r"else VerdictKind::(\w+);", calc)
+    assert mapped and other, "the slice's calc def has no readable map"
+    return mapped.get(outcome, other.group(1))
+
+
 def _statuses() -> dict[str, str]:
     """The verification status of each requirement after S1, derived by the status rule from the verdict of its case:
-    verdicts.json for the eight evaluated cases, analysis_039.generator.json for VC-DRIVING-039, whose two pass
-    literals map to pass (MapAssistanceEvidenceOutcomeToVerdict) and every other literal not (review Q7)."""
+    verdicts.json for the eight evaluated cases, and for VC-DRIVING-039 the outcome of analysis_039.generator.json
+    as MapAssistanceEvidenceOutcomeToVerdict maps it (review Q7 and Z2)."""
     verdicts = {vc: case["verdict"] for vc, case in json.loads(
         (EVIDENCE / "verdicts.json").read_text(encoding="utf-8"))["cases"].items()}
     outcome = json.loads((EVIDENCE / "analysis_039.generator.json").read_text(encoding="utf-8"))["outcome"]
-    verdicts["VC-DRIVING-039"] = ("pass" if outcome in ("passBoundedVerification", "passBoundedValidation")
-                                  else "inconclusive" if outcome != "errorEvidence" else "error")
+    verdicts["VC-DRIVING-039"] = _verdict_039(outcome)
+    unruled = sorted(set(verdicts.values()) - set(STATUS_RULE))
+    assert not unruled, f"the status rule of 2026-11-21 gives no status for the verdicts {unruled}"
     return {"REQ-" + vc[3:]: STATUS_RULE[verdict] for vc, verdict in sorted(verdicts.items())}
 
 
@@ -729,3 +743,14 @@ def test_the_upstream_record_gives_each_cited_file_with_its_path():
     flat = " ".join(record.split())
     for fact in RECORD_FACTS:
         assert fact in flat, fact
+
+
+def test_the_status_of_req_driving_039_follows_the_slices_map_and_the_status_rule() -> None:
+    """Review Z2 of 2026-11-21: the status of REQ-DRIVING-039 follows from the outcome of its desk analysis through
+    MapAssistanceEvidenceOutcomeToVerdict of the phase 10 slice and the status rule, so a fail would complete the
+    verification as a pass does, and only an outcome that maps to inconclusive leaves it CompletedUnsuccessful."""
+    assert STATUS_RULE[_verdict_039("passBoundedVerification")] == "Completed"
+    assert STATUS_RULE[_verdict_039("failObservedBehavior")] == "Completed"
+    assert STATUS_RULE[_verdict_039("inconclusiveMissingEvidence")] == "CompletedUnsuccessful"
+    assert STATUS_RULE[_verdict_039("blockedTargetRuntime")] == "CompletedUnsuccessful"
+    assert _verdict_039("errorEvidence") == "error"

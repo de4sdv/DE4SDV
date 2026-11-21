@@ -533,14 +533,25 @@ def test_the_case_ids_continue_the_series_and_are_unique_in_the_model() -> None:
     assert earlier and max(earlier) + 1 == NUMBERS[0], "the numbers continue the VC-DRIVING series"
 
 
+def _verdict_039(outcome: str) -> str:
+    """The verdict of VC-DRIVING-039 from the outcome literal of its desk analysis, as the phase 10 slice's
+    MapAssistanceEvidenceOutcomeToVerdict maps it (review Z2 of 2026-11-21)."""
+    calc = " ".join(SLICE.read_text(encoding="utf-8").split(
+        "calc def MapAssistanceEvidenceOutcomeToVerdict", 1)[1].split("}", 1)[0].split())
+    mapped = dict(re.findall(r"outcome == AssistanceEvidenceOutcome::(\w+)\? VerdictKind::(\w+)", calc))
+    other = re.search(r"else VerdictKind::(\w+);", calc)
+    assert mapped and other, "the slice's calc def has no readable map"
+    return mapped.get(outcome, other.group(1))
+
+
 def _requirements_with(status: str) -> str:
     """The requirements whose verification status the status rule gives from their cases' verdicts (pass or fail:
     Completed; inconclusive: CompletedUnsuccessful), listed in the guide's words (review Q7 of 2026-11-21)."""
     verdicts = {vc: case["verdict"] for vc, case in _evidence("verdicts.json")["cases"].items()}
-    outcome = _evidence("analysis_039.generator.json")["outcome"]
-    verdicts["VC-DRIVING-039"] = "pass" if outcome in ("passBoundedVerification", "passBoundedValidation") else \
-        "inconclusive"
+    verdicts["VC-DRIVING-039"] = _verdict_039(_evidence("analysis_039.generator.json")["outcome"])
     rule = {"pass": "Completed", "fail": "Completed", "inconclusive": "CompletedUnsuccessful"}
+    unruled = sorted(set(verdicts.values()) - set(rule))
+    assert not unruled, f"the status rule of 2026-11-21 gives no status for the verdicts {unruled}"
     found = ["REQ-" + vc[3:] for vc, verdict in sorted(verdicts.items()) if rule[verdict] == status]
     return ", ".join(found[:-1]) + " and " + found[-1] if len(found) > 1 else found[0]
 
@@ -1261,3 +1272,12 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
     assert "tests/test_driver_assistance_verification_evidence.py" in check
     flat = " ".join(guide.split())
     assert "The increment ended at its baseline decision." in flat and "The next model obligation is" not in flat
+
+
+def test_the_guides_status_lists_map_the_desk_analysis_as_the_slice_does() -> None:
+    """Review Z2 of 2026-11-21: the guide's status lists take the verdict of VC-DRIVING-039 from the outcome of its
+    desk analysis as MapAssistanceEvidenceOutcomeToVerdict of the slice maps it, so a fail stays a fail."""
+    assert _verdict_039("passBoundedValidation") == "pass"
+    assert _verdict_039("failObservedBehavior") == "fail"
+    assert _verdict_039("inconclusiveMissingEvidence") == "inconclusive"
+    assert _verdict_039("errorEvidence") == "error"
