@@ -11,10 +11,10 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_FAIL_AFTER_LOSS  1: the detached FAKE_FAIL_STEP reads "running" until a FAKE_LOST_AFTER loss is on record and
                      the clock has passed into a later whole second than the loss; only then does its status report
                      the failure. The session then takes the failure's time (abort's t_fail) in a later second than
-                     the preemption's insertTime, whatever its `date` makes of the insertTime's milliseconds: uutils
-                     date 0.8.0 and 0.10.0 read the fraction ".094" as ".940", and so does the date of CI's
-                     ubuntu-26.04 image (two CI runs logged losses at ".940" and ".980"). The error stays inside
-                     the second, so a failure one second on is read as after the loss on any date
+                     the preemption's insertTime, whatever its `date` prints for their milliseconds. uutils date
+                     0.10.0 prints a %3N without the fraction's leading zeros (".094" as ".940"), and so does CI's
+                     ubuntu-26.04 image (its failing runs logged losses at ".510", ".940" and ".980"). The error stays
+                     inside the second, so a failure one second on reads as after the loss there and on GNU date
   FAKE_STEP_RC       "step:rc,..."  the exit status a detached step reports (status, tail) in place of 0
   FAKE_HANG_STEP     "step:seconds"  `host_step.sh run <step>` sleeps that long before answering; a detached
                      step (`start`) reads "running" for that long after its start

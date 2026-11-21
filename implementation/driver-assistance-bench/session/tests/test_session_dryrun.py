@@ -2143,9 +2143,9 @@ def test_r12b_a_step_that_fails_after_the_score_host_was_lost_names_the_loss_and
         tmp_path: Path) -> None:
     # the 20261119T203947Z order: the L4 lost after score_start_run1, the guest step fails on the missing offer before
     # the host watch reads it; the S-CORE stop's SSH fails (rc 255) and reads the VM's state.
-    # FAKE_FAIL_AFTER_LOSS: the step fails only in a later second than the loss (87 s later in 20261119T203947Z).
-    # Without it a fast host failed it under a second after the loss, and CI's uutils date read the insertTime's
-    # ".094" as ".940": the preemption then read as after the failure (rc 5), two CI runs of five
+    # FAKE_FAIL_AFTER_LOSS: the step fails only in a later second than the loss (43 s later in 20261119T203947Z).
+    # Without it a fast host failed it in the loss's second, and CI's date printed the loss's %3N without its leading
+    # zero (".094" as ".940"): the loss then read as after the failure (rc 5), in three CI runs
     r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_LOST_AFTER=f"{L4}:tail score_start_run1",
             FAKE_FAIL_STEP="app_restart_run1", FAKE_FAIL_AFTER_LOSS="1", DA_T_HOST_WATCH_S="600")
     assert r.rc == 3, r.log
