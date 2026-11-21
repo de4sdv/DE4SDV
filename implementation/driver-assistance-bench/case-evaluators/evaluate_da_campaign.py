@@ -61,6 +61,9 @@ READINGS = [
     "EVALUATOR READING: the relative impact speed is the closing on the tick before the first targetContact",
     "EVALUATOR READING: the last driving command at a tick is the newest with issueTime_sim_s <= simTimeS",
     "EVALUATOR READING: 042 counts the warning starts up to the end of the functional part",
+    "EVALUATOR READING: 038's stop clause: a driving command reaches the actuation after the stop as an "
+    "out.ackermann_control of the actuation adapter after stopInstantMonoNs or a rise of worldSideControlCalls; the "
+    "changes of the world's control (hero.get_control(), the simulator's Ackermann controller output) are a note",
     "EVALUATOR READING: a fail on any run read gives fail, before error, blocked and inconclusive",
     "036 and 037 are conditional on ASM-DRIVING-005, the calibration of the simulated deceleration "
     "(driver_assistance_verification_evidence.sysml:299-300; plan D-S1-2); they report the requested and the read-back "

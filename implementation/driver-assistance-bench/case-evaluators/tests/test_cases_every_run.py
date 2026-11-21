@@ -152,15 +152,51 @@ def test_038_fail_on_control_applied_after_the_stop(tmp_path):
     assert res["measured"]["stopClause"]["measured"]["controlsAfterStop"] > 0
 
 
-def test_038_fail_on_a_world_control_change_after_the_stop(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(stop=dict(world_control_change_after_stop=True)))
+def _stop_ticks(tmp_path):
+    ticks = [json.loads(x) for x in next((tmp_path / "session").rglob("world_stop/simulator/world.jsonl"))
+             .read_text().splitlines() if x.strip()]
+    return [t.get("data", t) for t in ticks]
+
+
+def test_038_stop_clause_passes_while_the_simulator_regulates_under_a_held_target(tmp_path):
+    # Closure review of 44a4be29..86cadee0, R1: a tick's control is hero.get_control(), the output of CARLA's
+    # Ackermann controller, which changes under a held target with no command. The model's stop clause is "no driving
+    # command reaches the actuation after the stop" (driver_assistance_needs_requirements.sysml:298); a changed
+    # control is a note, never the fail.
+    out = judge(tmp_path)
+    controls = [t["control"]["throttle"] for t in _stop_ticks(tmp_path)]
+    assert len(set(controls[-20:])) > 1, "the synthetic simulator must regulate under the held target"
     sc = out["VC-DRIVING-038"]["measured"]["stopClause"]
-    assert sc["outcome"] == FAIL and out["VC-DRIVING-038"]["outcome"] == FAIL
+    assert sc["outcome"] == PASS, sc
+    assert out["VC-DRIVING-038"]["outcome"] == PASS
+    assert sc["measured"]["controlsAfterStop"] == 0 and sc["measured"]["controlChangesAfterStop"] > 0
+    assert any("controlChangesAfterStop" in n and "get_control()" in n for n in sc["notes"]), sc["notes"]
+
+
+def test_038_a_world_control_change_after_the_stop_alone_is_a_note(tmp_path):
+    out = judge(tmp_path, syn.s1_specs(stop=dict(world_control_change_after_stop=True, regulates=False)))
+    sc = out["VC-DRIVING-038"]["measured"]["stopClause"]
+    assert sc["outcome"] == PASS and out["VC-DRIVING-038"]["outcome"] == PASS, sc
     assert sc["measured"]["controlsAfterStop"] == 0 and sc["measured"]["controlChangesAfterStop"] > 0
 
 
+def test_038_fail_on_a_world_side_control_call_after_the_stop(tmp_path):
+    out = judge(tmp_path, syn.s1_specs(stop=dict(world_side_control_call_after_stop=True)))
+    sc = out["VC-DRIVING-038"]["measured"]["stopClause"]
+    assert "worldSideControlCallsAfterStop" in sc["measured"], sc
+    assert sc["outcome"] == FAIL and out["VC-DRIVING-038"]["outcome"] == FAIL
+    assert sc["measured"]["controlsAfterStop"] == 0 and sc["measured"]["worldSideControlCallsAfterStop"] == 1
+
+
+def test_038_stop_clause_inconclusive_on_a_tick_after_the_stop_without_world_side_control_calls(tmp_path):
+    out = judge(tmp_path, syn.s1_specs(stop=dict(tick_without_control_calls_after_stop=True)))
+    sc = out["VC-DRIVING-038"]["measured"]["stopClause"]
+    assert sc["outcome"] == INC, sc
+    assert any("worldSideControlCalls" in m for m in sc["missing"]), sc["missing"]
+
+
 def test_038_fail_on_an_actuation_after_the_stop_that_changes_nothing(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(stop=dict(commands_after_stop=True)))
+    out = judge(tmp_path, syn.s1_specs(stop=dict(commands_after_stop=True, regulates=False)))
     sc = out["VC-DRIVING-038"]["measured"]["stopClause"]
     assert sc["outcome"] == FAIL
     assert sc["measured"]["controlsAfterStop"] > 0 and sc["measured"]["controlChangesAfterStop"] == 0

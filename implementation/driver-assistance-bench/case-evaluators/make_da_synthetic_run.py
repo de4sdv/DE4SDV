@@ -96,6 +96,12 @@ class RunSpec:
     receipt_after_stop: bool = False        # stop run: a receipt after the stop
     late_receipt_after_stop: bool = False   # stop run: a request issued before the stop, read 0.5 s after it
     world_control_change_after_stop: bool = False  # stop run: the world's control changes with no adapter output
+    # The simulator's Ackermann controller regulates toward the held target on every physics step, so the control
+    # that world.jsonl records (hero.get_control()) changes on ticks that no command reaches, as on the real server
+    # (closure review of 44a4be29..86cadee0, R1: attempt 3's run1, 321 of 351 command-free ticks changed it)
+    regulates: bool = True
+    world_side_control_call_after_stop: bool = False  # stop run: the world side applies a control after the stop
+    tick_without_control_calls_after_stop: bool = False  # stop run: a tick after the stop lacks worldSideControlCalls
     no_score: bool = False
     no_world: bool = False
     broken_world_line: bool = False
@@ -170,8 +176,14 @@ def simulate(spec: RunSpec) -> dict:
             commands.append({"seq": seq, "k": k, "acceleration": new_cmd})
             warnings.append({"k": k, "requested": warning_on})
         cmd_hist.append(current_cmd)
+        if spec.regulates:
+            tick["control"]["throttle"] = round(tick["control"]["throttle"] + 0.004 * (1 + k % 3), 6)
         if spec.world_control_change_after_stop and stop_k is not None and k > stop_k + 10:
             tick["control"] = dict(tick["control"], throttle=0.3)
+        if spec.world_side_control_call_after_stop and stop_k is not None and k > stop_k + 5:
+            tick["worldSideControlCalls"] = 1      # the counter of the world side's calls (da_world_side.py:1302)
+        if spec.tick_without_control_calls_after_stop and stop_k is not None and k == stop_k + 6:
+            del tick["worldSideControlCalls"]
         ticks.append(tick)
         # Advance the world by one tick.
         if not contact_done:

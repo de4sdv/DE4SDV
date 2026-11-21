@@ -68,8 +68,8 @@ session root by its name pattern; two different copies of one file are an `error
 | `relative.centerLineOffsetM`, `relative.headingDiffDeg` | 036, 037, 042 (judged run) | |
 | `targetContact` | 037 and the functional part | |
 | `vehiclesAhead[]` | 040, 041 | **shared contract 1 (lane A6)**: per vehicle up to 300 m ahead in the direction of travel `{actorId, role, gapM, closingMps, ttcS, neededDecelMps2, inLane, overlapRatio}`. The cases read `inLane`, `gapM`, `closingMps`, and recompute the time to collision and the needed deceleration |
-| `control` `{throttle, steer, brake, handBrake}` | 038 stop clause | the control the vehicle holds at the tick |
-| `worldSideControlCalls` | 038 | 0 on every tick |
+| `control` `{throttle, steer, brake, handBrake}` | 038 stop clause, a note only | `hero.get_control()`: the output of the simulator's Ackermann controller at the tick, which changes under a held target with no command; never the criterion |
+| `worldSideControlCalls` | 038 and its stop clause | the world side's control calls on the vehicle since the run began: 0 on every tick of the 14 runs; no rise after the stop in the stop run |
 
 W-set: `setting.setting_id` (the run's setting; `stop` for the stop run), `setting.scenario`, `kind` (`run` for
 every run of `run_scenario.sh`, the stop run included), `controlOfTheHero` (the world's statement that no autopilot
@@ -185,7 +185,7 @@ for that run and names the drops. The model fixes the window as the whole run on
 |---|---|---|---|
 | 036 | judged runs of 012@20/42/60, 013@30/60 | at each functional-part tick with needed >= 5.0, the last command has `acceleration <= -5.0`; a tick with no command before it is a miss | `M/driver_assistance_needs_requirements.sysml:278` |
 | 037 | as 036 | impact (km/h) <= the limit at the approach speed; never imminent and no contact is met | `:288` |
-| 038 | the 14 runs, and the stop run's stop clause | every A `out.ackermann_control` has an A `in.driving_command` of its `seq` with `crc_ok` and an S `out.driving_command` of that `seq` whose `crc` equals `checkValue`; `controlSource` is `actuationAdapter`; `worldSideControlCalls` 0 on every tick; W-set `controlOfTheHero` present. Stop clause: no `out.ackermann_control` with `t_mono_ns` after `stopInstantMonoNs`, and W `control` constant from the frame after the last control applied before the stop | `:298` |
+| 038 | the 14 runs, and the stop run's stop clause | every A `out.ackermann_control` has an A `in.driving_command` of its `seq` with `crc_ok` and an S `out.driving_command` of that `seq` whose `crc` equals `checkValue`; `controlSource` is `actuationAdapter`; `worldSideControlCalls` 0 on every tick; W-set `controlOfTheHero` present. Stop clause (no driving command reaches the actuation after the stop): no `out.ackermann_control` with `t_mono_ns` after `stopInstantMonoNs`, and no rise of `worldSideControlCalls` on the ticks from the frame after the last control applied before the stop; the changes of W `control` on those ticks are reported as `controlChangesAfterStop`, a note | `:298` |
 | 040 | the 14 runs | every warning start falls on a tick with an imminent vehicle ahead in the lane (`vehiclesAhead`); 014/015 runs hold `guidance` | `:318` |
 | 041 | the 14 runs | as 040, for every emergency braking start | `:328` |
 | 042 | as 036 | a judged run with an imminent tick in its functional part has a warning start at or before the functional part's end; when the run has an emergency braking start, a warning start at least 1.0 s of sim time before the first one (a lead of 0.99 s fails, 1.0 s passes); a run with no emergency braking needs the warning start only. A warning still on at the braking is not asked | `:338` |
