@@ -191,6 +191,8 @@ def test_the_readme_states_where_the_images_drop_as_the_evaluators_count_them():
                    f"{span([c['wholeRunWindow']['dropped'] for c in judged])} in each judged run, the start-up drops "
                    "and the isolated drops inside the run, and none of the end of the image stream; "
                    f"{counts['stop']['wholeRunWindow']['dropped']} in the run that stops the path.",
+                   "The final verdicts come from the case evaluators at `44fe1608` (the evaluatorRevision of "
+                   "`verdicts.json`), whose `Run.drops_in` and `whole_run` are those of `508649ba`.",
                    warm_start_sentence(counts),
                    "The records show no cause of the drops."):
         assert phrase in readme, phrase

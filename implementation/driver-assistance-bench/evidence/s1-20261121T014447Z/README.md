@@ -74,7 +74,7 @@ in simulation and nothing else: a fail is a fail of that build there, and no
 outcome is a statement about compliance, approval or on-road behavior.
 
 <!-- BEGIN generated verdict table: tools/refresh_driver_assistance_s1_evidence.py -->
-Session `20261121T014447Z`, criteriaRecordIdentity `sha256:ac70a39e05e2c51962e9a335aa67d2140757907d4f06c7d0795cdb9b10f51100`, evaluatorRevision `blobs:92cca76362b09c509fe9fe6fa77b926b624d9d60668f383975594bdb7fd4248f`.
+Session `20261121T014447Z`, criteriaRecordIdentity `sha256:c84925741d1bada6e0f1b1d99aca85ebfcb07ee77effb119e13cbe41cc17e136`, evaluatorRevision `blobs:a79e202591ff4e583acaa5ca958be6b67e3931d7ee612c70ebcda23f80f3ca68`.
 
 | Case | Requirement | Outcome | Verdict |
 |---|---|---|---|
@@ -137,8 +137,10 @@ window from the run's first to its last world tick (`world.jsonl`) and count
 each `drop.camera_image` whose simulation time lies in it (`Run.drops_in` in
 `runio_da.py`, `whole_run` in `cases_da.py`): 23 to 25 in each judged run,
 the start-up drops and the isolated drops inside the run, and none of the end
-of the image stream; 32 in the run that stops the path. The records show no
-cause of the drops.
+of the image stream; 32 in the run that stops the path. The final verdicts
+come from the case evaluators at `44fe1608` (the evaluatorRevision of
+`verdicts.json`), whose `Run.drops_in` and `whole_run` are those of
+`508649ba`. The records show no cause of the drops.
 
 ## The commanded deceleration
 
