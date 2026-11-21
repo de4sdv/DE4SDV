@@ -12,7 +12,10 @@ the display frame shown.
 Alignment, all on real (UTC) time:
   * a chase frame is placed at the real time of its world tick: --tick-times (CSV sim_time_s,unix_s from the world
     side) when given, else its arrival at the recorder (<video>.frames.csv, the simulator host's clock; later than
-    the tick by the render time). Over a simulator stall the last frame is held;
+    the tick by the render time). With --tick-times only the frames inside the span of the tick times are placed:
+    the recorder keeps receiving frames after the world side's last tick, at steps no tick has, so the frames before
+    the first tick and after the last are left out and listed in the manifest (chase.left_out_outside_tick_span); a
+    frame inside the span without a tick is refused. Over a simulator stall the last frame is held;
   * a display frame is placed at t0 + pts on the IVI clock, t0 = the guest clock read just after the segment's
     screenrecord launch (segments.jsonl) plus --display-t0-correction-s (read from the clock the app shows on the
     display, when that check has been made), then moved to this host's clock with the offset the capture measured
@@ -94,6 +97,42 @@ def read_csv(path: str) -> list[dict[str, str]]:
 def pick(times: list[float], t: float) -> int:
     """Index of the newest frame at or before t (-1: none yet). Holding the last frame covers a stall."""
     return bisect.bisect_right(times, t) - 1
+
+
+def place_by_ticks(chase_sim: list[float], tick_rows: list[dict[str, str]]) -> tuple[list[int], list[float], dict]:
+    """The chase frames placed at the real time of their world tick: (their indices, their times, the frames left out).
+
+    Only the frames inside the span of the tick times are placed. The recorder keeps receiving frames after the world
+    side's last recorded tick (S1: 6 on 012_42_r1, 18 on 013_30_r1), at the variable steps of the world's
+    asynchronous mode, so the tick times have no row for them; those after the last tick and those before the first
+    are left out and listed. A frame inside the span without a tick is refused (SystemExit)."""
+    ticks = {round(float(r["sim_time_s"]), 3): float(r["unix_s"]) for r in tick_rows}
+    if not ticks:
+        sys.exit("the tick times hold no tick")
+    lo, hi = min(ticks), max(ticks)
+    idx, times, before, after, absent = [], [], [], [], []
+    for i, s in enumerate(chase_sim):
+        key = round(s, 3)
+        if key < lo:
+            before.append(s)
+        elif key > hi:
+            after.append(s)
+        elif key in ticks:
+            idx.append(i)
+            times.append(ticks[key])
+        else:
+            absent.append(s)
+    if absent:
+        sys.exit("%d chase frame(s) inside the span of the tick times (%.3f-%.3f s) have no tick, at simulation time "
+                 "%s s: refused" % (len(absent), lo, hi, ", ".join("%.3f" % s for s in absent[:10])
+                                    + (" ..." if len(absent) > 10 else "")))
+    if not idx:
+        sys.exit("no chase frame lies inside the span of the tick times (%.3f-%.3f s)" % (lo, hi))
+    left = {"count": len(before) + len(after), "before_first_tick_sim_time_s": before,
+            "after_last_tick_sim_time_s": after, "tick_span_sim_time_s": [lo, hi],
+            "rule": "only the frames inside the span of the tick times are placed by tick time; the frames before "
+                    "the first tick and after the last are left out"}
+    return idx, times, left
 
 
 def utc(t: float) -> str:
@@ -213,12 +252,13 @@ def main(argv: list[str] | None = None) -> int:
     if n_video != len(rows):
         sys.exit("the chase video has %d frames, its frames CSV %d rows" % (n_video, len(rows)))
     chase_sim = [float(r["sim_time_s"]) for r in rows]
+    left_out = None
     if a.tick_times:
-        ticks = {round(float(r["sim_time_s"]), 3): float(r["unix_s"]) for r in read_csv(a.tick_times)}
-        chase_t = [ticks[round(s, 3)] for s in chase_sim]
+        chase_idx, chase_t, left_out = place_by_ticks(chase_sim, read_csv(a.tick_times))
         chase_source = "world tick real time (--tick-times)"
     else:
         chase_t = [float(r["arrival_unix_s"]) for r in rows]
+        chase_idx = list(range(len(rows)))
         chase_source = "arrival at the recorder (simulator host clock)"
     if any(b < x for x, b in zip(chase_t, chase_t[1:])):
         sys.exit("chase frame times go backwards")
@@ -277,7 +317,7 @@ def main(argv: list[str] | None = None) -> int:
     if n < 1:
         sys.exit("the chase view and the display capture do not overlap in time")
     times = [start + k / a.fps for k in range(n)]
-    pc = [pick(chase_t, t) for t in times]
+    pc = [chase_idx[j] if j >= 0 else -1 for j in (pick(chase_t, t) for t in times)]   # a video frame index
     pd = [pick(disp_t, t) for t in times]
     pi = [pick(inset_sim, chase_sim[c]) if (a.inset and c >= 0) else -1 for c in pc]
 
@@ -375,7 +415,8 @@ def main(argv: list[str] | None = None) -> int:
         "sources": [{"path": os.path.abspath(p), "sha256": before[p]} for p in sources],
         "sources_unchanged": True,
         "chase": {"frames": len(rows), "time_source": chase_source, "first_sim_time_s": chase_sim[0],
-                  "last_sim_time_s": chase_sim[-1]},
+                  "last_sim_time_s": chase_sim[-1], "placed_frames": len(chase_idx),
+                  **({"left_out_outside_tick_span": left_out} if left_out is not None else {})},
         "display": {"segments": seg_info, "display_t0_correction_s": a.display_t0_correction_s,
                     "ivi_offset_to_host_s": off, "ivi_offset_bound_s": clock.get("capture_start", {}).get("bound_s"),
                     "t0_rule": "guest clock read just after the screenrecord launch, plus the correction",

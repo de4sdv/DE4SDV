@@ -299,3 +299,75 @@ def test_composition_skips_a_segment_not_pulled_and_lists_its_span(run_dir: Path
     assert (h["from_ivi_s"], h["to_ivi_s"]) == (pytest.approx(g1 - 0.02), pytest.approx(g1 + 1.0))
     assert [s["file"] for s in d["segments"]] == ["seg_2.mp4"]
     assert d["gap_free"] is False
+
+
+# Closure of the S1 runs, R7: the chase recorder keeps receiving frames after the world side's last recorded tick (6
+# on S1's 012_42_r1, 18 on 013_30_r1), at the variable steps of the world's asynchronous mode, so tick_times.csv has
+# no row for them. Only the frames inside the span of tick_times.csv are placed by tick time; the frames before the
+# first tick and after the last are left out and listed.
+TICK_FIRST, TICK_LAST = 2, 33          # tick_times.csv rows for chase frames 2..33
+TICK_LAG = 0.01                        # a tick's real time: T0 + its frame's sim time + this
+TRAILING = [1.65 + 0.05, 1.75, 1.769578, 1.78879, 1.80802, 1.827442]   # frames 34..39, asynchronous steps
+
+
+def _tick_run_dir(run_dir: Path, skip_tick: int | None = None, first: int = TICK_FIRST) -> Path:
+    sims = [i * 0.05 for i in range(34)] + TRAILING
+    with open(run_dir / "chase_view.mp4.frames.csv", "w") as f:
+        f.write("video_index,carla_frame,sim_time_s,arrival_unix_s\n")
+        for i, sim in enumerate(sims):
+            f.write("%d,%d,%.6f,%.6f\n" % (i, 500 + i, sim, T0 + sim + 0.03))
+    with open(run_dir / "tick_times.csv", "w") as f:
+        f.write("sim_time_s,unix_s\n")
+        for i in range(first, TICK_LAST + 1):
+            if i != skip_tick:
+                f.write("%.6f,%.6f\n" % (i * 0.05, T0 + i * 0.05 + TICK_LAG))
+    return run_dir
+
+
+def _compose_with_ticks(run_dir: Path, out: Path):
+    return subprocess.run([sys.executable, str(COMPOSE), "--chase", str(run_dir / "chase_view.mp4"),
+                           "--tick-times", str(run_dir / "tick_times.csv"),
+                           "--display-capture", str(run_dir / "cap"), "--out", str(out), "--lossless",
+                           "--duration-s", "1.0", "--start-unix", repr(T0 + START)],
+                          capture_output=True, text=True, timeout=600)
+
+
+def test_frames_outside_the_tick_span_are_left_out_and_listed(run_dir: Path) -> None:
+    _tick_run_dir(run_dir)
+    out = run_dir / "video"
+    r = _compose_with_ticks(run_dir, out)
+    assert r.returncode == 0, r.stdout + r.stderr
+    placed = list(range(TICK_FIRST, TICK_LAST + 1))
+    placed_t = [T0 + i * 0.05 + TICK_LAG for i in placed]
+    frames = luma(out / "side_by_side.mp4")
+    assert len(frames) == 21
+    for k, img in enumerate(frames):
+        j = bisect_right(placed_t, T0 + START + k / FPS) - 1
+        assert j >= 0
+        assert at(img, 120, PANE_Y + PANE_H - 40) == chase_level(placed[j]), k
+    chase = json.loads((out / "manifest.json").read_text())["chase"]
+    assert "world tick real time" in chase["time_source"]
+    left = chase["left_out_outside_tick_span"]
+    assert left["count"] == 8
+    assert left["before_first_tick_sim_time_s"] == [0.0, 0.05]
+    assert left["after_last_tick_sim_time_s"] == pytest.approx(TRAILING)
+    assert chase["placed_frames"] == len(placed)
+
+
+def test_trailing_frames_past_the_last_tick_alone_are_left_out(run_dir: Path) -> None:
+    # S1's case: every frame up to the last tick has its tick, and the recorder's last frames come after it
+    _tick_run_dir(run_dir, first=0)
+    out = run_dir / "video"
+    r = _compose_with_ticks(run_dir, out)
+    assert r.returncode == 0, r.stdout + r.stderr
+    left = json.loads((out / "manifest.json").read_text())["chase"]["left_out_outside_tick_span"]
+    assert left["count"] == 6 and left["before_first_tick_sim_time_s"] == []
+    assert left["after_last_tick_sim_time_s"] == pytest.approx(TRAILING)
+
+
+def test_a_frame_inside_the_tick_span_without_its_tick_is_refused(run_dir: Path) -> None:
+    _tick_run_dir(run_dir, skip_tick=10)
+    r = _compose_with_ticks(run_dir, run_dir / "video")
+    assert r.returncode != 0
+    assert "inside the span of the tick times" in r.stderr and "0.500" in r.stderr, r.stderr
+    assert "Traceback" not in r.stderr, r.stderr
