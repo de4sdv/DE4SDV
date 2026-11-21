@@ -27,7 +27,7 @@ from pathlib import Path
 
 import pytest
 
-from test_session_dryrun import FAKE, L4, assert_invariants  # noqa: F401
+from test_session_dryrun import FAKE, L4, _vp_env, assert_invariants, vp_clone  # noqa: F401 (the stand-in clone)
 from test_session_s1 import (FACTS_PIN, FACTS_PR427, SESSION_DIR, _staged, record, s1_run)
 
 FETCH = SESSION_DIR / "fetch_chase.sh"

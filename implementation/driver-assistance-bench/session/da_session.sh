@@ -1168,13 +1168,6 @@ for run, d in score_runs.items():
         d["candidate_rrd"] = json.load(open(os.path.join(e["IN"], "score", "out", "score_" + run, "candidate_rrd.json")))
     except (OSError, ValueError):
         d["candidate_rrd"] = None
-# the evidence record's fields no other step writes (evidence_fields.py): the configuration, the recorder's delay, the
-# S-CORE platform and GPU of every start (parsed in each run's entry here), the guest images; never fatal to the record
-try:
-    from evidence_fields import session_fields
-    evidence = session_fields(e["IN"], score_runs, e["KIND"], "guest" in e["ROLES_PLANNED"].split())
-except Exception as exc:   # noqa: BLE001 (session.json must be written whatever this read finds)
-    evidence = {"evidence_fields_error": repr(exc)}
     # the candidate's visualization recording (the owner's decision of 2026-11-17), kept on the S-CORE host: the stop's
     # record (path, sha256, bytes, frames, reason), read by case-evaluators/evidence_record.py; none fetched: a reason
     vkeys = ("path", "sha256", "bytes", "frames", "reason")
@@ -1188,6 +1181,13 @@ except Exception as exc:   # noqa: BLE001 (session.json must be written whatever
         d["visualization_recording"]["reason"] = (
             "no visualization_recording.json of this run in the fetched S-CORE output (score/out/score_%s/): the run's "
             "S-CORE stop did not run or wrote none, or the S-CORE host was not fetched" % run)
+# the evidence record's fields no other step writes (evidence_fields.py): the configuration, the recorder's delay, the
+# S-CORE platform and GPU of every start (parsed in each run's entry here), the guest images; never fatal to the record
+try:
+    from evidence_fields import session_fields
+    evidence = session_fields(e["IN"], score_runs, e["KIND"], "guest" in e["ROLES_PLANNED"].split())
+except Exception as exc:   # noqa: BLE001 (session.json must be written whatever this read finds)
+    evidence = {"evidence_fields_error": repr(exc)}
 excluded = {}
 for role in e["ROLES_ALL"].split():
     try:

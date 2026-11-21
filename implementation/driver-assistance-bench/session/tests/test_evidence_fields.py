@@ -26,7 +26,7 @@ from pathlib import Path
 import pytest
 
 from test_guest_images import KEYS as GUEST_KEYS, parse as parse_guest_image
-from test_session_dryrun import _vp_env, vp_clone  # noqa: F401 (the dry runs' fixtures)
+from test_session_dryrun import _vp_env, set_vp_env, vp_clone  # noqa: F401 (the dry runs' fixtures)
 from test_session_s1 import LABELS, record, s1_run
 
 HERE = Path(__file__).resolve().parent
@@ -254,9 +254,13 @@ def test_no_preflight_record_gives_absent_configuration_and_delay(tmp_path: Path
 
 
 @pytest.fixture(scope="module")
-def s1_default(tmp_path_factory) -> tuple:
+def s1_default(tmp_path_factory, vp_clone) -> tuple:
     tmp = tmp_path_factory.mktemp("s1ev")
-    r = s1_run(tmp, "--owner-ok-guest-host", "--permissive-ivi", "--camcal", "settings")
+    # module scope starts before the function-scoped autouse _vp_env: the stand-in clone is set here, or the session
+    # would read the host's own VisionPilot clone (the test VM and the GCC 13 image have none)
+    with pytest.MonkeyPatch.context() as mp:
+        set_vp_env(vp_clone, mp)
+        r = s1_run(tmp, "--owner-ok-guest-host", "--permissive-ivi", "--camcal", "settings")
     return r, record(r)
 
 
@@ -287,7 +291,10 @@ def test_an_s1_session_records_each_starts_platform_and_gpu(s1_default) -> None:
         assert rec["score_runs"][w]["score_gpu"]["gpus"] == [{"name": "NVIDIA L4", "driver_version": "580.178.04"}]
     assert {k: rec["score_platform"][k] for k in PLATFORM} == PLATFORM
     assert rec["execution_environment"]["score_gpu"] == "NVIDIA L4, driver 580.178.04"
-    assert rec["visualization_recorder_delay"].startswith(DELAY + " (" + EVIDENCE_SYSML + ":170-176 at ")
+    if _committed(EVIDENCE_SYSML) is None:   # a tree without git (the GCC 13 gate image): absent with the reason
+        assert "commit" in rec["visualization_recorder_delay"]["absent"], rec["visualization_recorder_delay"]
+    else:
+        assert rec["visualization_recorder_delay"].startswith(DELAY + " (" + EVIDENCE_SYSML + ":170-176 at ")
     assert "S-CORE platform of 012_20_r1: score_lifecycle@0.10.0, score_communication@0.6.0, gateway d9eac670" in r.log
 
 
@@ -311,9 +318,10 @@ def test_the_evidence_record_finds_none_of_these_attributes_empty(s1_default) ->
                        capture_output=True, text=True)
     empty = json.loads(p.stdout) if p.returncode == 0 else {}
     assert sorted(empty) == sorted(LABELS), p.stderr[-2000:]
-    ours = {"receiptSha256", "visualizationRecorderDelay", "scoreLifecycleVersion", "scoreCommunicationVersion",
-            "scoreSOMEIPGatewayCommit", "executionEnvironmentIdentity"} | \
-        ({"configurationIdentity"} if _committed(RECEIPT) is not None else set())
+    ours = {"scoreLifecycleVersion", "scoreCommunicationVersion", "scoreSOMEIPGatewayCommit",
+            "executionEnvironmentIdentity"} | \
+        ({"configurationIdentity", "receiptSha256", "visualizationRecorderDelay"}   # read from the session's commit
+         if _committed(RECEIPT) is not None else set())
     assert {w: sorted(ours & set(e)) for w, e in empty.items()} == {w: [] for w in LABELS}
 
 
@@ -323,6 +331,9 @@ def test_a_gpu_other_than_the_models_and_no_guest_host_give_absent_fields(tmp_pa
     assert r.rc == 0, r.log[-3000:]
     assert rec["execution_environment"]["score_gpu"] == "Tesla T4, driver 535.104.05"
     d = rec["visualization_recorder_delay"]
-    assert isinstance(d, dict) and "NVIDIA L4" in d["absent"] and "Tesla T4" in d["absent"]
+    if _committed(EVIDENCE_SYSML) is None:   # a tree without git (the GCC 13 gate image): absent for the commit
+        assert isinstance(d, dict) and "commit" in d["absent"], d
+    else:
+        assert isinstance(d, dict) and "NVIDIA L4" in d["absent"] and "Tesla T4" in d["absent"]
     for k in ("sdv_core_image", "ivi_image"):
         assert "without the guest host" in rec["execution_environment"][k]["absent"]
