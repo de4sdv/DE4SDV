@@ -760,7 +760,7 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
     assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability "
-            "classification and Phase 4 stakeholder needs, proposal.**") in _flat(guide)
+            "classification, Phase 4 stakeholder needs and Phase 5 requirements, proposal.**") in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part hmiDisplayQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -789,7 +789,7 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "open gaps and Phase 1 concerns.",
                    "Phase 3, the capability classification, records no feature-model delta, and review judges it: "
                    "its one blocking check has nothing to evaluate",
-                   "The next model obligation is **Phase 5**, the requirements.",
+                   "The next model obligation is **Phase 6**, the functional architecture.",
                    "On 2026-11-21 the owner decided that the increment goes on without waiting for Phase 10 of the "
                    "driver-assistance increment.",
                    "Phase 3 and later phases waited for the revision of the governed scope, which the model now "
@@ -799,7 +799,8 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
         assert phrase in flat, phrase
     for stale in ("The framing's boundary concern does not open Phase 1.", "**Phase 1 concern framing**",
                   "that Phase 1 starts after Phase 10 of the driver-assistance increment", STILL_WAITS,
-                  "The next model obligation is **Phase 3**", "The next model obligation is **Phase 4**"):
+                  "The next model obligation is **Phase 3**", "The next model obligation is **Phase 4**",
+                  "The next model obligation is **Phase 5**"):
         assert stale not in flat, f"Phase 1 is framed and goes on now: {stale}"
     boundaries = _flat(guide.split("## Boundaries", 1)[1].split("\n## ", 1)[0])
     for phrase in ("The HMI display of the VisionPilot configuration is a proposed **System 1** subject",
@@ -841,9 +842,10 @@ def test_the_upstream_record_pins_what_the_framing_read():
     assert len(service) == 11 and set(service) == {DISPLAY_SAFETY_PIN}, service
     device = re.findall(r"android\.googlesource\.com/device/google/sdv_display_safety(?:/\+/([^/)\s]+))?", record)
     assert device == [DEVICE_PIN]
-    # every VisionPilot link is at the commit that the driving record names for INC-DRIVING-002
+    # every VisionPilot link is at the commit that the driving record names for INC-DRIVING-002: seven of the
+    # framing and ten of phase 5, one for each line range that a rationale cites
     pinned = re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/([^/)\s]+)", record)
-    assert len(pinned) == 7 and set(pinned) == {VISIONPILOT_PIN}
+    assert len(pinned) == 17 and set(pinned) == {VISIONPILOT_PIN}
     assert f"commit `{VISIONPILOT_PIN}`" in DRIVING_RECORD.read_text(encoding="utf-8")
     assert "(../driving/upstream.md#visionpilot)" in record
     renderer = _link_text(_record_section(record, "High availability renderer"))
