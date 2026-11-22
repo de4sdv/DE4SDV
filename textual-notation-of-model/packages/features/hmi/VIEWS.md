@@ -76,7 +76,7 @@ System architects, systems engineers and open-source reviewers need to see what 
 
 ### `hmiDisplayOperationalStoryView`
 
-Systems engineers, verification engineers and open-source reviewers need the HMI display told in stakeholder language: what the driver sees in the scenarios of the driver-assistance increment, with and without a warning, and while the app that draws the scene or Android in the IVI VM is out.
+Systems engineers, verification engineers and open-source reviewers need the HMI display told in stakeholder language: what the driver sees in the scenarios of the driver-assistance increment, with and without a warning, while the app that draws the scene or Android in the IVI VM is out, and while the warning request stops reaching the display.
 
 - **Source:** `hmi_display_operational_context.sysml`
 - **Viewpoint:** `hmiDisplayStoryViewpoint` (`OperationalStoryViewpoint`)
