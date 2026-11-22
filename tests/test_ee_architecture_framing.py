@@ -102,9 +102,10 @@ OUT_OF_SCOPE = {
 #: assumption -> the phrases that state its premise and what the framing decided with it
 ASSUMPTIONS = {
     "asmEECommandFromDrivingBaseline": (
-        "The form and the cadence of the driving command are those that the driver-assistance increment, "
-        "INC-DRIVING-002, fixes at its baseline.",
-        "Until that baseline, both can change."),
+        "The form of the driving command is the one that the driver-assistance increment, INC-DRIVING-002, "
+        "fixes at its baseline.",
+        "That baseline states no cadence of the command as such; its realization records a readiness probe in "
+        "which the candidate gave a command for every step of the simulation."),
     "asmEESoftwareTestbedStandsIn": (
         "A software testbed stands for the vehicle network in function.",
         "It gives no hardware timing:",
@@ -189,8 +190,8 @@ PHASE1_CONCERNS = {
          "and whether each keeps the parts of the command by which the actuation detects its loss, delay, "
          "repetition or corruption, including where a zone controller repacks it from Ethernet to CAN "
          "(gapEEActuationEnd).",
-         "The form and the cadence of the command are those that the driver-assistance increment fixes at its "
-         "baseline (asmEECommandFromDrivingBaseline)."),
+         "The form of the command is the one that the driver-assistance increment fixes at its baseline "
+         "(asmEECommandFromDrivingBaseline)."),
         ((8, "PhysicalInternalExchangeViewpoint"),)),
     "eeCommandRouteExchangeConcern": (
         "PhysicalInternalExchangeConcern", ("eeCommandRouteInScope",),
@@ -258,8 +259,8 @@ PHASES_BEFORE_BASELINE = (
     "The owner decided on 2026-11-17 to start this increment and to frame it now, and on 2026-11-18 to carry out "
     "Phases 1 to 3 of this increment before the baseline of the driver-assistance increment, INC-DRIVING-002, whose "
     "driving command it carries.",
-    "Phase 4 onward and the testbed with its readiness probe wait for that baseline and for a further decision of "
-    "the owner.")
+    "After that baseline, the owner decided on 2026-11-21 to start Phase 4.",
+    "The testbed with its readiness probe waits for a further decision of the owner.")
 GLOSSARY_ROWS = {
     "E/E architecture |": "The product line has no reference E/E architecture;",
     "Central computer |": "reaches sensors and actuators through the vehicle network.",
@@ -343,7 +344,8 @@ def test_increment_declares_the_phase_zero_shape():
     ]
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
     assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [
-        PACKAGE, "DE4SDV_EEArchitectureOperationalContext", "DE4SDV_EEArchitectureCapabilityClassification"], \
+        PACKAGE, "DE4SDV_EEArchitectureOperationalContext", "DE4SDV_EEArchitectureCapabilityClassification",
+        "DE4SDV_EEArchitectureNeedsRequirements"], \
         "the charter names only the packages that hold content"
     evidence = re.search(r"expectedReviewEvidence\s*=\s*\((.*?)\);", charter, re.S)
     assert evidence and re.findall(r'"([^"]+)"', evidence.group(1)) == [
@@ -784,8 +786,8 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and Phase 3 "
-            "capability classification, proposal.**") in _flat(guide)
+    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 "
+            "capability classification and Phase 4 stakeholder needs, proposal.**") in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part eeArchitectureQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -830,11 +832,11 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "Starting this increment launches no compute and authorizes no spend.",
                    "Phase 3, the capability classification, records no feature-model delta, and review judges it: "
                    "its one blocking check has nothing to evaluate",
-                   "The next model obligation is **Phase 4**, the needs.",
+                   "The next model obligation is **Phase 5**, the requirements.",
                    "The owner decided on 2026-11-18 to carry out Phases 1 to 3 of this increment before the "
                    "baseline of the driver-assistance increment, whose driving command it carries.",
-                   "Phase 4 onward and the testbed with its readiness probe wait for that baseline and for a "
-                   "further decision of the owner.",
+                   "After that baseline, the owner decided on 2026-11-21 to start Phase 4.",
+                   "The testbed with its readiness probe waits for a further decision of the owner.",
                    "open gaps and Phase 1 concerns.",
                    "None of them asks these properties of a vehicle network; Phase 5 of this increment derives its "
                    "own requirements from them."):
@@ -1054,7 +1056,7 @@ def test_the_phase_one_concerns_claim_no_result_and_name_no_unread_record():
         assert not re.search(r"(?i)\b(?:latency|jitter|freedom from interference)\b", doc), \
             f"{name}: the timing of the network and a safety argument are out of scope"
         assert not re.search(r"(?i)\b(?:issue time|sequence count|check value)s?\b", doc), \
-            "the form of the command is INC-DRIVING-002's until its baseline"
+            "the fields of the command are phase 5 and phase 8 material, not a concern's"
 
 
 def _words(name: str) -> str:
@@ -1097,7 +1099,7 @@ def test_the_guide_lists_the_phase_one_concerns_with_their_holders():
             f"{name}: the bullet names the phase that answers the concern"
     flat = _flat(section)
     assert not re.search(r"(?i)\b(?:issue time|sequence count|check value)s?\b", flat), \
-        "the guide's Phase 1 list names no field of the command: its form is INC-DRIVING-002's until its baseline"
+        "the guide's Phase 1 list names no field of the command: its fields are phase 5 and phase 8 material"
     for phrase in ("held by the parties whose interest it states.",
                    "The vehicle occupants and the road users hold their own concern beside the engineering roles.",
                    "The framing viewpoint frames all six, and a view of a later phase that answers a concern frames "

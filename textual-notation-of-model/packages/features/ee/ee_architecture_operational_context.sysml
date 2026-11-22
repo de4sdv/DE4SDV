@@ -30,10 +30,10 @@ package DE4SDV_EEArchitectureOperationalContext {
     doc /*
      * What gives the driving command on the central computer. In this
      * increment the driver-assistance candidate of INC-DRIVING-002 gives the
-     * driving command, and that increment fixes its form and its cadence at
-     * its baseline (asmEECommandFromDrivingBaseline). A System 1 part outside
-     * the vehicle network and no enabling system. In verification a System 2
-     * part stands in for it (eeVerificationEnvironment).
+     * driving command, and that increment fixes its form at its baseline
+     * (asmEECommandFromDrivingBaseline). A System 1 part outside the vehicle
+     * network and no enabling system. In verification a System 2 part stands
+     * in for it (eeVerificationEnvironment).
      */
   }
 

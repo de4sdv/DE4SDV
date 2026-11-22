@@ -1137,15 +1137,21 @@ def test_importer_timeout_is_an_explicit_argument_and_cli_flag(monkeypatch: pyte
     assert captured["api_timeout_seconds"] == importer.DEFAULT_API_TIMEOUT_SECONDS
 
 
-def test_workflow_job_timeout_leaves_room_for_the_import_window() -> None:
-    """Step 9 grew 50 -> 53 -> 66 min over the last three releases, the verifier adds ~19 min.
+#: Steps 9 (host import) and 10 (verifier) of the largest recent release, in minutes: 100.1 and 29.2 at 136,164
+#: elements (release 29750f46, deploy run 44839472277).
+LARGEST_RECENT_IMPORT_AND_VERIFIER_MINUTES = 100.1 + 29.2
 
-    The previous 90-minute job limit was within five minutes of killing a
-    successful release; the import keeps growing with the model and the
-    production database, so the limit must stay well clear of it.
+
+def test_workflow_job_timeout_leaves_room_for_the_import_window() -> None:
+    """The deploy job's limit stays at least 50 % above the largest recent steps 9 and 10.
+
+    Steps 9 and 10 took 66 + 19 min at about 109k elements and 100.1 + 29.2 min at 136,164; a 90-minute limit was
+    within five minutes of killing a successful release. The import grows with the model and with the production
+    database, which keeps every release's project, so the limit must stay well clear of the last measured window.
     """
     wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(encoding="utf-8")
     job = wf.split("\n  deploy:\n", 1)[1]
     timeouts = [int(line.split(":", 1)[1]) for line in job.splitlines() if line.strip().startswith("timeout-minutes:")]
     assert timeouts, "the deploy job must declare timeout-minutes"
-    assert timeouts[0] >= 150
+    assert timeouts[0] >= 1.5 * LARGEST_RECENT_IMPORT_AND_VERIFIER_MINUTES, timeouts[0]
+    assert timeouts[0] <= 360, "a GitHub-hosted runner ends a job after 360 minutes"

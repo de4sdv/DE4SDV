@@ -23,11 +23,12 @@ package DE4SDV_EEArchitectureFraming {
      * 2026-11-17 to start this increment and to frame it now, and on
      * 2026-11-18 to carry out Phases 1 to 3 of this increment before the
      * baseline of the driver-assistance increment, INC-DRIVING-002, whose
-     * driving command it carries. Phase 4 onward and the testbed with its
-     * readiness probe wait for that baseline and for a further decision of
-     * the owner. This framing changes neither the platform stack, the
-     * governed product-line scope nor another increment. All phases retain
-     * this identity. This package holds Phase 0 and the Phase 1 concerns.
+     * driving command it carries. After that baseline, the owner decided on
+     * 2026-11-21 to start Phase 4. The testbed with its readiness probe waits
+     * for a further decision of the owner. This framing changes neither the
+     * platform stack, the governed product-line scope nor another increment.
+     * All phases retain this identity. This package holds Phase 0 and the
+     * Phase 1 concerns.
      */
   }
 
@@ -238,9 +239,11 @@ package DE4SDV_EEArchitectureFraming {
 
   part asmEECommandFromDrivingBaseline : IncrementAssumption {
     doc /*
-     * The form and the cadence of the driving command are those that the
-     * driver-assistance increment, INC-DRIVING-002, fixes at its baseline.
-     * Until that baseline, both can change.
+     * The form of the driving command is the one that the driver-assistance
+     * increment, INC-DRIVING-002, fixes at its baseline. That baseline states
+     * no cadence of the command as such; its realization records a readiness
+     * probe in which the candidate gave a command for every step of the
+     * simulation.
      */
   }
   part asmEESoftwareTestbedStandsIn : IncrementAssumption {
@@ -380,7 +383,8 @@ package DE4SDV_EEArchitectureFraming {
     attribute :>> expectedArtifacts = (
       "DE4SDV_EEArchitectureFraming",
       "DE4SDV_EEArchitectureOperationalContext",
-      "DE4SDV_EEArchitectureCapabilityClassification"
+      "DE4SDV_EEArchitectureCapabilityClassification",
+      "DE4SDV_EEArchitectureNeedsRequirements"
     );
     attribute :>> expectedReviewEvidence = (
       "owner confirmation of the engineering question and the scope",
@@ -461,8 +465,8 @@ package DE4SDV_EEArchitectureFraming {
      * controller and on CAN, and whether each keeps the parts of the command
      * by which the actuation detects its loss, delay, repetition or
      * corruption, including where a zone controller repacks it from Ethernet
-     * to CAN (gapEEActuationEnd). The form and the cadence of the command are
-     * those that the driver-assistance increment fixes at its baseline
+     * to CAN (gapEEActuationEnd). The form of the command is the one that the
+     * driver-assistance increment fixes at its baseline
      * (asmEECommandFromDrivingBaseline). Answered by the view of the claimed
      * path in phase 8.
      */
