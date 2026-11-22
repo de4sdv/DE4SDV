@@ -10,8 +10,11 @@ controlled at a revision; the rules are in
 [Evidence Management](../../../../docs/evidence-management.md).
 
 Status: draft. Nothing in this directory or in the session tree is published.
-The results are not shown to the VisionPilot maintainers yet, and the owner
-approves any text before they are.
+Results of S1 went to the VisionPilot maintainers in a comment of 2026-11-22
+(the upstream comment decision of 2026-11-22);
+[Upstream contact](../../../../textual-notation-of-model/packages/features/driving/upstream.md#upstream-contact)
+in the driving folder's upstream record states what it reports. Each further
+text goes out only on the owner's word.
 
 ## What ran
 
