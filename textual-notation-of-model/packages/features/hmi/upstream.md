@@ -108,6 +108,35 @@ What the framing's gaps rest on, at that commit:
 - [Estimate of the closest object in the path](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/fusion/include/fusion/longitudinal_fusion.hpp):
   a fused distance and a fused speed.
 
+What the requirements of Phase 5 cite, at the same commit:
+
+- [VisionPilot/app/vision_pilot.cpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/app/vision_pilot.cpp#L149-L150):
+  the system plans on the closest object only when the fusion gives it as valid
+  and nearer than 150 m.
+- [VisionPilot/app/vision_pilot.cpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/app/vision_pilot.cpp#L177):
+  the system hands its results to the visualization only when the setting
+  `visualization_on` is on.
+- [VisionPilot/modules/models/include/models/inference.hpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/models/include/models/inference.hpp#L38-L52):
+  the inference result carries a frame identity and times of the host, and no
+  capture time.
+- [VisionPilot/modules/safety_guardian/fusion/include/fusion/longitudinal_fusion.hpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/fusion/include/fusion/longitudinal_fusion.hpp#L17-L18):
+  the fused distance in metres and the fused speed in metres per second, which
+  the file's comment gives as negative when the object approaches.
+- [VisionPilot/modules/safety_guardian/fusion/src/longitudinal_fusion.cpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/fusion/src/longitudinal_fusion.cpp#L56-L73):
+  the fixed distance of 150 m at which the fusion gives a valid closest object
+  where neither network confirms one.
+- [VisionPilot/modules/safety_guardian/fusion/src/longitudinal_fusion.cpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/fusion/src/longitudinal_fusion.cpp#L181-L210):
+  the levels 1 and 2, and the cut-in.
+- [VisionPilot/modules/visualization/include/visualization/occupancy_view.hpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/visualization/include/visualization/occupancy_view.hpp#L23-L48):
+  the scene of the panel, with no speed of the closest object and no time.
+- [VisionPilot/modules/visualization/src/occupancy_bridge.cpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/visualization/src/occupancy_bridge.cpp#L32-L84):
+  how the bridge fills that scene, and the mark from AutoDrive alone.
+- [VisionPilot/modules/visualization/src/visual_interface.cpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/visualization/src/visual_interface.cpp#L304-L323):
+  the label of the distance in whole metres.
+- [VisionPilot/modules/visualization/src/visual_interface.cpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/visualization/src/visual_interface.cpp#L645-L648):
+  the one place where the visualization hands the scene to the panel, in a
+  build with `ENABLE_OCCUPANCY`.
+
 ## Questions requiring upstream engagement
 
 Display safety of AAOS SDV:

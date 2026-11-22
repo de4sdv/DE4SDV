@@ -11,9 +11,10 @@ the owner decided on 2026-11-17 to use it for the speed and the warning. This
 increment asks whether the HMI display of the VisionPilot configuration can do
 both, and holds what it shows against what the application gives.
 
-**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
-Phase 3 capability classification and Phase 4 stakeholder needs, proposal.** No
-implementation, run, result, product-line admission or compliance is claimed.
+**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase
+3 capability classification, Phase 4 stakeholder needs and Phase 5
+requirements, proposal.** No implementation, run, result, product-line
+admission or compliance is claimed.
 
 ## Authoritative frame
 
@@ -27,6 +28,8 @@ implementation, run, result, product-line admission or compliance is claimed.
   feature-model delta.
 - [SysML stakeholder needs](../../textual-notation-of-model/packages/features/hmi/hmi_display_needs_requirements.sysml):
   the Phase 4 needs of the HMI display and their planned reviews.
+- [SysML requirements](../../textual-notation-of-model/packages/features/hmi/hmi_display_needs_requirements.sysml):
+  the Phase 5 requirements of the HMI display.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/hmi/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/hmi/upstream.md)
@@ -310,10 +313,9 @@ them, and `NEED-HMI-005` names the last and `SC-HMI-012` asks it.
 No need states a number or names a drawing: Phase 5 derives the requirements
 and their limits, how the app in the IVI VM draws the scene is a choice of
 Phase 8, and no need asks for gear, set speed, speed limit or another telltale.
-Comments about `NEED-HMI-001` and `NEED-HMI-003` keep for Phase 5 what the
-pinned driver-assistance system builds and what the driver-assistance increment
-realizes from it: what the scene of its visualization carries, and what the
-warning request asks for and carries.
+Phase 5 states in its requirements what the scene of the pinned
+driver-assistance system carries and what the warning request asks for and
+carries.
 
 `SC-DRIVING-018` of the driver-assistance increment watches the collision
 warning in `SC-DRIVING-012` and `SC-DRIVING-013`, which `SC-HMI-010` watches
@@ -326,6 +328,117 @@ and sources, the planned reviews and their scenarios, and the wording a need
 may not use. The Phase 4 gates check that each need has a statement, a
 stakeholder, a source, a rationale and a planned review. Review judges whether
 the needs are the right ones.
+
+## Requirements (Phase 5)
+
+The
+[requirements](../../textual-notation-of-model/packages/features/hmi/hmi_display_needs_requirements.sysml)
+state what the HMI display shall do and how each is verified. There are ten,
+the cap of the scope. Each has one subject, the HMI display, derives from one
+need, and has one verification method and its success criteria. They derive
+from the Phase 4 needs and from `REQ-AEBS-002` and `REQ-AEBS-013`. Eight are
+functional; Phase 6 allocates each of those to a function.
+
+- `REQ-HMI-001` `reqShowTheSceneAsGiven`, from `NEED-HMI-001`, functional,
+  test: shows each scene that reaches it, or a newer one, within the
+  presentation time and as the driver-assistance system gives it, apart from
+  the outages in the IVI VM.
+- `REQ-HMI-002` `reqMarkTheObjectTheSystemActsOn`, from `NEED-HMI-001`,
+  functional, test: shows the object that the system acts on, and no other,
+  apart from the objects it detects, with its distance to the whole metre and
+  its speed to the whole km/h.
+- `REQ-HMI-003` `reqShowTheVehicleSpeed`, from `NEED-HMI-002`, functional,
+  test: shows each vehicle speed, or a newer one, within the presentation time,
+  to the whole km/h.
+- `REQ-HMI-004` `reqCollisionWarningWhileRequested`, from `NEED-HMI-003`,
+  functional, test: gives the collision warning on the display and as a sound
+  while, and only while, the warning request asks for it.
+- `REQ-HMI-005` `reqStartEachWarningModeWithinLimit`, from `NEED-HMI-003`, a
+  performance requirement, test: starts each mode within 0.1 s of wall-clock
+  time after the start of a request reaches the display.
+- `REQ-HMI-006` `reqShowOutdatedElementsAsOutdated`, from `NEED-HMI-005`,
+  functional, test: shows each element as outdated while, and only while, it is
+  outdated.
+- `REQ-HMI-007` `reqShowWarningUnavailableWhileRequestOutdated`, from
+  `NEED-HMI-005`, functional, test: shows that the collision warning is
+  unavailable while, and only while, the warning request is outdated; the one
+  degraded response of the set.
+- `REQ-HMI-008` `reqSpeedAndWarningThroughOutages`, from `NEED-HMI-004`,
+  functional, test: keeps the speed, the warning and its unavailability
+  throughout each outage in the IVI VM.
+- `REQ-HMI-009` `reqRendererSplitAndInputPaths`, from `NEED-HMI-004`, a design
+  constraint, inspect: the speed, the warning and its sound by the high
+  availability renderer in an SDV Media VM, the scene by an app in the IVI VM,
+  and their paths from the SDV Core VM inside the display.
+- `REQ-HMI-010` `reqRecordDisplayIdentity`, from `NEED-HMI-006`, functional,
+  test: records the display identity before its first frame on the display in
+  each run.
+
+A comment of terms defines each word that a statement uses, among them the
+scene, the object that the system acts on, the warning request, the
+presentation time, current and outdated, the outage in the IVI VM and the
+display identity. Each time limit names simulation time or wall-clock time and
+makes no timing claim for a vehicle.
+
+The Phase 5 decisions, each with its reason in the rationale of the requirement
+that it shapes:
+
+1. The speed of the closest object is shown as the fusion of the
+   driver-assistance system gives it, with the sign that the fusion declares,
+   in km/h: a speed that the display works out itself would be an estimate of
+   its own.
+2. The object that the system acts on is the closest object that the fusion
+   gives as valid below 150 m; at the fixed distance of 150 m none is marked.
+   The value is compared when the pin moves.
+3. The display shows that object as an element of its own and marks none of the
+   objects it detects as it, since the scene names none.
+4. Distances are shown to the whole metre and speeds to the whole km/h; the
+   rest of the scene is shown as the system gives it.
+5. The vehicle speed is the speed that the vehicle gives the driver-assistance
+   system at its input, with its sample time, and not the copy that the system
+   reads in each pass.
+6. The collision warning lasts while, and only while, the warning request asks
+   for it; a continuing request continues it.
+7. The share of the display in the time that the driver-assistance increment
+   allots from the warning request to each mode is 0.1 s of wall-clock time
+   from the boundary of the display, chosen by analogy with the division on the
+   path to the app of that increment and unmeasured for the renderer and the
+   sound. Every change of what the display shows takes the same 0.1 s as its
+   presentation time.
+8. An element is outdated once its time is more than 0.2 s of simulation time
+   older than the newest time at the display, or once 0.2 s of wall-clock time
+   pass with no new value of its input: two periods of 0.1 s. Late and missing
+   values count alike.
+9. The warning is unavailable while the warning request is outdated and
+   available again once it is current. A renderer that cannot give the warning
+   is left for a later increment.
+10. The speed and the warning hold throughout each outage in the IVI VM. No
+    limit on the detection of an outage or on the return of the scene is set
+    before a probe measures them.
+11. The speed, the warning and its sound go to the high availability renderer
+    in an SDV Media VM and the scene to an app in the IVI VM, by the owner's
+    decision of 2026-11-17.
+12. The display identity hashes the builds of the renderer and of the app that
+    draws the scene, the images of both guest VMs, the sound file and each
+    configuration file, and records the settings of its start, before the first
+    frame of each run.
+13. No requirement carries a feature link yet: phase 9 links `REQ-HMI-001` and
+    `REQ-HMI-002` to the driving application and `REQ-HMI-001`, `REQ-HMI-008`,
+    `REQ-HMI-009` and `REQ-HMI-010` to the AAOS SDV guest.
+
+The rationales cite the files of VisionPilot by file name and line, and the
+upstream record gives each with its path at the pinned commit.
+
+Comments about `gapHmiWarningPresentation` and `gapHmiWarningAvailability`
+record what Phase 5 fixes of those gaps and what stays open, a renderer that
+cannot give the warning among them, and a comment about
+`gapHmiRendererIntegration` records what the criteria ask of System 2. The
+table of the requirements frames `hmiDisplayRequirementTraceConcern`.
+`tests/test_hmi_display_requirements.py` pins the requirements, their
+derivations, the terms, the comments and the table. The Phase 5 gates check
+that each requirement has a statement, one subject, a derivation from a need
+and one verification method. Review judges whether the requirements are the
+right ones.
 
 ## What the framing already records as open
 
@@ -426,12 +539,12 @@ Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. Phase 3, the capability classification,
 records no feature-model delta, and review judges it: its one blocking check
 has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, with a
-prompt for review. The next model obligation is **Phase 5**, the requirements.
-On 2026-11-21 the owner decided that the increment goes on without waiting for
-Phase 10 of the driver-assistance increment. Phase 3 and later phases waited
-for the revision of the governed scope, which the model now holds, so they go
-on. On 2026-11-17 the owner decided that the readiness probe of the high
-availability renderer runs with its cost put to him first.
+prompt for review. The next model obligation is **Phase 6**, the functional
+architecture. On 2026-11-21 the owner decided that the increment goes on
+without waiting for Phase 10 of the driver-assistance increment. Phase 3 and
+later phases waited for the revision of the governed scope, which the model now
+holds, so they go on. On 2026-11-17 the owner decided that the readiness probe
+of the high availability renderer runs with its cost put to him first.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
