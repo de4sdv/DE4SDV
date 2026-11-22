@@ -183,7 +183,8 @@ def test_driving_config_001_is_bound_to_the_exact_receipt() -> None:
 
 
 def test_the_receipt_records_what_the_configured_product_states() -> None:
-    """Valid, the adapter derived for the pair with Eclipse S-CORE, not admitted for the three documented reasons."""
+    """Valid, the adapter derived for the pair with Eclipse S-CORE, the alternative S-CORE Integrated realized, not
+    admitted for the two documented reasons."""
     record = _receipt_record()
     assert record["projection_name"] == PROJECTION
     assert record["valid"] is True
@@ -198,17 +199,19 @@ def test_the_receipt_records_what_the_configured_product_states() -> None:
             "platformStack.guestAndroid", "platformStack.guestAndroidSDV", "sensingBoundary.camera",
             "capabilities.hmiDisplay"} <= selected
     assert not {"sensingBoundary.lidar", "sensingBoundary.radar", "platformStack.autoware", "platformStack.androidSDV"} & selected
-    reasons = " ".join(record["admission"]["reasons"])
-    for reason in ["platformStack.autoE2E: deferred drivingStackVariability", "reference-only eclipseSCORE",
-                   "capabilities.hmiDisplay: not in the governed scope", "misses derived realizations of aaosIntegrated",
-                   "does not represent the common content"]:
-        assert reason in reasons, reason
+    assert record["admission"]["alternative"] == "scoreIntegrated"
+    assert record["admission"]["reasons"] == [
+        "selects content the governed scope does not admit: platformStack.autoE2E: deferred drivingStackVariability",
+        "does not represent the common content: autowareApplication (missing platformStack.autoware); "
+        "currentSensingBaseline (missing sensingBoundary.lidar)"]
     docs = _docs(SLICE)
-    for statement in ["the driving stack is deferred variability", "Eclipse S-CORE is reference-only",
-                      "the HMI display has no element in the governed scope",
-                      "realizes the AAOS-integrated alternative without its middleware androidSDV",
+    for statement in ["It realizes the alternative S-CORE Integrated with its derived realizations, and the receipt "
+                      "gives two reasons.", "the driving stack is deferred variability",
                       "does not represent the common content: no Autoware, no LiDAR"]:
         assert statement in docs, statement
+    for stale in ["Eclipse S-CORE is reference-only", "the HMI display has no element in the governed scope",
+                  "realizes the AAOS-integrated alternative without its middleware androidSDV"]:
+        assert stale not in docs, stale
 
 
 def test_the_configuration_has_no_evidence_record() -> None:
@@ -350,3 +353,26 @@ def test_the_guide_describes_phase_9_and_its_decisions() -> None:
         assert text in section, text
     assert "tests/test_closed_loop_driving_variability_configuration.py" in guide
     assert "closed_loop_driving_variability_configuration.sysml" in guide
+
+
+def test_the_guide_states_the_verdict_the_receipt_records() -> None:
+    """The phase 9 section states the receipt's verdict of the configuration: the realized alternative and the two
+    reasons, and none of the reasons the receipt gave before the scope revision of ADR 0023 and ADR 0026."""
+    admission = _receipt_record()["admission"]
+    assert (admission["admitted"], admission["alternative"]) == (False, "scoreIntegrated")
+    reasons = " ".join(admission["reasons"])
+    for reason in ("platformStack.autoE2E: deferred drivingStackVariability", "missing platformStack.autoware",
+                   "missing sensingBoundary.lidar"):
+        assert reason in reasons, reason
+    for gone in ("eclipseSCORE", "hmiDisplay", "misses derived realizations"):
+        assert gone not in reasons, gone
+    guide = GUIDE.read_text(encoding="utf-8")
+    section = " ".join(guide.split("## Variability and configuration (Phase 9)")[1].split("\n## ")[0].split())
+    assert ("The receipt records the configuration as **valid and not admitted**: it realizes the S-CORE-integrated "
+            "alternative, but the driving stack is deferred variability, and the configuration does not represent "
+            "the common content (no Autoware, no LiDAR).") in section
+    assert ("The re-cut of the scope revision of ADR 0023 and ADR 0026 changed the records of both configurations "
+            "and rebound both digests.") in section
+    for stale in ("Eclipse S-CORE is reference-only", "the display is outside the governed scope",
+                  "the AAOS-integrated alternative without its middleware"):
+        assert stale not in section, stale

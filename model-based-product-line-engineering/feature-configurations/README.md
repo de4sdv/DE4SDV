@@ -12,9 +12,9 @@ Bills-of-Features retired at step S7 of ADR 0022, and the evidence records in
 
 | Configuration | Family | Evidence record (status) | Meaning |
 |---|---|---|---|
-| `aebs_autoware_linux_lidar_camera.sysml` | SDV product line | none | Standalone AEBS reference member (ADR 0014) |
-| `middleware_autoware_aaos_sdv_reference.sysml` | SDV product line | `evidence/middleware-autoware-aaos-sdv-reference.yaml` (`planned`) | Planned AAOS-integrated middleware reference member (ADR 0014) |
-| `middleware_autoware_score_reference.sysml` | SDV product line | none | Eclipse S-CORE reference configuration of INC-MW-011: Linux with S-CORE on the main side, an AAOS SDV guest under KVM, the HMI display |
+| `aebs_autoware_linux_lidar_camera.sysml` | SDV product line | none | Standalone AEBS reference member (ADR 0014), with the HMI display of every member (ADR 0026) |
+| `middleware_autoware_aaos_sdv_reference.sysml` | SDV product line | `evidence/middleware-autoware-aaos-sdv-reference.yaml` (`planned`) | Planned AAOS-integrated middleware reference member (ADR 0014), with the HMI display in its AAOS SDV guest (ADR 0026) |
+| `middleware_autoware_score_reference.sysml` | SDV product line | none | S-CORE-integrated reference member (ADR 0023), MW-CONFIG-002 of INC-MW-011: Linux with S-CORE on the main side, an AAOS SDV guest under KVM, the HMI display |
 | `closed_loop_driving_autoe2e_score_reference.sysml` | SDV product line | none | Closed-loop driving reference configuration of INC-DRIVING-001: AutoE2E on S-CORE on Linux on the main side, the KVM host, with an AAOS SDV guest and the display; cameras only; valid, not admitted |
 | `driver_assistance_visionpilot_score_reference.sysml` | SDV product line | none | Driver-assistance reference configuration of INC-DRIVING-002: VisionPilot on S-CORE on Linux on the main side, the KVM host, with an AAOS SDV guest and the display; one front camera only; valid, not admitted |
 | `apollo_qnx_qvm.sysml` | SDV product line | none | Example mixed-criticality platform projection |
@@ -29,7 +29,7 @@ claim. Evidence status is metadata about the configuration, not a feature.
 The receipts of the feature models record each configuration's verdict, its
 derived variants and its admission by the governed scope. A configuration can
 be valid without being admitted: of the nine configurations above, the
-fixture aside, the two reference members are admitted.
+fixture aside, the three reference members are admitted.
 
 ## PLEML configurations
 

@@ -4,6 +4,11 @@ The validator consumes official SysML API element objects and their export sourc
 map. Descriptive names are used only to resolve the governed schema anchors once;
 all membership, typing, variant, mapping, derivation, and binding checks then use
 API UUID relationships.
+
+Result schema v2 lists every scope decision record that governs the scope
+(``scope_decisions``): the initial record of ADR 0014 and the records of
+ADR 0023 and ADR 0026. Schema v1 held the initial record alone
+(``scope_decision``).
 """
 
 from __future__ import annotations
@@ -17,6 +22,15 @@ from .repository import element_id, reference_ids
 SCOPE_SOURCE = (
     "model-based-product-line-engineering/scoping/"
     "de4sdv_aebs_product_line_scope.sysml"
+)
+SCOPE_SCHEMA = "de4sdv-aebs-product-line-scope-validation/v2"
+#: The scope decision records that govern the scope, and nothing else: the
+#: initial record (ADR 0014), the S-CORE-integrated member (ADR 0023,
+#: decision 7) and the HMI display in every member (ADR 0026).
+SCOPE_DECISIONS = (
+    "initialAEBSProductLineScopeDecision",
+    "scoreIntegratedMemberScopeDecision",
+    "hmiDisplayInEveryMemberScopeDecision",
 )
 
 
@@ -276,11 +290,14 @@ def validate_scope_elements(
     decision_definition_id, _ = graph.unique_named(
         "ProductLineScopeDecisionRecord", "PartDefinition"
     )
-    decision_id, _ = graph.unique_named(
-        "initialAEBSProductLineScopeDecision", "PartUsage"
-    )
-    if graph.type_ids(decision_id) != frozenset({decision_definition_id}):
-        raise ScopeSemanticError("scope decision occurrence has the wrong API type identity")
+    decision_ids = {
+        name: graph.unique_named(name, "PartUsage")[0] for name in SCOPE_DECISIONS
+    }
+    for name, decision_id in decision_ids.items():
+        if graph.type_ids(decision_id) != frozenset({decision_definition_id}):
+            raise ScopeSemanticError(
+                f"scope decision {name} has the wrong API type identity"
+            )
     scope_definition_id, _ = graph.unique_named(
         "GovernedDE4SDVAEBSReferenceProductLineScope", "PartDefinition"
     )
@@ -289,22 +306,37 @@ def validate_scope_elements(
     )
     if graph.type_ids(governed_scope_id) != frozenset({scope_definition_id}):
         raise ScopeSemanticError("governed scope occurrence has the wrong API type identity")
-    if governed_scope_id not in graph.outgoing_dependency_targets(decision_id):
-        raise ScopeSemanticError("scope decision does not govern the scope by API UUID")
+    for name, decision_id in decision_ids.items():
+        if governed_scope_id not in graph.outgoing_dependency_targets(decision_id):
+            raise ScopeSemanticError(
+                f"scope decision {name} does not govern the scope by API UUID"
+            )
+    recorded = sorted(
+        _declared_name(graph.require(identifier))
+        for identifier in graph.typed_usages(decision_definition_id)
+    )
+    if recorded != sorted(SCOPE_DECISIONS):
+        raise ScopeSemanticError(
+            f"scope decision records differ: expected {sorted(SCOPE_DECISIONS)}, "
+            f"got {recorded}"
+        )
 
     portfolio_id, _ = graph.unique_named(
         "InitialPlannedReferenceMemberPortfolio", "PartDefinition"
     )
     member_ids = graph.owned_member_ids(portfolio_id)
-    if len(member_ids) != 2:
+    if len(member_ids) != 3:
         raise ScopeSemanticError(
-            f"expected exactly two planned reference members, found {len(member_ids)}"
+            f"expected exactly three planned reference members, found {len(member_ids)}"
         )
 
     expected_members = {
         "standaloneAutowareAEBSReferenceMember": "StandaloneAutowareAEBSReferenceMember",
         "aaosIntegratedAutowareAEBSReferenceMember": (
             "AAOSIntegratedAutowareAEBSReferenceMember"
+        ),
+        "scoreIntegratedAutowareAEBSReferenceMember": (
+            "SCOREIntegratedAutowareAEBSReferenceMember"
         ),
     }
     member_by_name = {
@@ -333,6 +365,7 @@ def validate_scope_elements(
     expected_modes = {
         "standalone": "StandaloneVehiclePlatformIntegration",
         "aaosIntegrated": "AAOSIntegratedVehiclePlatformIntegration",
+        "scoreIntegrated": "SCOREIntegratedVehiclePlatformIntegration",
     }
     common = _typed_owned_set(
         graph,
@@ -345,6 +378,7 @@ def validate_scope_elements(
                 "linuxROS2AutowareRuntime",
                 "currentSensingBaseline",
                 "protectedEmergencyCommandPathIndependence",
+                "driverHMIDisplay",
             }
         ),
     )
@@ -358,6 +392,7 @@ def validate_scope_elements(
                 "aaosIntegratedExecutionDomainTopology",
                 "androidKVMTopology",
                 "adapterRealization",
+                "scoreIntegratedExecutionDomainTopology",
             }
         ),
     )
@@ -394,6 +429,7 @@ def validate_scope_elements(
     member_modes = {
         "standaloneAutowareAEBSReferenceMember": variants["standalone"],
         "aaosIntegratedAutowareAEBSReferenceMember": variants["aaosIntegrated"],
+        "scoreIntegratedAutowareAEBSReferenceMember": variants["scoreIntegrated"],
     }
     planned_reference_members = []
     for member_name, member_id in sorted(member_by_name.items()):
@@ -426,7 +462,6 @@ def validate_scope_elements(
             {
                 "apollo",
                 "openpilot",
-                "eclipseSCORE",
                 "autosarAdaptive",
                 "automotiveGradeLinux",
                 "qnxQVM",
@@ -499,6 +534,11 @@ def validate_scope_elements(
             derived["androidKVMTopology"],
             derived["adapterRealization"],
         },
+        variants["scoreIntegrated"]: {
+            derived["scoreIntegratedExecutionDomainTopology"],
+            derived["androidKVMTopology"],
+            derived["adapterRealization"],
+        },
     }
     for mode_id, targets in expected_derivation_targets.items():
         if not targets.issubset(graph.outgoing_dependency_targets(mode_id)):
@@ -520,13 +560,17 @@ def validate_scope_elements(
             )
 
     return {
-        "schema": "de4sdv-aebs-product-line-scope-validation/v1",
+        "schema": SCOPE_SCHEMA,
         "scope_source": SCOPE_SOURCE,
-        "scope_decision": {
-            "decision_element_id": decision_id,
-            "governed_scope_element_id": governed_scope_id,
-            "source": graph.require_scope_source(decision_id),
-        },
+        "scope_decisions": [
+            {
+                "declared_name": name,
+                "decision_element_id": decision_ids[name],
+                "governed_scope_element_id": governed_scope_id,
+                "source": graph.require_scope_source(decision_ids[name]),
+            }
+            for name in sorted(decision_ids)
+        ],
         "planned_reference_members": planned_reference_members,
         "vehicle_platform_integration_mode": {
             "element_id": integration_id,

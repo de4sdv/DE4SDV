@@ -34,7 +34,8 @@ VERDICTS = {
     "sdv_product_line.receipt.json": {
         "aebsAutowareLinuxLidarCamera": (True, "standalone", "none", []),
         "middlewareAutowareAAOSSDVReference": (True, "aaosIntegrated", "autowareToAAOSSDV", []),
-        "middlewareAutowareSCOREReference": (True, None, "autowareToSCORE", []),
+        # Admitted since the scope revision of ADR 0023 (decision 8): the S-CORE-integrated member.
+        "middlewareAutowareSCOREReference": (True, "scoreIntegrated", "autowareToSCORE", []),
         "closedLoopDrivingAutoE2ESCOREReference": (True, None, "autoE2EToSCORE", []),
         "driverAssistanceVisionPilotSCOREReference": (True, None, "visionPilotToSCORE", []),
         "apolloQNXQVMVariant": (True, None, "apolloToSCORE", []),
@@ -54,7 +55,8 @@ VERDICTS = {
 #: changed three of them after S7, so no parity check saw the new ones; its licensed receipt records them:
 #: the guest groups add bound reasons to bothIntegrationModesProbe and noIntegrationModeProbe, C011 rejects
 #: Autoware without Linux in noIntegrationModeProbe, and mixedDerivedSetProbe mixes no middleware with an
-#: AAOS SDV guest, so it derives no adapter.
+#: AAOS SDV guest, so it derives no adapter. Since ADR 0026 vehicleTargetAEBSOffProbe selects the HMI display,
+#: common content of every member, and stays admitted.
 PROBE_VERDICTS = {
     "adaptiveCruiseControlProbe": (True, None, "none", []),
     "apolloAndroidSDVPairProbe": (False, None, None, ["pair-exclusion"]),

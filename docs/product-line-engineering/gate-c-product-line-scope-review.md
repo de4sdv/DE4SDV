@@ -6,6 +6,22 @@
 **Decision record:** [ADR 0014](../architecture-decisions/0014-ratify-initial-aebs-product-line-scope.md)  
 **Authoritative scope model:** [DE4SDV AEBS product-line scope](../../model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml)
 
+> Note (2026-11-13): [ADR 0023](../architecture-decisions/0023-admit-score-integrated-aebs-reference-member.md)
+> and [ADR 0026](../architecture-decisions/0026-hmi-display-in-every-member-product.md)
+> revise the governed scope that this record reviewed. They were decided on
+> 2026-11-13, and the scope model holds their revision since the scope pull
+> request. The portfolio holds three planned members: the
+> third is the **S-CORE-Integrated Autoware AEBS Reference Member**. Vehicle
+> Platform Integration Mode has a third alternative, **S-CORE Integrated**,
+> also bound during **Development**, and it stays the only admitted product
+> variability. The S-CORE two-domain topology is a further derived
+> realization, and Eclipse S-CORE leaves the reference-only list. An HMI
+> display is a sixth common content of every member; where it runs derives
+> from the integration mode. "Common" means common within the three governed
+> members. A scope decision record for each ADR governs the scope next to the
+> initial one. The record of 2026-09-01 below is unchanged, and its
+> disposition holds for the scope it reviewed.
+
 ## Decision
 
 The initial governed planned-member portfolio contains exactly:

@@ -66,6 +66,21 @@ then, the YAML authority of ADR 0014 stays in force.
 > correspond to AAOS Integrated, and `noGuestOS` and `noGuestMiddleware` to
 > Standalone. The decision itself is unchanged.
 >
+> Note (2026-11-13): [ADR 0026](0026-hmi-display-in-every-member-product.md)
+> decision 6, decided on 2026-11-13, amends decision 2; the scope model and the
+> feature model hold it since the scope pull request. The HMI display is a
+> common capability that keeps its PLEML feature `hmiDisplay`: the feature
+> corresponds to the common content, and admission asks every configuration to
+> select it, as for `autoware` and `linux`. [ADR
+> 0023](0023-admit-score-integrated-aebs-reference-member.md) decision 4 reads
+> shared realizations by intersection. Since its scope revision, `kvm`,
+> `guestAndroid` and `guestAndroidSDV` correspond to AAOS Integrated and
+> S-CORE Integrated. So the note of 2026-10-22 on the derived-realization
+> clause reads with that rule: a configuration realizes the one alternative
+> that all its selected choices with an alternative correspondence have in
+> common, and one with no such alternative, or with more than one, is not
+> admitted. The decision itself is unchanged.
+>
 > Note (2026-11-15):
 > [ADR 0027](0027-bind-varying-elements-in-the-feature-models.md) amends
 > decisions 3 and 5. The integrity of the bindings covers the binding of a

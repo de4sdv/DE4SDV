@@ -579,8 +579,9 @@ package DE4SDV_SDVPlatformStack {
      * The image that carries it is a realization choice. The headless SDV
      * Core image (sdv_core_cf) excludes the JVM, Java services, Android
      * applications and GUI functionality. The display-capable IVI image
-     * (sdv_ivi_cf) runs Android applications with a GUI. A product that
-     * shows the HMI on a display selects the hmiDisplay capability (C010).
+     * (sdv_ivi_cf) runs Android applications with a GUI. Every member
+     * selects the hmiDisplay capability, common content of every member
+     * (ADR 0026); in an integrated member the display is in this guest.
      *
      * Internal structure modeled in:
      *   textual-notation-of-model/packages/architecture/aaos_sdv_middleware_boundary.sysml

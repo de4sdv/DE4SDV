@@ -34,6 +34,7 @@ DRIVING_FRAMING = FEATURES / "driving/driver_assistance_framing.sysml"
 DRIVING_RECORD = FEATURES / "driving/upstream.md"
 DRIVING_REALIZATION = FEATURES / "driving/driver_assistance_physical_software_realization.sysml"
 MIDDLEWARE_FRAMING = FEATURES / "middleware/middleware_score_framing.sysml"
+MIDDLEWARE_CONFIGURATION = FEATURES / "middleware/middleware_variability_configuration.sysml"
 ADR_0025 = ROOT / "docs/architecture-decisions/0025-end-someip-in-an-sdv-core-vm.md"
 AEBS_REQUIREMENTS = FEATURES / "aebs/aebs_needs_requirements.sysml"
 DE4SDV_CATALOGUE = ROOT / \
@@ -124,8 +125,9 @@ GAPS = {
     "gapHmiWarningPresentation": "Whether a build of this display replaces that app in the VisionPilot configuration",
     "gapHmiWarningAvailability": "gives no indication that its warning is unavailable",
     "gapHmiMemberGuestLayout": "A renderer in an SDV Media VM adds a third VM to the guest.",
-    "gapHmiDisplayInProductLine": "takes effect with a revision of the governed scope that is made outside this "
-                                  "increment",
+    "gapHmiStandaloneLinuxDisplay": "the standalone member selects a display that has no realization",
+    "gapHmiAAOSIntegratedGuestDisplay": "Its guest now needs a display.",
+    "gapHmiDisplayInProductLine": "No shared asset implements the display yet",
     "gapHmiUpstreamContact": "are not yet involved",
 }
 #: gap -> the label of its open point in the guide
@@ -137,6 +139,8 @@ OPEN_POINTS = {
     "gapHmiWarningPresentation": "Two presentations of the warning",
     "gapHmiWarningAvailability": "No indication that the warning is unavailable",
     "gapHmiMemberGuestLayout": "The guest layout of the members",
+    "gapHmiStandaloneLinuxDisplay": "No Linux-side display",
+    "gapHmiAAOSIntegratedGuestDisplay": "A headless guest with a display",
     "gapHmiDisplayInProductLine": "The HMI display's place in the product line",
     "gapHmiUpstreamContact": "No upstream contact",
 }
@@ -284,13 +288,15 @@ VIEW_PHRASES = {
 }
 #: a sentence of a concern's doc that says by which views the concern is answered
 ANSWER_SENTENCE = re.compile(r"[^.]*\banswered\b[^.]*\.", re.I)
-#: the owner's decision of 2026-11-21 on the timing of the increment and what still waits, in the model's words
+#: the owner's decision of 2026-11-21 on the timing of the increment, and the end of the wait for the scope revision,
+#: in the model's words
 GO_ON_NOW = (
     "The owner decided on 2026-11-21 that the increment goes on without waiting for Phase 10 of the "
     "driver-assistance increment.",
-    "Phase 3 and later phases wait for the revision of the governed scope (gapHmiDisplayInProductLine), which waits "
-    "for the baseline of the driver-assistance increment, so that it does not move the product-line receipt to which "
-    "the configuration of that increment is bound.")
+    "Phase 3 and later phases waited for the revision of the governed scope (gapHmiDisplayInProductLine), which the "
+    "model now holds, so they go on.")
+#: the text that said Phase 3 waits for the scope revision, which the scope revision ended
+STILL_WAITS = "Phase 3 and later phases wait for the revision of the governed scope"
 #: a past form of what a system does in a run: a framing reports no run
 PAST_BEHAVIOR = re.compile(r"(?i)\b(?:braked|warned|stopped|collided|avoided|detected|passed|failed|displayed|"
                            r"rendered|showed|crashed|hung)\b")
@@ -402,6 +408,7 @@ def test_the_question_the_decision_and_the_boundary_say_what_was_agreed():
                    "This package holds Phase 0 and the Phase 1 concerns."):
         assert phrase in increment, phrase
     assert "This package holds only Phase 0." not in increment
+    assert STILL_WAITS not in increment, "the scope revision ended the wait"
     problem = _doc("requirement hmiDisplayProblem : ProblemStatement")
     for phrase in ("The owner decided on 2026-11-13 that every member product has an HMI display, and left open what "
                    "it shows.",
@@ -593,11 +600,41 @@ def test_assumptions_are_premises_and_gaps_are_open_points():
     assert "It is an informational display, not the AEBS driver warning." in _flat(
         MIDDLEWARE_FRAMING.read_text(encoding="utf-8").replace("*", ""))
     product_line = _doc("part gapHmiDisplayInProductLine : IncrementGap")
-    for phrase in ("The feature model holds the HMI display as an optional feature that requires the AAOS SDV guest, "
-                   "with no binding time assigned, and neither governed member selects it.",
-                   "The owner's decision of 2026-11-13 that every member product has an HMI display",
-                   "Phase 3 classifies the content of the display against the scope as it then stands."):
+    for phrase in ("The owner decided on 2026-11-13 that every member product has an HMI display (ADR 0026).",
+                   "The governed scope holds the HMI display as common content of every planned member, bound "
+                   "during Development, and every member configuration selects the feature hmiDisplay, which "
+                   "corresponds to that common content.",
+                   "Where the display runs follows the integration mode: in the AAOS SDV guest of the two integrated "
+                   "members, and on the Linux side of the standalone member.",
+                   "No shared asset implements the display yet, and what it shows in each member is open.",
+                   "The owner decided on 2026-11-21 that this increment records the two gaps that the scope revision "
+                   "leaves in the members (gapHmiStandaloneLinuxDisplay, gapHmiAAOSIntegratedGuestDisplay).",
+                   "Phase 3 classifies the content of the display against the scope as it now stands."):
         assert phrase in product_line, phrase
+    for stale in ("an optional feature that requires the AAOS SDV guest", "neither governed member selects it",
+                  "takes effect with a revision of the governed scope"):
+        assert stale not in product_line, stale
+    standalone = _doc("part gapHmiStandaloneLinuxDisplay : IncrementGap")
+    for phrase in ("The standalone member selects the HMI display, common content of every member product (ADR 0026).",
+                   "It has no AAOS SDV guest, so its display is a Linux-side display, and no such display exists: no "
+                   "shared asset implements one, and the standalone member selects a display that has no "
+                   "realization.",
+                   "That the display is common is a scope classification, not evidence about the display.",
+                   "This increment leaves the Linux-side display out of its scope (hmiStandaloneDisplayOutOfScope), "
+                   "and its design is open."):
+        assert phrase in standalone, phrase
+    guest = _doc("part gapHmiAAOSIntegratedGuestDisplay : IncrementGap")
+    for phrase in ("The AAOS-integrated member, MW-CONFIG-001, selects the HMI display, which it holds in its AAOS SDV "
+                   "guest (ADR 0026).",
+                   "Its configured member models a headless guest: its guest middleware is a headless SDV Core "
+                   "boundary, and its retained evidence names the headless sdv_core_cf image.",
+                   "Which VM of the guest holds the display is realization content, as ADR 0025 says for the S-CORE "
+                   "member, and it is open.",
+                   "The records of INC-MW-010 stay retained against the earlier content and are not edited."):
+        assert phrase in guest, phrase
+    # the configured member that models the headless guest names this gap
+    assert "(gapHmiAAOSIntegratedGuestDisplay of INC-HMI-001)" in _flat(
+        MIDDLEWARE_CONFIGURATION.read_text(encoding="utf-8").replace("*", ""))
     contact = _doc("part gapHmiUpstreamContact : IncrementGap")
     for phrase in ("show them a result about their project before it is published",
                    "No upstream contact, endorsement or rights clearance is asserted."):
@@ -733,14 +770,13 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "The next model obligation is **Phase 3**, the capability classification, which review judges:",
                    "On 2026-11-21 the owner decided that the increment goes on without waiting for Phase 10 of the "
                    "driver-assistance increment.",
-                   "Phase 3 and later phases wait for the revision of the governed scope, which waits for the "
-                   "baseline of the driver-assistance increment, so that it does not move the product-line receipt to "
-                   "which the configuration of that increment is bound.",
+                   "Phase 3 and later phases waited for the revision of the governed scope, which the model now "
+                   "holds, so they go on.",
                    "On 2026-11-17 the owner decided that the readiness probe of the high availability renderer runs "
                    "with its cost put to him first."):
         assert phrase in flat, phrase
     for stale in ("The framing's boundary concern does not open Phase 1.", "**Phase 1 concern framing**",
-                  "that Phase 1 starts after Phase 10 of the driver-assistance increment"):
+                  "that Phase 1 starts after Phase 10 of the driver-assistance increment", STILL_WAITS):
         assert stale not in flat, f"Phase 1 is framed and goes on now: {stale}"
     boundaries = _flat(guide.split("## Boundaries", 1)[1].split("\n## ", 1)[0])
     for phrase in ("The HMI display of the VisionPilot configuration is a proposed **System 1** subject",

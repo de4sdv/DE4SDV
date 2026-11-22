@@ -242,10 +242,27 @@ Each point is a gap of the model, in the model's own words.
   S-CORE middleware increment assumes that this HMI application is an
   informational display, not the AEBS driver warning (ASM-MW-024). A renderer
   in an SDV Media VM adds a third VM to the guest.
+- **No Linux-side display** (`gapHmiStandaloneLinuxDisplay`). The standalone
+  member selects the HMI display, common content of every member product (ADR
+  0026). It has no AAOS SDV guest, so its display is a Linux-side display, and
+  no such display exists: no shared asset implements one, and the standalone
+  member selects a display that has no realization.
+- **A headless guest with a display** (`gapHmiAAOSIntegratedGuestDisplay`).
+  The AAOS-integrated member, MW-CONFIG-001, selects the HMI display, which it
+  holds in its AAOS SDV guest (ADR 0026). Its configured member models a
+  headless guest: its guest middleware is a headless SDV Core boundary, and
+  its retained evidence names the headless sdv_core_cf image. Its guest now
+  needs a display.
 - **The HMI display's place in the product line**
-  (`gapHmiDisplayInProductLine`). The feature model holds the HMI display as an
-  optional feature that requires the AAOS SDV guest, with no binding time
-  assigned, and neither governed member selects it.
+  (`gapHmiDisplayInProductLine`). The governed scope holds the HMI display as
+  common content of every planned member, bound during Development, and every
+  member configuration selects the feature hmiDisplay, which corresponds to
+  that common content. Where the display runs follows the integration mode: in
+  the AAOS SDV guest of the two integrated members, and on the Linux side of
+  the standalone member. No shared asset implements the display yet, and what
+  it shows in each member is open. The owner decided on 2026-11-21 that this
+  increment records the two gaps that the scope revision leaves in the members
+  (gapHmiStandaloneLinuxDisplay, gapHmiAAOSIntegratedGuestDisplay).
 - **No upstream contact** (`gapHmiUpstreamContact`). The maintainers of the
   display safety of AAOS SDV and of the candidate application are not yet
   involved.
@@ -286,11 +303,10 @@ driving application. With no characteristic recorded, the one blocking check of
 Phase 3 has nothing to evaluate, so the Method Check lists Phase 3 as vacuous
 and names its next obligation in Phase 4. On 2026-11-21 the owner decided that
 the increment goes on without waiting for Phase 10 of the driver-assistance
-increment. Phase 3 and later phases wait for the revision of the governed
-scope, which waits for the baseline of the driver-assistance increment, so
-that it does not move the product-line receipt to which the configuration of
-that increment is bound. On 2026-11-17 the owner decided that the readiness
-probe of the high availability renderer runs with its cost put to him first.
+increment. Phase 3 and later phases waited for the revision of the governed
+scope, which the model now holds, so they go on. On 2026-11-17 the owner
+decided that the readiness probe of the high availability renderer runs with
+its cost put to him first.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
