@@ -90,12 +90,15 @@ package DE4SDV_HmiDisplayNeedsRequirements {
      * fusion gives the closest object a distance and a speed, and moves the
      * distance by that speed over time; its comment reads a negative speed as
      * approaching, and the planner takes the speed as that of the vehicle
-     * ahead, so which of the two the display shows is open. Where AutoDrive
-     * flags an object in the path and AutoSpeed gives no detection of the
-     * first level, the visualization also draws a mark for the closest object
-     * at the distance that AutoDrive gives, the distance that the fusion then
-     * takes from AutoDrive; NEED-HMI-001 asks for the closest object of the
-     * fusion, not for that mark. Phase 5 states as requirements what the
+     * ahead where it predicts the gap and as the speed at which the vehicle
+     * closes on it where it sets the acceleration, so which the display shows
+     * is open. Where AutoDrive flags an object in the path and AutoSpeed
+     * gives no detection of the first level, the visualization also draws a
+     * mark for the closest object at the distance that AutoDrive gives, the
+     * distance that the fusion then takes from AutoDrive, when that distance
+     * lies within its range and, in its panel, no box lies near it;
+     * NEED-HMI-001 asks for the closest object of the fusion that the planner
+     * plans on, not for that mark. Phase 5 states as requirements what the
      * display takes from the scene.
      */
 
