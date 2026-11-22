@@ -37,10 +37,12 @@ package DE4SDV_HmiDisplayOperationalContext {
      * The scene as the candidate gives it from its own perception: its lane,
      * the path it fits to that lane, the objects it detects with their level
      * relative to its path, and the closest object in its path with the
-     * distance and the speed that its fusion gives. It holds nothing that the
-     * candidate does not give: neither the simulator's record of the scene nor
-     * an estimate of the display's own (hmiSimulatorTruthOutOfScope). At the
-     * inspected revision the candidate gives no such output (gapHmiSceneOutput).
+     * distance and the speed that its fusion gives. The scene carries its
+     * time, as the vehicle speed and the warning request carry theirs. It
+     * holds nothing that the candidate does not give: neither the simulator's
+     * record of the scene nor an estimate of the display's own
+     * (hmiSimulatorTruthOutOfScope). At the inspected revision the candidate
+     * gives no such output (gapHmiSceneOutput).
      */
   }
 
