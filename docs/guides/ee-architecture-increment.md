@@ -334,7 +334,9 @@ requirement that it shapes:
 8. The run set names every run that the criteria judge: on each route, a run
    without a fault, a run for each of the four command faults on each link,
    with the delay holding the command for 300 ms, and a run for each link that
-   goes down.
+   goes down. Each run ends 100 ms after the path gives its last command, so
+   that the last command can arrive and a run without a fault ends without the
+   stop response.
 9. The four concerns that are reviewer questions get requirements: the
    topology and the elements of each route in `REQ-EE-001` and `REQ-EE-003`,
    the exchange items in `REQ-EE-007`, and the sequence from a fault to its
