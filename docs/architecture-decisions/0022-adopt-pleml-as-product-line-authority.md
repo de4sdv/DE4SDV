@@ -67,10 +67,11 @@ then, the YAML authority of ADR 0014 stays in force.
 > Standalone. The decision itself is unchanged.
 >
 > Note (2026-11-13): [ADR 0026](0026-hmi-display-in-every-member-product.md)
-> decision 6 amends decision 2. The HMI display is a common capability that
-> keeps its PLEML feature `hmiDisplay`: the feature corresponds to the common
-> content, and admission asks every configuration to select it, as for
-> `autoware` and `linux`. [ADR
+> decision 6, decided on 2026-11-13, amends decision 2; the scope model and the
+> feature model hold it since the scope pull request. The HMI display is a
+> common capability that keeps its PLEML feature `hmiDisplay`: the feature
+> corresponds to the common content, and admission asks every configuration to
+> select it, as for `autoware` and `linux`. [ADR
 > 0023](0023-admit-score-integrated-aebs-reference-member.md) decision 4 reads
 > shared realizations by intersection. Since its scope revision, `kvm`,
 > `guestAndroid` and `guestAndroidSDV` correspond to AAOS Integrated and

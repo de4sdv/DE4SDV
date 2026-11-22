@@ -5,9 +5,10 @@ open-source parts and keep the design, configuration choices, tests, and
 evidence connected while those parts change. We build an open engineering
 reference, not a production car or a certificate.
 
-![Concept illustration, not a model view: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and verification and validation (V&V) evidence (existing today), is configured along dimensions such as these two. Platform stack: a configuration has a main side and can have a guest side under KVM on the same chip. Each side lists its layers in the order application · middleware · OS. Two member configurations exist today: Autoware · Linux with no guest side, and Autoware · Linux with an AAOS SDV · Android guest side. Not admitted yet: the candidate Autoware · Eclipse S-CORE · Linux with an AAOS SDV · Android guest side and a human-machine interface (HMI) display, in progress. More stacks are deferred and not admitted. Sensor set: LiDAR and camera, shared by both members, exists today; variants, for example entry, mid and premium, are deferred and not admitted. Every change is re-checked by CI and review, and model changes also by the Method Check; evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
+![Concept illustration, not a model view, drawn before the scope revision of ADR 0023 and ADR 0026, so it shows the two members of that time: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and verification and validation (V&V) evidence (existing today), is configured along dimensions such as these two. Platform stack: a configuration has a main side and can have a guest side under KVM on the same chip. Each side lists its layers in the order application · middleware · OS. Two member configurations exist today: Autoware · Linux with no guest side, and Autoware · Linux with an AAOS SDV · Android guest side. Not admitted yet: the candidate Autoware · Eclipse S-CORE · Linux with an AAOS SDV · Android guest side and a human-machine interface (HMI) display, in progress. More stacks are deferred and not admitted. Sensor set: LiDAR and camera, shared by both members, exists today; variants, for example entry, mid and premium, are deferred and not admitted. Every change is re-checked by CI and review, and model changes also by the Method Check; evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
 
-*Concept illustration, not a model view: the vision at a glance.* DE4SDV
+*Concept illustration, not a model view: the vision at a glance, drawn before
+the scope revision of ADR 0023 and ADR 0026, so it shows two members.* DE4SDV
 keeps one SysML v2 model for the whole product line and configures each member
 product from it. The configuration dimensions include the platform stack
 (application, middleware, OS) and the sensor set. Today three members are
@@ -84,7 +85,7 @@ is managed together. Two levels matter, and it is easy to confuse them:
   options remain reference-only or deferred until a future reviewed decision
   admits a member that needs them.
 
-Eclipse S-CORE was the first of those options under test: increment
+Eclipse S-CORE is the first of those options under test: increment
 `INC-MW-011` (an increment answers one engineering question; see
 [part 2](#2-how-the-engineering-work-runs)), in progress, asks whether S-CORE
 can realize the middleware layer of a member with Autoware on a Linux host and

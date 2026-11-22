@@ -8,8 +8,9 @@
 
 > Note (2026-11-13): [ADR 0023](../architecture-decisions/0023-admit-score-integrated-aebs-reference-member.md)
 > and [ADR 0026](../architecture-decisions/0026-hmi-display-in-every-member-product.md)
-> revise the governed scope that this record reviewed, and the scope model
-> holds their revision. The portfolio holds three planned members: the
+> revise the governed scope that this record reviewed. They were decided on
+> 2026-11-13, and the scope model holds their revision since the scope pull
+> request. The portfolio holds three planned members: the
 > third is the **S-CORE-Integrated Autoware AEBS Reference Member**. Vehicle
 > Platform Integration Mode has a third alternative, **S-CORE Integrated**,
 > also bound during **Development**, and it stays the only admitted product

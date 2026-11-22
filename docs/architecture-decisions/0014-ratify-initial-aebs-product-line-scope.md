@@ -24,8 +24,9 @@ Accepted
 >
 > Note (2026-11-13): amended by
 > [ADR 0023](0023-admit-score-integrated-aebs-reference-member.md) and
-> [ADR 0026](0026-hmi-display-in-every-member-product.md), which the scope
-> model holds. The governed portfolio has a third planned member, the
+> [ADR 0026](0026-hmi-display-in-every-member-product.md), decided on
+> 2026-11-13; the scope model holds them since the scope pull request. The
+> governed portfolio has a third planned member, the
 > S-CORE-Integrated Autoware AEBS Reference Member, and Vehicle Platform
 > Integration Mode a third alternative, S-CORE Integrated, bound during
 > Development. The S-CORE two-domain topology is a further derived

@@ -213,7 +213,8 @@ def test_the_configured_product_specializes_the_s_core_integrated_member() -> No
     assert re.search(r"\bpart\s+def\s+SCOREIntegratedAutowareAEBSReferenceMember\s*:>\s*ProductLineMemberProduct\b",
                      _code(SCOPE))
     docs = _docs(SLICE)
-    for phrase in ("The governed scope admits the configuration since the scope revision of ADR 0023 and ADR 0026: "
+    for phrase in ("The configured product of the S-CORE-integrated member configuration, MW-CONFIG-002.",
+                   "The governed scope admits the configuration since the scope revision of ADR 0023 and ADR 0026: "
                    "it realizes the alternative S-CORE Integrated, and its configured product specializes the member "
                    "definition SCOREIntegratedAutowareAEBSReferenceMember.",
                    "The owner accepted the member on 2026-11-13 (ADR 0023), before the runnable proof of phase 10. "
@@ -224,7 +225,8 @@ def test_the_configured_product_specializes_the_s_core_integrated_member() -> No
                    "its member definition."):
         assert phrase in docs, phrase
     for stale in ("specializes no member-product type", "The member decision is phase-12 work",
-                  "If the owner admits the member in phase 12", "It stays a phase-12 decision", "C007 to C010"):
+                  "If the owner admits the member in phase 12", "It stays a phase-12 decision", "C007 to C010",
+                  "Eclipse S-CORE reference configuration"):
         assert stale not in docs, stale
 
 
@@ -259,6 +261,20 @@ def test_cls_mw_004_has_both_integrated_alternatives_as_its_counterpart() -> Non
     assert [name.strip() for name in about.split(",")] == [
         "DE4SDV_MiddlewareSCOREFeatureClassification::hmiGuestExecutionDomain",
         *(f"DE4SDV_MiddlewareSCOREFeatureClassification::{name}" for name in COUNTERPARTS)]
+
+
+def test_the_classification_concern_names_only_relations_the_model_has() -> None:
+    """The concern framed by scoreTwoDomainClassificationView: no scope decision governs the candidate (a scope
+    decision record governs the scope), and the decisions of 2026-11-13 admit the alternatives that are its
+    counterpart. The concern text reaches VIEWS.md, which scripts/generate_view_index.py regenerates."""
+    concern = _docs(CLASSIFICATION)
+    assert ("Product-line engineers, system architects and open-source reviewers need the new member-distinguishing "
+            "characteristic identified as a feature candidate, with the gap and the scope decisions of 2026-11-13 "
+            "that admit its counterpart.") in concern
+    for stale in ("the scope decision it waits for", "the scope decision that governs it"):
+        assert stale not in concern, stale
+    views = " ".join((MIDDLEWARE / "VIEWS.md").read_text(encoding="utf-8").split())
+    assert "with the gap and the scope decisions of 2026-11-13 that admit its counterpart." in views
 
 
 def test_mw_config_002_is_bound_to_the_exact_receipt() -> None:

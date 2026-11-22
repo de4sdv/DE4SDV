@@ -2,8 +2,8 @@
  * DE4SDV middleware variability and configuration model slice for the
  * Eclipse S-CORE realization.
  *
- * INC-MW-011, phase 9: the configured product of the Eclipse S-CORE
- * reference configuration, with the configuration identity MW-CONFIG-002.
+ * INC-MW-011, phase 9: the configured product of the S-CORE-integrated
+ * member configuration, with the configuration identity MW-CONFIG-002.
  * It pairs two parts. The first is the platform-stack projection that the
  * configurator generates from the receipt of the feature configuration
  * middleware_autoware_score_reference.sysml. The second is the realization
@@ -34,12 +34,12 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
   part def MiddlewareAutowareSCOREConfiguredProduct
       :> DE4SDV_AEBSProductLineScope::SCOREIntegratedAutowareAEBSReferenceMember, ProductLineConfiguredProduct {
     doc /*
-     * The configured product of the Eclipse S-CORE reference configuration.
-     * It holds the generated platform-stack projection and the realization of
-     * the middleware integration layer, the system of interest of INC-MW-011.
-     * The local parts compose the projection and the phase-8 realization.
-     * They choose no variant. The context parts of phase 8 stay in the
-     * physical context SCORETwoDomainPhysicalSystem. Examples are the
+     * The configured product of the S-CORE-integrated member configuration,
+     * MW-CONFIG-002. It holds the generated platform-stack projection and the
+     * realization of the middleware integration layer, the system of interest
+     * of INC-MW-011. The local parts compose the projection and the phase-8
+     * realization. They choose no variant. The context parts of phase 8 stay
+     * in the physical context SCORETwoDomainPhysicalSystem. Examples are the
      * Autoware-based AEBS stack, the vehicle-speed provider and the HMI
      * application in the guest.
      *

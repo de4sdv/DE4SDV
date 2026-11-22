@@ -563,9 +563,28 @@ def test_api_scope_validation_refuses_eclipse_score_as_reference_only() -> None:
         validate_scope_elements(elements, sources)
 
 
+#: The relationships of the S-CORE-integrated member and mode in the scope model (ADR 0023, decisions 1 to 3): the
+#: member uses the mode, the mode derives its three realizations, and the member traces to its configured product.
+SCORE_INTEGRATED_RELATIONSHIPS = (
+    ("scoreIntegratedMemberUsesSCOREIntegration",
+     "InitialPlannedReferenceMemberPortfolio::scoreIntegratedAutowareAEBSReferenceMember",
+     "vehiclePlatformIntegrationMode::scoreIntegrated"),
+    ("scoreIntegratedModeDerivesSCORETopology", "vehiclePlatformIntegrationMode::scoreIntegrated",
+     "DerivedArchitectureAndTechnicalRealization::scoreIntegratedExecutionDomainTopology"),
+    ("scoreIntegratedModeDerivesAndroidKVM", "vehiclePlatformIntegrationMode::scoreIntegrated",
+     "DerivedArchitectureAndTechnicalRealization::androidKVMTopology"),
+    ("scoreIntegratedModeDerivesAdapter", "vehiclePlatformIntegrationMode::scoreIntegrated",
+     "DerivedArchitectureAndTechnicalRealization::adapterRealization"),
+    ("scoreIntegratedMemberEvidenceTrace",
+     "InitialPlannedReferenceMemberPortfolio::scoreIntegratedAutowareAEBSReferenceMember",
+     "DE4SDV_MiddlewareSCOREVariabilityConfiguration::MiddlewareAutowareSCOREConfiguredProduct"),
+)
+
+
 def test_the_scope_model_records_both_scope_decisions_of_2026_11_13() -> None:
     """ADR 0023 decision 7 and ADR 0026 (Consequences): one more record each, with the decision authority of the
-    initial record, each governing the scope."""
+    initial record, each governing the scope. The real scope file also holds each relationship of the new member
+    and mode by name; the validator tests read a synthetic fixture, and no validator reads the evidence trace."""
     model = SCOPE_MODEL.read_text(encoding="utf-8")
     for name in SCOPE_DECISIONS:
         match = re.search(rf"\bpart {name} : ProductLineScopeDecisionRecord \{{(.*?)\n  \}}", model, re.DOTALL)
@@ -576,9 +595,8 @@ def test_the_scope_model_records_both_scope_decisions_of_2026_11_13() -> None:
     for name in ("scoreIntegratedMemberScopeDecision", "hmiDisplayInEveryMemberScopeDecision"):
         body = re.search(rf"\bpart {name} : ProductLineScopeDecisionRecord \{{(.*?)\n  \}}", model, re.DOTALL)[1]
         assert 'attribute :>> decisionDate = "2026-11-13";' in body, name
-    assert re.search(r"\bdependency \w+\s+from InitialPlannedReferenceMemberPortfolio::"
-                     r"scoreIntegratedAutowareAEBSReferenceMember\s+"
-                     r"to vehiclePlatformIntegrationMode::scoreIntegrated;", model)
+    for name, source, target in SCORE_INTEGRATED_RELATIONSHIPS:
+        assert re.search(rf"\bdependency {name}\s+from {re.escape(source)}\s+to {re.escape(target)};", model), name
     reference_only = re.search(r"part def ReferenceOnlyAlternativeSet \{(.*?)\n  \}", model, re.DOTALL)[1]
     assert "eclipseSCORE" not in reference_only
     portfolio = re.search(r"part def InitialPlannedReferenceMemberPortfolio \{(.*?)\n  \}", model, re.DOTALL)[1]
