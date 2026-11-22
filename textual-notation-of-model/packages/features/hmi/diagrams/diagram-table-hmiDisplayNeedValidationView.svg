@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="2834" viewBox="0 0 640 2834" role="img" aria-labelledby="title description">
+  <title id="title">table-hmiDisplayNeedValidationView</title>
+  <desc id="description">table-hmiDisplayNeedValidationView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="640" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-hmiDisplayNeedValidationView</text>
+  <rect x="0" y="54" width="280" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">Plan</tspan>
+  </text>
+  <rect x="280" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="292" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="292" dy="0">Review</tspan>
+  </text>
+  <rect x="0" y="94" width="280" height="680" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">hmiSceneValidationPlan</tspan>
+  </text>
+  <rect x="280" y="94" width="360" height="680" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="292" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="292" dy="0">For NEED-HMI-001, a planned stakeholder</tspan>
+    <tspan x="292" dy="20">review. While the warning scenarios and</tspan>
+    <tspan x="292" dy="20">the no-reaction scenarios of the driver-</tspan>
+    <tspan x="292" dy="20">assistance increment run on the display</tspan>
+    <tspan x="292" dy="20">(SC-HMI-001 and SC-HMI-002), can</tspan>
+    <tspan x="292" dy="20">verification engineers and systems</tspan>
+    <tspan x="292" dy="20">engineers confirm whether the lane, the</tspan>
+    <tspan x="292" dy="20">path, the objects with their level and the</tspan>
+    <tspan x="292" dy="20">closest object in the path with its</tspan>
+    <tspan x="292" dy="20">distance and its speed that the display</tspan>
+    <tspan x="292" dy="20">shows are those that the driver-assistance</tspan>
+    <tspan x="292" dy="20">system gave, whether the display marked</tspan>
+    <tspan x="292" dy="20">the closest object in the path apart from</tspan>
+    <tspan x="292" dy="20">the other objects, and whether the display</tspan>
+    <tspan x="292" dy="20">showed any object that the system did not</tspan>
+    <tspan x="292" dy="20">give, from the simulator's record of the</tspan>
+    <tspan x="292" dy="20">scene or from an estimate of the display's</tspan>
+    <tspan x="292" dy="20">own? Can systems engineers and safety</tspan>
+    <tspan x="292" dy="20">experts tell which items cross into the</tspan>
+    <tspan x="292" dy="20">HMI display from outside its boundary, the</tspan>
+    <tspan x="292" dy="20">lane of the driver-assistance system, the</tspan>
+    <tspan x="292" dy="20">path it fits to that lane, the objects it</tspan>
+    <tspan x="292" dy="20">detects with their level relative to its</tspan>
+    <tspan x="292" dy="20">path, the closest object in its path with</tspan>
+    <tspan x="292" dy="20">the distance and the speed that its fusion</tspan>
+    <tspan x="292" dy="20">gives, the vehicle speed that the system</tspan>
+    <tspan x="292" dy="20">is given and its warning request, and</tspan>
+    <tspan x="292" dy="20">whether each reaches the display as its</tspan>
+    <tspan x="292" dy="20">source gives it? And can product-line</tspan>
+    <tspan x="292" dy="20">engineers tell which content of the HMI</tspan>
+    <tspan x="292" dy="20">display is common to the member products</tspan>
+    <tspan x="292" dy="20">and which derives from a member's driving</tspan>
+    <tspan x="292" dy="20">application?</tspan>
+  </text>
+  <rect x="0" y="774" width="280" height="240" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">hmiSpeedValidationPlan</tspan>
+  </text>
+  <rect x="280" y="774" width="360" height="240" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="292" y="798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="292" dy="0">For NEED-HMI-002, a planned stakeholder</tspan>
+    <tspan x="292" dy="20">review. While the warning scenarios and</tspan>
+    <tspan x="292" dy="20">the no-reaction scenarios of the driver-</tspan>
+    <tspan x="292" dy="20">assistance increment run on the display</tspan>
+    <tspan x="292" dy="20">(SC-HMI-001 and SC-HMI-002), can</tspan>
+    <tspan x="292" dy="20">verification engineers and systems</tspan>
+    <tspan x="292" dy="20">engineers confirm whether the speed that</tspan>
+    <tspan x="292" dy="20">the display shows is the vehicle speed</tspan>
+    <tspan x="292" dy="20">that the driver-assistance system was</tspan>
+    <tspan x="292" dy="20">given, and whether any other source of the</tspan>
+    <tspan x="292" dy="20">speed reached the display?</tspan>
+  </text>
+  <rect x="0" y="1014" width="280" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">hmiWarningValidationPlan</tspan>
+  </text>
+  <rect x="280" y="1014" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="292" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="292" dy="0">For NEED-HMI-003, a planned stakeholder</tspan>
+    <tspan x="292" dy="20">review. While the warning scenarios and</tspan>
+    <tspan x="292" dy="20">the no-reaction scenarios of the driver-</tspan>
+    <tspan x="292" dy="20">assistance increment run on the display</tspan>
+    <tspan x="292" dy="20">(SC-HMI-001 and SC-HMI-002), can</tspan>
+    <tspan x="292" dy="20">verification engineers and safety experts</tspan>
+    <tspan x="292" dy="20">confirm whether the display gave the</tspan>
+    <tspan x="292" dy="20">collision warning on the display and as a</tspan>
+    <tspan x="292" dy="20">sound for each warning request of the</tspan>
+    <tspan x="292" dy="20">driver-assistance system, whether it gave</tspan>
+    <tspan x="292" dy="20">one without a request, and when each mode</tspan>
+    <tspan x="292" dy="20">began relative to the request, with no</tspan>
+    <tspan x="292" dy="20">recording or overlay in place of either</tspan>
+    <tspan x="292" dy="20">mode? And can safety experts and systems</tspan>
+    <tspan x="292" dy="20">engineers follow the sequence from the</tspan>
+    <tspan x="292" dy="20">warning request of the driver-assistance</tspan>
+    <tspan x="292" dy="20">system to the collision warning on the</tspan>
+    <tspan x="292" dy="20">display and to its sound, and the time of</tspan>
+    <tspan x="292" dy="20">each step within the time that the driver-</tspan>
+    <tspan x="292" dy="20">assistance increment allots from the</tspan>
+    <tspan x="292" dy="20">request to each mode, independent of the</tspan>
+    <tspan x="292" dy="20">elements that realize it?</tspan>
+  </text>
+  <rect x="0" y="1474" width="280" height="780" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">hmiOutageValidationPlan</tspan>
+  </text>
+  <rect x="280" y="1474" width="360" height="780" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="292" y="1498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="292" dy="0">For NEED-HMI-004, a planned stakeholder</tspan>
+    <tspan x="292" dy="20">review. While the app that draws the scene</tspan>
+    <tspan x="292" dy="20">is out and while Android in the IVI VM</tspan>
+    <tspan x="292" dy="20">boots, hangs and restarts (SC-HMI-003 to</tspan>
+    <tspan x="292" dy="20">SC-HMI-006), can verification engineers</tspan>
+    <tspan x="292" dy="20">and safety experts confirm whether the</tspan>
+    <tspan x="292" dy="20">driver saw the vehicle speed throughout</tspan>
+    <tspan x="292" dy="20">and got the collision warning for each</tspan>
+    <tspan x="292" dy="20">warning request, or, where the warning</tspan>
+    <tspan x="292" dy="20">could not be given, saw that it was</tspan>
+    <tspan x="292" dy="20">unavailable? Can safety experts and</tspan>
+    <tspan x="292" dy="20">systems engineers follow the sequence from</tspan>
+    <tspan x="292" dy="20">each outage of the drawing of the scene</tspan>
+    <tspan x="292" dy="20">and of the environment that hosts it, the</tspan>
+    <tspan x="292" dy="20">drawing hanging or ending and its host</tspan>
+    <tspan x="292" dy="20">hanging, booting or restarting, to its</tspan>
+    <tspan x="292" dy="20">detection and to what the display shows</tspan>
+    <tspan x="292" dy="20">then, independent of the elements that</tspan>
+    <tspan x="292" dy="20">realize it? Can product-line engineers and</tspan>
+    <tspan x="292" dy="20">safety experts tell which renderer</tspan>
+    <tspan x="292" dy="20">realizes the drawing of each element of</tspan>
+    <tspan x="292" dy="20">the HMI display, and whether the split</tspan>
+    <tspan x="292" dy="20">that the owner decided on 2026-11-17, the</tspan>
+    <tspan x="292" dy="20">high availability renderer in an SDV Media</tspan>
+    <tspan x="292" dy="20">VM for the speed, the collision warning</tspan>
+    <tspan x="292" dy="20">and its sound and an app in the IVI VM for</tspan>
+    <tspan x="292" dy="20">the scene, keeps what the driver sees</tspan>
+    <tspan x="292" dy="20">while Android in the IVI VM hangs, boots</tspan>
+    <tspan x="292" dy="20">or restarts? And can system architects and</tspan>
+    <tspan x="292" dy="20">systems engineers tell which elements</tspan>
+    <tspan x="292" dy="20">exchange each input of the HMI display on</tspan>
+    <tspan x="292" dy="20">its way from the SDV Core VM to the high</tspan>
+    <tspan x="292" dy="20">availability renderer in the SDV Media VM</tspan>
+    <tspan x="292" dy="20">and to the app in the IVI VM that draws</tspan>
+    <tspan x="292" dy="20">the scene, by which exchange that app</tspan>
+    <tspan x="292" dy="20">tells the renderer that Android is alive,</tspan>
+    <tspan x="292" dy="20">and by which boundary interface each input</tspan>
+    <tspan x="292" dy="20">enters the display?</tspan>
+  </text>
+  <rect x="0" y="2254" width="280" height="320" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">hmiCurrencyValidationPlan</tspan>
+  </text>
+  <rect x="280" y="2254" width="360" height="320" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="292" y="2278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="292" dy="0">For NEED-HMI-005, a planned stakeholder</tspan>
+    <tspan x="292" dy="20">review. While the app that draws the scene</tspan>
+    <tspan x="292" dy="20">is out, while Android in the IVI VM boots,</tspan>
+    <tspan x="292" dy="20">hangs and restarts, and while the warning</tspan>
+    <tspan x="292" dy="20">request stops reaching the display (SC-</tspan>
+    <tspan x="292" dy="20">HMI-003 to SC-HMI-007), can safety experts</tspan>
+    <tspan x="292" dy="20">and verification engineers tell the states</tspan>
+    <tspan x="292" dy="20">that each element of the HMI display can</tspan>
+    <tspan x="292" dy="20">be in, current, late or missing, and the</tspan>
+    <tspan x="292" dy="20">state in which the collision warning is</tspan>
+    <tspan x="292" dy="20">unavailable, what the display shows in</tspan>
+    <tspan x="292" dy="20">each, and whether the display showed any</tspan>
+    <tspan x="292" dy="20">element as current when it was not, or the</tspan>
+    <tspan x="292" dy="20">warning as available when it could not be</tspan>
+    <tspan x="292" dy="20">given?</tspan>
+  </text>
+  <rect x="0" y="2574" width="280" height="260" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2598" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">hmiDisplayIdentityValidationPlan</tspan>
+  </text>
+  <rect x="280" y="2574" width="360" height="260" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="292" y="2598" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="292" dy="0">For NEED-HMI-006, a planned stakeholder</tspan>
+    <tspan x="292" dy="20">review. While the seven scenarios run (SC-</tspan>
+    <tspan x="292" dy="20">HMI-001 to SC-HMI-007), can verification</tspan>
+    <tspan x="292" dy="20">engineers and product-line engineers tell</tspan>
+    <tspan x="292" dy="20">from each run which build and which</tspan>
+    <tspan x="292" dy="20">configuration of the HMI display ran and</tspan>
+    <tspan x="292" dy="20">which candidate revision the run of the</tspan>
+    <tspan x="292" dy="20">driver-assistance system identifies,</tspan>
+    <tspan x="292" dy="20">whether each verdict is bound to them, and</tspan>
+    <tspan x="292" dy="20">whether a display with a changed build or</tspan>
+    <tspan x="292" dy="20">setting identifies itself as a different</tspan>
+    <tspan x="292" dy="20">one?</tspan>
+  </text>
+</svg>
