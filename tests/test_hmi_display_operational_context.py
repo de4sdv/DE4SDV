@@ -95,9 +95,10 @@ ITEM_DOCS = {
         "The scene as the candidate gives it from its own perception: its lane, the path it fits to that lane, the "
         "objects it detects with their level relative to its path, and the closest object in its path with the "
         "distance and the speed that its fusion gives. The scene carries its time, as the vehicle speed and the "
-        "warning request carry theirs. It holds nothing that the candidate does not give: neither "
-        "the simulator's record of the scene nor an estimate of the display's own (hmiSimulatorTruthOutOfScope). "
-        "At the inspected revision the candidate gives no such output (gapHmiSceneOutput)."),
+        "warning request carry theirs (the scene-time decision of 2026-11-22). It holds nothing that the candidate "
+        "does not give: neither the simulator's record of the scene nor an estimate of the display's own "
+        "(hmiSimulatorTruthOutOfScope). At the inspected revision the candidate gives no such output "
+        "(gapHmiSceneOutput)."),
     "HmiDisplayContent": (
         "What the HMI display shows the driver beside the collision warning: the scene as the candidate gives it, "
         "the vehicle speed, and the fact that the warning is unavailable when it is, with no element shown as "
@@ -107,9 +108,10 @@ ITEM_DOCS = {
 #: The use case definition's doc, its motivation, its trigger and its result, whole: a sentence that adds the
 #: simulator's record, or hands this increment the time from the warning request to each mode, fails here.
 USE_CASE_DEF_DOC = (
-    "The HMI display in operation: in the scenarios of the driver-assistance increment it shows the driver what the "
-    "candidate perceives beside the speed and gives the collision warning when the candidate requests it, also while "
-    "the app that draws the scene or Android in the IVI VM is out.")
+    "The HMI display in operation: in the scenarios of the driver-assistance increment it shows the driver what "
+    "the candidate perceives beside the speed and gives the collision warning when the candidate requests it, also "
+    "while the app that draws the scene or Android in the IVI VM is out, or while the warning request stops "
+    "reaching the display.")
 USE_CASE_DEF_MOTIVATION = (
     "The driver, a vehicle occupant, needs to see on the HMI display what the driving application perceives beside the "
     "vehicle speed, to get the collision warning on the display and as a sound, and to see the speed and the warning, "
@@ -120,17 +122,18 @@ USE_CASE_DEF_TRIGGER = (
     "times the app that draws the scene ends or hangs, Android in the IVI VM boots, hangs or restarts, or the warning "
     "request stops reaching the display.")
 USE_CASE_DEF_RESULT = (
-    "The display shows the scene as the candidate gives it and the speed, gives the collision warning on the display "
-    "and as a sound when the warning request arrives, shows no element as current when it is not, and keeps the "
-    "speed and the warning, or the fact that the warning is unavailable, apparent while the app that draws the scene "
-    "or Android in the IVI VM is out.")
+    "The display shows the scene as the candidate gives it and the speed, gives the collision warning on the "
+    "display and as a sound when the warning request arrives, shows no element as current when it is not, and "
+    "keeps the speed and the warning, or the fact that the warning is unavailable, apparent while the app that "
+    "draws the scene or Android in the IVI VM is out or the warning request stops reaching the display.")
 #: The objective of the use case definition. The driver-assistance increment allots the time from the request to
 #: each mode; only how that time divides on a path to this display is open (gapHmiWarningPresentation).
 USE_CASE_DEF_OBJECTIVE = (
-    "Frame what the driver sees in the scenarios of the driver-assistance increment and in each outage in the IVI "
-    "VM, only. How the display detects an outage is for the system process of phase 6; the criteria, the age from "
-    "which an element counts as late and how the time that the driver-assistance increment allots from the warning "
-    "request to each mode divides (gapHmiWarningPresentation) are fixed with the requirements (phase 5).")
+    "Frame what the driver sees in the scenarios of the driver-assistance increment, in each outage in the IVI VM "
+    "and while the warning request stops reaching the display, only. How the display detects an outage is for the "
+    "system process of phase 6; the criteria, the age from which an element counts as late and how the time that "
+    "the driver-assistance increment allots from the warning request to each mode divides "
+    "(gapHmiWarningPresentation) are fixed with the requirements (phase 5).")
 STORY_OBJECTIVE = (
     "Operate the HMI display without selecting the realization of an element or of a path, and without any "
     "human-factors, safety, on-road, compliance or production-readiness claim.")
@@ -179,11 +182,11 @@ SCENARIO_DOCS = {
         "claim is made."),
     "showWarningUnavailableWhenTheRequestStops": (
         "SC-HMI-007 (the warning request stops reaching the display): SC-DRIVING-012 is played once more with the "
-        "Eclipse S-CORE path stopped, so the warning request stops reaching the display. The display shows that the "
-        "warning is unavailable and shows no element as current when it is not (hmiStaleContentInScope), and the "
-        "driver still sees the vehicle speed. Whether the display learns that the warning is unavailable from the age "
-        "of its inputs or from a signal of its own is open (gapHmiWarningAvailability). No human-factors or safety "
-        "claim is made."),
+        "Eclipse S-CORE path stopped, so the warning request stops reaching the display (the missing-request "
+        "decision of 2026-11-22). The display shows that the warning is unavailable and shows no element as "
+        "current when it is not (hmiStaleContentInScope), and the driver still sees the vehicle speed. Whether the "
+        "display learns that the warning is unavailable from the age of its inputs or from a signal of its own is "
+        "open (gapHmiWarningAvailability). No human-factors or safety claim is made."),
 }
 #: The header's sentence that names the further run of SC-DRIVING-012 and the decision that sets it apart, by
 #: reference: the use case itself names neither a run nor the decision.
@@ -223,6 +226,24 @@ RULE_SENTENCES = (
     "The HMI display: shows the scene as the candidate gives it and the speed, shows no element as current when it is "
     "not, and gives the collision warning on the display and as a sound when the warning request arrives, or shows "
     "that the warning is unavailable.",
+)
+#: The names of the two corrections of Phase 2 that come with Phase 4, one wording each wherever it is named.
+MISSING_REQUEST = "the missing-request decision of 2026-11-22"
+SCENE_TIME = "the scene-time decision of 2026-11-22"
+#: Their dated records, the last two paragraphs of the header, in day order.
+MISSING_REQUEST_RECORD = (
+    "The owner decided on 2026-11-22 that the story gains SC-HMI-007, in which the warning request stops reaching "
+    "the display, as a correction of phase 2 that comes with phase 4: the missing-request decision of 2026-11-22.")
+SCENE_TIME_RECORD = (
+    "The owner decided on 2026-11-22 that the scene carries its time, as the vehicle speed and the warning request "
+    "carry theirs, as a correction of phase 2 that comes with phase 4: the scene-time decision of 2026-11-22.")
+#: The guide's closing paragraph of its Phase 2 section on the two corrections, sentence by sentence.
+PHASE_TWO_CORRECTIONS = (
+    "Two corrections of Phase 2 come with Phase 4.",
+    "On 2026-11-22 the owner decided that the story gains `SC-HMI-007`: the missing-request decision of "
+    "2026-11-22.",
+    "On 2026-11-22 the owner decided that the scene carries its time, as the vehicle speed and the warning request "
+    "carry theirs: the scene-time decision of 2026-11-22.",
 )
 #: The guide's Phase 2 section, whole, sentence by sentence.
 GUIDE_PHASE_TWO = (
@@ -266,6 +287,7 @@ GUIDE_PHASE_TWO = (
     "10.",
     WARNING_TIME_SENTENCE,
     "No human-factors, timing, safety or compliance claim is made.",
+    *PHASE_TWO_CORRECTIONS,
     "The context view frames `hmiDisplayContextConcern`.",
     "The story view frames `hmiDisplayStoryConcern` and the Phase 1 concern `hmiDriverSupervisionConcern`, which "
     "the story answers.",
@@ -618,8 +640,9 @@ def test_operational_views_frame_operational_concerns_and_expose_phase_two():
         "outside; the driver only receives; nothing flows back to the candidate.")
     assert _doc(raw, "concern hmiDisplayStoryConcern : OperationalStoryConcern") == (
         "Systems engineers, verification engineers and open-source reviewers need the HMI display told in "
-        "stakeholder language: what the driver sees in the scenarios of the driver-assistance increment, with "
-        "and without a warning, and while the app that draws the scene or Android in the IVI VM is out.")
+        "stakeholder language: what the driver sees in the scenarios of the driver-assistance increment, with and "
+        "without a warning, while the app that draws the scene or Android in the IVI VM is out, and while the "
+        "warning request stops reaching the display.")
 
 
 def test_dependencies_trace_the_story_and_the_context_to_phase_zero():
@@ -757,3 +780,22 @@ def test_the_guide_names_the_next_obligation_after_phase_two():
     assert "The next model obligation is **Phase 3**" not in flat
     assert "The next model obligation is **Phase 4**" not in flat
     assert "Phase 3 and later phases wait for the revision" not in flat, "the scope revision ended the wait"
+
+
+def test_the_two_corrections_of_phase_2_are_recorded_in_day_order_under_one_name_each():
+    raw = _raw()
+    header = _prose(raw.split("\npackage ", 1)[0]).removesuffix("/").strip()
+    assert header.endswith(f"{MISSING_REQUEST_RECORD} {SCENE_TIME_RECORD}"), \
+        "the two dated records close the header, the missing-request decision first"
+    assert header.count(MISSING_REQUEST_RECORD) == 1 and header.count(SCENE_TIME_RECORD) == 1
+    prose = _prose(raw)
+    assert prose.count(MISSING_REQUEST) == 2, "the record and the objective of SC-HMI-007 name it"
+    assert prose.count(SCENE_TIME) == 2, "the record and the doc of PerceivedScene name it"
+    assert MISSING_REQUEST in SCENARIO_DOCS["showWarningUnavailableWhenTheRequestStops"]
+    assert SCENE_TIME in ITEM_DOCS["PerceivedScene"]
+    guide = _flat(GUIDE.read_text(encoding="utf-8"))
+    section = _guide_section()
+    for name in (MISSING_REQUEST, SCENE_TIME):
+        assert section.count(name) == 1 and guide.count(name) == 1, name
+    # one wording of each correction: no other wording dates an amendment or a correction
+    assert not re.search(r"(?i)\b(?:amend\w*|correct\w*) (?:on|of) 2026-11-22", prose + " " + guide)

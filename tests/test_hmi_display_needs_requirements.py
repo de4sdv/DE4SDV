@@ -185,8 +185,9 @@ CURRENCY_TERMS = re.compile(r"(?i)\b(?:current\w*|live\w*|last frames?|stale\w*|
 
 #: the purpose of the scene on the display, a purpose and no claim of how a driver supervises
 SCENE_PURPOSE = (
-    "The display shows the driver what the driver-assistance system perceives, right or wrong, so that the driver can "
-    "supervise the system with it, and it shows the scene that the system gives and no other.")
+    "The display shows the driver what the driver-assistance system perceives, right or wrong, with the object "
+    "that the system acts on marked, so that the driver can supervise the system with it, and it shows the scene "
+    "that the system gives and no other (the display-rule decision of 2026-11-22).")
 
 #: the purpose of the warning and of no warning without a request, with no claim on how a driver reads it
 WARNING_PURPOSE = (
@@ -204,17 +205,31 @@ CURRENCY_STATES = (
     "Phase 5 also derives from this need the requirements on the states of each element, current, late or missing, "
     "and on what the display shows in each: its source names its concern, and SC-HMI-012 asks its question.")
 
+#: the purpose of keeping the speed and the warning through the outages: the driver-assistance system drives on
+OUTAGE_PURPOSE = (
+    "While the drawing of the scene or Android in the IVI VM is out, the driver-assistance system goes on driving "
+    "the vehicle, and the driver still needs the speed and the warning then, or to know that the warning cannot "
+    "come.")
+
+#: the first question of the outage review: the unavailability only where the warning cannot be given
+OUTAGE_REVIEW = (
+    "While the app that draws the scene is out and while Android in the IVI VM boots, hangs and restarts "
+    "(SC-HMI-003 to SC-HMI-006), can verification engineers and safety experts confirm whether the driver saw the "
+    "vehicle speed throughout and got the collision warning for each warning request, or, where the warning could "
+    "not be given, saw that it was unavailable?")
+
 #: the one sentence of a need that names the simulation
 SIMULATED_ONLY = (
     "A verdict holds for the simulated configuration only (asmHmiSimulationStandsIn).")
 
 #: the one sentence of a review that names the simulator: no object that the system did not give
 SCENE_NO_ESTIMATE = (
-    "While the warning scenarios and the no-reaction scenarios of the driver-assistance increment run on the display "
-    "(SC-HMI-001 and SC-HMI-002), can verification engineers and systems engineers confirm whether the lane, the "
-    "path, the objects with their level and the closest object in the path with its distance and its speed that the "
-    "display shows are those that the driver-assistance system gave, and whether the display showed any object that "
-    "the system did not give, from the simulator's record of the scene or from an estimate of the display's own?")
+    "While the warning scenarios and the no-reaction scenarios of the driver-assistance increment run on the "
+    "display (SC-HMI-001 and SC-HMI-002), can verification engineers and systems engineers confirm whether the "
+    "lane, the path, the objects with their level and the closest object in the path with its distance and its "
+    "speed that the display shows are those that the driver-assistance system gave, whether the display marked the "
+    "closest object in the path apart from the other objects, and whether the display showed any object that the "
+    "system did not give, from the simulator's record of the scene or from an estimate of the display's own?")
 
 #: the review sentence on the states of each element
 CURRENCY_REVIEW = (
@@ -242,10 +257,10 @@ CURRENCY_SENTENCES = (CURRENCY_STATEMENT, CURRENCY_PURPOSE, CURRENCY_STATES, CUR
 #: need -> its statement
 STATEMENTS = {
     "needPerceivedSceneOnTheDisplay": (
-        "Vehicle occupants need the HMI display to show the driver the scene as the driver-assistance system gives it "
-        "from its own perception: its lane, the path it fits to that lane, the objects it detects with their level "
-        "relative to that path, and the closest object in its path with the distance and the speed that its fusion "
-        "gives."),
+        "Vehicle occupants need the HMI display to show the driver the scene as the driver-assistance system gives "
+        "it from its own perception: its lane, the path it fits to that lane, the objects it detects with their "
+        "level relative to that path, and, marked apart from the other objects, the closest object in its path, "
+        "which the system acts on, with the distance and the speed that its fusion gives."),
     "needVehicleSpeedOnTheDisplay": (
         "Vehicle occupants need the HMI display to show the driver the vehicle speed that the driver-assistance "
         "system is given."),
@@ -255,8 +270,9 @@ STATEMENTS = {
         "such a request."),
     "needSpeedAndWarningThroughOutages": (
         "Vehicle occupants need the HMI display to show the driver the vehicle speed and to give the collision "
-        "warning when it is requested, or to show that the warning is unavailable, also while the app that draws the "
-        "scene hangs or ends and while Android in the IVI VM hangs, boots or restarts."),
+        "warning when it is requested, or, when the warning cannot be given, to show that it is unavailable, also "
+        "while the app that draws the scene hangs or ends and while Android in the IVI VM hangs, boots or "
+        "restarts."),
     "needNoElementShownAsCurrentWhenItIsNot": CURRENCY_STATEMENT,
     "needRunsIdentifyTheDisplay": (
         "Verification engineers and product-line engineers need each run of the HMI display to identify the build and "
@@ -312,16 +328,16 @@ RATIONALES = {
          "to each mode (gapHmiWarningPresentation). Phase 5 also derives from this need the requirements on the "
          "sequence from the request to the warning on the display and to its sound: its source names its concern, and "
          "SC-HMI-010 asks its question."))),
-    "needSpeedAndWarningThroughOutages": (
-        "The driver keeps driving while the drawing of the scene or Android in the IVI VM is out, and still needs the "
-        "speed and the warning then, or to know that the warning cannot come. NEED-HMI-002 and NEED-HMI-003 state the "
-        "speed and the warning; this need adds that they stay through each outage. It rests on N-AEBS-008, the need "
-        "of the product line that the availability of the AEBS be apparent, and on the status indication of "
-        "REQ-AEBS-013. Each outage is an event inside the boundary of the display, whose detection phases 6 to 8 "
-        "decide. The need names no renderer and carries no safety claim. Phase 5 derives its requirements and their "
-        "limits. Phase 5 also derives from this need the requirements on the sequence from each outage to what the "
-        "display shows, on which renderer draws each element and on the paths of the inputs to the renderers: its "
-        "source names their concerns, and SC-HMI-011 asks their questions."),
+    "needSpeedAndWarningThroughOutages": " ".join((
+        OUTAGE_PURPOSE,
+        ("NEED-HMI-002 and NEED-HMI-003 state the speed and the warning; this need adds that they stay through "
+         "each outage. It rests on N-AEBS-008, the need of the product line that the availability of the AEBS be "
+         "apparent, and on the status indication of REQ-AEBS-013. Each outage is an event inside the boundary of "
+         "the display, whose detection phases 6 to 8 decide. The need names no renderer and carries no safety "
+         "claim. Phase 5 derives its requirements and their limits. Phase 5 also derives from this need the "
+         "requirements on the sequence from each outage to what the display shows, on which renderer draws each "
+         "element and on the paths of the inputs to the renderers: its source names their concerns, and SC-HMI-011 "
+         "asks their questions."))),
     "needNoElementShownAsCurrentWhenItIsNot": " ".join((
         CURRENCY_PURPOSE,
         ("From which age an element counts as late is for Phase 5 to state, and whether the display learns that the "
@@ -365,10 +381,7 @@ PLAN_DOCS = {
          "when each mode began relative to the request, with no recording or overlay in place of either mode?"),
         _ask("hmiWarningSequenceConcern"))),
     "SC-HMI-011": " ".join((
-        ("For NEED-HMI-004, a planned stakeholder review. While the app that draws the scene is out and while Android "
-         "in the IVI VM boots, hangs and restarts (SC-HMI-003 to SC-HMI-006), can verification engineers and safety "
-         "experts confirm whether the driver saw the vehicle speed throughout and got the collision warning for each "
-         "warning request, or saw that the warning was unavailable?"),
+        "For NEED-HMI-004, a planned stakeholder review.", OUTAGE_REVIEW,
         _ask("hmiAndroidOutageConcern"), _ask("hmiRendererAllocationConcern"), _ask("hmiRendererPathConcern"))),
     "SC-HMI-012": "For NEED-HMI-005, a planned stakeholder review. " + CURRENCY_REVIEW,
     "SC-HMI-013": (
@@ -381,19 +394,25 @@ PLAN_DOCS = {
 #: comment -> (the need it is about, its text): the input contracts kept for phase 5, pinned whole
 CONTRACTS = {
     "perceivedSceneContract": ("needPerceivedSceneOnTheDisplay", (
-        "At the inspected revision the driver-assistance system builds a scene only inside its own visualization. The "
-        "bridge of its panel builds it from the path that the lateral fusion fits, the offset and the heading of the "
-        "vehicle in its lane, the lane points of AutoSteer placed on the road through the homography that the system "
-        "loads, the detections of AutoSpeed as boxes with a score and a class, which is a level relative to the path, "
-        "and the validity and the distance of the closest object, and it does not read the plan. The scene of the "
-        "panel carries no speed of the closest object and no time, and the inference result carries a frame identity "
-        "and no capture time. The fusion gives the closest object a distance and a speed, and its comment reads a "
-        "negative speed as approaching, so whether the speed that its fusion gives is the speed of the object or the "
-        "speed at which it closes is open. The fusion reads the first level as the same lane and the second as the "
-        "adjacent lane. Where AutoDrive flags an object in the path and AutoSpeed gives no box for it, the "
-        "visualization draws a mark for the closest object with a distance that it derives from the network output "
-        "itself; the planner does not use it, it is an estimate of the display's own, and NEED-HMI-001 leaves it out "
-        "by its words. Phase 5 states as requirements what the display takes from the scene.")),
+        "At the inspected revision the driver-assistance system builds a scene only inside its own visualization. "
+        "The bridge of its panel builds it from the path that the lateral fusion fits, the offset and the heading "
+        "of the vehicle in its lane, the lane points of AutoSteer placed on the road through the homography that "
+        "the system loads, the detections of AutoSpeed as boxes with a score and a class, which is a level "
+        "relative to the path, and the validity and the distance of the closest object, and it does not read the "
+        "plan. The scene of the panel carries no speed of the closest object and no time, and the inference result "
+        "carries a frame identity and no capture time. The fusion reads the first level as the same lane and the "
+        "second as the adjacent lane. It takes as the closest object the nearest detection of the first level, or "
+        "of the second when that one is nearer, a cut-in, and fuses its distance with the distance that AutoDrive "
+        "gives; where AutoSpeed gives neither and AutoDrive flags an object in the path, it takes the closest "
+        "object from AutoDrive alone. The planner plans on that closest object, and the collision warnings of each "
+        "plan follow from the acceleration that it plans. The scene names no detection as the closest object. The "
+        "fusion gives the closest object a distance and a speed, and moves the distance by that speed over time; "
+        "its comment reads a negative speed as approaching, and the planner takes the speed as that of the vehicle "
+        "ahead, so which of the two the display shows is open. Where AutoDrive flags an object in the path and "
+        "AutoSpeed gives no detection of the first or the second level, the visualization also draws a mark for "
+        "the closest object at the distance that AutoDrive gives, the distance that the fusion then takes from "
+        "AutoDrive; NEED-HMI-001 asks for the closest object of the fusion, not for that mark. Phase 5 states as "
+        "requirements what the display takes from the scene.")),
     "warningRequestContract": ("needCollisionWarningOnRequest", (
         "The warning request is the output that the driver-assistance increment realizes from the warnings of each "
         "plan: it asks for the collision warning when the plan holds the forward-collision warning or the emergency "
@@ -405,9 +424,20 @@ CONTRACTS = {
 HEADER_COUNT = (
     "Seven concerns are reviewer questions: a need's source names them and its review checks them.")
 
+#: the title of the header
+HEADER_TITLE = "DE4SDV HMI display stakeholder needs and requirements."
+
+#: the header's first paragraph, pinned whole: who holds the needs and who carries out the reviews
+HEADER_INTRO = " ".join((
+    "INC-HMI-001, phase 4: the stakeholder needs of the HMI display, the system of interest the charter "
+    "declares. Each need is held by the parties the display serves and leads its source with the phase 1 concern "
+    "it derives from. Each has one planned stakeholder review on the scenarios of phase 2 it covers, carried out "
+    "by the roles that check the answer.", HEADER_COUNT))
+
 #: the header paragraph that gives the reason of each reviewer question, pinned whole
 HEADER_REASONS = (
-    "Each of these seven concerns asks to see the answer that the view of a later phase gives, and the HMI display "
+    "Each of these seven concerns asks to see an answer that the model gives elsewhere, the view of a later phase "
+    "or, for the common content, the classification of phase 3 and the lifecycle decision, and the HMI display "
     "gives its roles nothing that they use in their own work: hmiDisplayInputsConcern, held by systems engineers and "
     "safety experts, and hmiContentVarianceConcern, held by product-line engineers, ask about the items that cross "
     "into the display and about its common content, and NEED-HMI-001 names them; hmiWarningSequenceConcern, held by "
@@ -424,6 +454,18 @@ HEADER_DRAWING = (
     "The needs name no drawing: how the app in the IVI VM draws the scene is a choice of phase 8, and the visual "
     "design stays out of scope (hmiHumanFactorsOutOfScope). No need asks for gear, set speed, speed limit or another "
     "telltale (hmiFurtherContentOutOfScope).")
+
+#: the name of the display rule of 2026-11-22, one wording wherever the rule is named
+DISPLAY_RULE = "the display-rule decision of 2026-11-22"
+
+#: the dated record of the display rule, the header paragraph after the drawing paragraph
+DISPLAY_RULE_RECORD = (
+    "The owner decided on 2026-11-22 that the display shows what the driver-assistance system perceives, right or "
+    "wrong, with the object that the system acts on marked, and not only what reaches the control of the vehicle: "
+    "the display-rule decision of 2026-11-22. NEED-HMI-001 and its review carry it.")
+
+#: the header paragraph that hands the requirements to phase 5
+HEADER_PHASE_FIVE = "Phase 5 adds to this package the requirements derived from these needs."
 
 #: the non-claim sentence of the header
 HEADER_NON_CLAIM = (
@@ -442,8 +484,9 @@ GUIDE_LINK = (
 #: need -> the guide's Phase 4 bullet, pinned whole (whitespace flattened)
 GUIDE_BULLETS = {
     "NEED-HMI-001": (
-        "the display shows the driver the scene as the driver-assistance system gives it from its own perception. "
-        "Vehicle occupants. Reviewed by `SC-HMI-008` on `SC-HMI-001` and `SC-HMI-002`."),
+        "the display shows the driver the scene as the driver-assistance system gives it from its own perception, "
+        "with the object that the system acts on marked. Vehicle occupants. Reviewed by `SC-HMI-008` on "
+        "`SC-HMI-001` and `SC-HMI-002`."),
     "NEED-HMI-002": (
         "the display shows the driver the vehicle speed that the driver-assistance system is given. Vehicle "
         "occupants. Reviewed by `SC-HMI-009` on `SC-HMI-001` and `SC-HMI-002`."),
@@ -451,9 +494,9 @@ GUIDE_BULLETS = {
         "the display gives the collision warning on the display and as a sound when the warning request asks for it, "
         "and none without a request. Vehicle occupants. Reviewed by `SC-HMI-010` on `SC-HMI-001` and `SC-HMI-002`."),
     "NEED-HMI-004": (
-        "the speed and the warning, or the fact that the warning is unavailable, stay on the display while the app "
-        "that draws the scene or Android in the IVI VM is out. Vehicle occupants. Reviewed by `SC-HMI-011` on "
-        "`SC-HMI-003` to `SC-HMI-006`."),
+        "the speed and the warning, or, when the warning cannot be given, the fact that it is unavailable, stay on "
+        "the display while the app that draws the scene or Android in the IVI VM is out. Vehicle occupants. "
+        "Reviewed by `SC-HMI-011` on `SC-HMI-003` to `SC-HMI-006`."),
     "NEED-HMI-005": (
         "the display shows no element as current when it is not, and shows when the collision warning is unavailable. "
         "Vehicle occupants. Reviewed by `SC-HMI-012` on `SC-HMI-003` to `SC-HMI-007`."),
@@ -469,6 +512,9 @@ GUIDE_PARAGRAPHS = (
     "say what the parties of the Phase 1 concerns expect of the HMI display. Each need is held by the parties it "
     "serves and leads its source with the concern it comes from. Each has one planned stakeholder review on the Phase "
     "2 scenarios it covers, carried out by the roles that check the answer.",
+    "On 2026-11-22 the owner decided that the display shows what the driver-assistance system perceives, right or "
+    "wrong, with the object that the system acts on marked, and not only what reaches the control of the vehicle: "
+    "the display-rule decision of 2026-11-22. `NEED-HMI-001` and `SC-HMI-008` carry it.",
     "Seven concerns get no need of their own: the items that cross into the display, its common content, the "
     "warning's sequence, the outages of the scene's drawing, which renderer draws what, the paths to the renderers, "
     "and the late and missing content. Their roles check the answer rather than use it, as in the stakeholder needs "
@@ -477,12 +523,13 @@ GUIDE_PARAGRAPHS = (
     "`SC-HMI-010` asks it, `NEED-HMI-004` names the next three and `SC-HMI-011` asks them, and `NEED-HMI-005` names "
     "the last and `SC-HMI-012` asks it.",
     "No need states a number or names a drawing: Phase 5 derives the requirements and their limits, how the app in "
-    "the IVI VM draws the scene is a choice of Phase 8, and no need asks for gear, set speed, speed limit or another "
-    "telltale. Comments about `NEED-HMI-001` and `NEED-HMI-003` keep for Phase 5 what the driver-assistance system "
-    "gives at the pinned revision: what its scene carries, and what its warning request asks for and carries.",
-    "`SC-DRIVING-018` of the driver-assistance increment watches the collision warning on the same runs as "
-    "`SC-HMI-010` for another subject: its need, `NEED-DRIVING-010`, asks the candidate to give the warning request, "
-    "and `NEED-HMI-003` asks the display to give the warning from it.",
+    "the IVI VM draws the scene is a choice of Phase 8, and no need asks for gear, set speed, speed limit or "
+    "another telltale. Comments about `NEED-HMI-001` and `NEED-HMI-003` keep for Phase 5 what the pinned "
+    "driver-assistance system builds and what the driver-assistance increment realizes from it: what the scene of "
+    "its visualization carries, and what the warning request asks for and carries.",
+    "`SC-DRIVING-018` of the driver-assistance increment watches the collision warning in `SC-DRIVING-012` and "
+    "`SC-DRIVING-013`, which `SC-HMI-010` watches too, for another subject: its need, `NEED-DRIVING-010`, asks the "
+    "candidate to give the warning request, and `NEED-HMI-003` asks the display to give the warning from it.",
     "`tests/test_hmi_display_needs_requirements.py` pins the needs, their holders and sources, the planned reviews "
     "and their scenarios, and the wording a need may not use. The Phase 4 gates check that each need has a statement, "
     "a stakeholder, a source, a rationale and a planned review. Review judges whether the needs are the right ones.",
@@ -780,9 +827,13 @@ def test_the_input_contracts_are_comments_for_phase_5():
         assert _flat(match.group(1)) == text, name
         assert not re.search(r"\d", ALLOWED_DIGITS.sub("", text)), (name, "a contract states no number")
     scene = CONTRACTS["perceivedSceneContract"][1]
-    assert "it is an estimate of the display's own, and NEED-HMI-001 leaves it out by its words." in scene
-    assert "whether the speed that its fusion gives is the speed of the object or the speed at which it closes is " \
-        "open." in scene
+    # the mark that AutoDrive alone gives is the system's own perception, and the planner plans on the closest object
+    assert "The planner plans on that closest object" in scene
+    assert "NEED-HMI-001 asks for the closest object of the fusion, not for that mark." in scene
+    # the lane-departure warnings follow from the lateral offset; only the collision warnings from the acceleration
+    assert "and the collision warnings of each plan follow from the acceleration that it plans." in scene
+    # the comment names its own contracts and no other comment: a free comment is no reviewed text
+    assert re.findall(r"(?m)^\s*comment\s+(\w+)", _code()) == list(CONTRACTS), "only the two input contracts"
     assert "One plan holds at most one of the two." in CONTRACTS["warningRequestContract"][1]
 
 
@@ -848,6 +899,9 @@ def test_the_guide_has_a_phase_4_section_and_names_phase_5_next():
                for match in re.finditer(r"(?ms)^- `(NEED-HMI-\d{3})`:(.*?)(?=^- `|^\s*$)", raw_section)}
     assert list(bullets) == [short for short, _roles, _concern in NEEDS.values()]
     assert bullets == GUIDE_BULLETS, "the guide's Phase 4 bullets, pinned whole"
+    listed = [line for line in raw_section.splitlines() if line.startswith("- ")]
+    assert len(listed) == len(NEEDS) and all(line.startswith("- `NEED-HMI-") for line in listed), \
+        "the Phase 4 list holds one bullet per need and no other"
     paragraphs = [" ".join(part.split()) for part in re.split(r"\n\s*\n", raw_section.strip())
                   if not part.lstrip().startswith("- ")]
     assert tuple(paragraphs) == GUIDE_PARAGRAPHS, "the guide's Phase 4 paragraphs, pinned whole"
@@ -876,7 +930,12 @@ def test_the_header_states_its_non_claims_and_names_no_drawing():
     header = _flat(_header())
     assert HEADER_NON_CLAIM in header, "the header keeps its non-claims"
     assert HEADER_DRAWING in _header_paragraphs(), "the header paragraph on the drawing, pinned whole"
-    assert "Phase 5 adds to this package the requirements derived from these needs." in header
+    assert HEADER_PHASE_FIVE in header
+    paragraphs = _header_paragraphs()
+    paragraphs = [paragraphs[0].removeprefix("/*").strip(), *paragraphs[1:-1],
+                  paragraphs[-1].removesuffix("/").strip()]
+    assert paragraphs == [HEADER_TITLE, HEADER_INTRO, HEADER_REASONS, HEADER_DRAWING, DISPLAY_RULE_RECORD,
+                          HEADER_PHASE_FIVE, HEADER_NON_CLAIM], "the header, paragraph by paragraph, whole"
 
 
 def test_the_package_declares_no_name_that_another_model_package_declares():
@@ -893,3 +952,73 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
                 if name in declared:
                     taken.setdefault(name, []).append(path.name)
     assert not taken, f"declared in another package too: {taken}"
+
+
+#: the columns of the two tables, in order: (column, the feature it renders)
+NEEDS_COLUMNS = [("ID", "CT::reqId"), ("Need", "CT::declaredName"), ("Statement", "CT::constraintLanguage"),
+                 ("Source", "CT::attributeValue")]
+PLANS_COLUMNS = [("Plan", "CT::declaredName"), ("Review", "CT::documentation")]
+COLUMN = re.compile(r"\bview\s+(\w+)\s*:>\s*columnViews\s*\{\s*attribute\s+:>>\s+featureToRender\s*=\s*(CT::\w+)")
+
+
+def test_the_two_tables_show_their_columns_in_order():
+    code = _code()
+    needs = braced_body(code, "view hmiDisplayNeedsView : TVD::TableView")
+    assert COLUMN.findall(needs) == NEEDS_COLUMNS, "the needs table: ID, need, statement and source, in order"
+    assert len(re.findall(r"\bview\s+\w+\s*:>\s*columnViews\b", needs)) == len(NEEDS_COLUMNS)
+    assert re.findall(r"\battribute\s+constraintType\s*=\s*([\w:]+)\s*;", needs) == ["CL::ConT::required"], \
+        "the statement column shows the required constraint"
+    plans = braced_body(code, "view hmiDisplayNeedValidationView : TVD::TableView")
+    assert COLUMN.findall(plans) == PLANS_COLUMNS, "the plans table: plan and review, in order"
+    assert len(re.findall(r"\bview\s+\w+\s*:>\s*columnViews\b", plans)) == len(PLANS_COLUMNS)
+    # the renderer reads no column width, so the attribute earns no place
+    assert "columnWidth" not in code
+
+
+def test_each_need_body_holds_its_subject_first_then_its_holders_statement_source_and_rationale():
+    # The subject comes first, the accepted form; no doc or other member sits in a need body.
+    member = re.compile(r"subject\b|stakeholder\b|require constraint statement\b|attribute :>> source\b"
+                        r"|attribute :>> rationale\b")
+    for name, (_short, roles, _concern) in NEEDS.items():
+        lines = [line.strip() for line in strip_comments(_need(name)).splitlines() if line.strip()]
+        kinds = [member.match(line) for line in lines]
+        assert all(kinds), (name, "a need body holds only its subject, holders, statement, source and rationale",
+                            lines)
+        assert [kind.group(0) for kind in kinds] == ["subject", *["stakeholder"] * len(roles),
+                                                     "require constraint statement", "attribute :>> source",
+                                                     "attribute :>> rationale"], name
+
+
+#: the sentences that may carry excluded wording, a safety word or a timing word: the header's non-claims and the
+#: product-line question that names the member products
+CLAIM_SENTENCES = (HEADER_NON_CLAIM, _ask("hmiContentVarianceConcern"))
+
+
+def test_no_sentence_of_the_model_makes_a_claim_outside_the_listed_sentences():
+    # Whatever text a sentence is added to (a doc, a comment or a string): when it holds excluded wording, a positive
+    # safety word or a timing word, once the role words ("safety experts") are set aside, it is one of
+    # CLAIM_SENTENCES. A claim in other words is for review.
+    roles = re.compile("|".join(re.escape(words) for words in ALL_ROLE_WORDS), re.I)
+    sentences = _model_sentences()
+    assert len(sentences) >= 80, "the population of the check must not be vacuous"
+    flagged = []
+    for sentence in sentences:
+        text = roles.sub("", sentence)
+        if any(guard.search(text) for guard in (EXCLUDED, SAFETY_CLAIM, TIMING_CLAIM)):
+            assert sentence in CLAIM_SENTENCES, f"a claim outside the listed sentences: {sentence}"
+            flagged.append(sentence)
+    assert set(CLAIM_SENTENCES) <= set(flagged), "every listed sentence is in the model"
+
+
+def test_the_display_rule_decision_is_recorded_once_and_named_by_one_name():
+    paragraphs = _header_paragraphs()
+    assert paragraphs.index(DISPLAY_RULE_RECORD) == paragraphs.index(HEADER_DRAWING) + 1, \
+        "the dated record follows the drawing paragraph"
+    assert _flat(_raw()).count(DISPLAY_RULE) == 2, "the record and the rationale of NEED-HMI-001 name the rule"
+    assert DISPLAY_RULE in _attribute(_need("needPerceivedSceneOnTheDisplay"), "rationale")
+    section = " ".join(_guide_section().split())
+    guide = GUIDE.read_text(encoding="utf-8")
+    assert section.count(DISPLAY_RULE) == 1 and " ".join(guide.split()).count(DISPLAY_RULE) == 1
+    # one wording of the rule: no other wording dates an amendment or a correction
+    texts = _flat(_raw()) + " " + " ".join(guide.split())
+    assert not re.search(r"(?i)\b(?:amend\w*|correct\w*) (?:on|of) 2026-11-22", texts)
