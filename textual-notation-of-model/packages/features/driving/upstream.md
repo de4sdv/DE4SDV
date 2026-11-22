@@ -379,7 +379,36 @@ the change, 34 of 34 stops of a subscribed gatewayd ended with SIGABRT; with it,
 34 of 34 ended with exit code 0. When the comment was posted, the pull request
 was not merged; the pins of the bench do not carry the change.
 
-In the VisionPilot repository DE4SDV has posted nothing.
+On 2026-11-22, on the owner's word, DE4SDV posted a
+[comment on pull request 427 of VisionPilot](https://github.com/autowarefoundation/vision_pilot/pull/427#issuecomment-7074513876):
+the upstream comment decision of 2026-11-22. DE4SDV had ported two fixes of
+that pull request onto the pin, the closing speed and the AutoDrive-only rule
+for the closest in-path object (CIPO), as the bench candidate `pr427`
+([patch 0004](../../../../implementation/driver-assistance-bench/score-interface/candidates/pr427/0004-de4sdv-port-of-upstream-pr427.diff)).
+The comment reports the runs with a stationary vehicle ahead (SC-DRIVING-012,
+two runs per speed) of the judged session S1 (session `20261121T014447Z`,
+VisionPilot at `014e0e7a` as pinned) and of the session `20261121T194115Z` of
+the same bench with those two fixes. From VisionPilot's own `plan:` log line it
+reports that the build with the fixes brakes, then loses its CIPO close to the
+vehicle and commands its free-road acceleration up to the contact, and that the
+pinned build loses the CIPO at a similar gap. It reports one run per build with
+a moving vehicle ahead, and that the car and the camera of the bench are those
+of upstream's own CARLA rig: the camera of `carla916.json`, converted as its
+`config_carla.py` does, on `vehicle.lincoln.mkz`, as in the CARLA 1.0 rig of
+pull request 474 of VisionPilot. It states its limits: simulation only, each
+result one run, the dropped camera images, the shortfall of the simulated
+actuation, and no compliance claim. These are measurements: S1 stays the
+evidence of record, and the session with the fixes has no desk record and is
+no evidence of INC-DRIVING-002.
+
+The comment asks whether the CIPO is expected to be lost at that range and,
+with the fixes, what the planner should do when a CIPO this close is lost. It
+offers the run records or a separate issue. It does not show the draft of the
+warning output or the interface seam that the upstream contact decision of
+2026-11-18 names for the maintainers. It holds no video, no question on the
+terms of the network weights or of their training data, and no claim of rights
+clearance or endorsement. When the comment was posted, the pull request was a
+draft and not merged.
 
 DE4SDV has opened no pull request in any of these repositories. This record
 states what DE4SDV sent. It follows neither the replies, nor whether a thread

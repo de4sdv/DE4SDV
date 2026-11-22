@@ -1195,10 +1195,14 @@ Each point is a gap of the model, in the model's own words.
 - **No admission** (`gapCandidateAdmission`). This increment admits no member
   and changes no scope decision. Phase 3 classifies the candidate and names
   the scope decisions that the owner would have to take.
-- **No upstream contact and no rights clearance**
-  (`gapUpstreamContactAndRights`). The upstream maintainers are not yet
-  involved. Involve them before deep adoption or vendoring, and show them a
-  result about their project before it is published.
+- **Upstream contact and rights clearance**
+  (`gapUpstreamContactAndRights`). After the baseline, on 2026-11-22: DE4SDV
+  posted a comment on pull request 427 of VisionPilot, by the upstream comment
+  decision of 2026-11-22. The driving folder's upstream record (upstream.md,
+  Upstream contact) states what it reports, what it asks and what it leaves
+  out. It does not show the maintainers the draft of the warning output or the
+  interface seam. No endorsement and no rights clearance exists, and the terms
+  of the network weights and of their data are not read.
 - **The HMI display's place in the product line**
   (`gapDriverHmiInProductLine`). The feature model holds the HMI display as an
   optional feature that requires the AAOS SDV guest, and neither governed

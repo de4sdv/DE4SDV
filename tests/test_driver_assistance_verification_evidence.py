@@ -1072,6 +1072,15 @@ def test_each_counter_claim_restates_a_non_claim_of_the_framing_and_is_tied_to_i
             "only the records of its own runs (asmBenchReuse).") in docs
     assert BENCH_COUNTER_CLAIM in docs
     assert "No case has started and no evidence record exists" not in docs
+    # the upstream comment decision of 2026-11-22: the counter-claim asserts no endorsement and no rights clearance,
+    # and points to the record of what DE4SDV sent upstream instead of asserting that nothing was sent
+    upstream = _flat(_body(raw, r"\brequirement counterClaimNoUpstreamEndorsementOrRights : "
+                                r"DriverAssistanceCounterClaim \{"))
+    for phrase in ("No upstream endorsement or rights clearance is asserted:",
+                   "Since the upstream comment decision of 2026-11-22, the driving folder's upstream record "
+                   "(upstream.md, Upstream contact) states what DE4SDV sent to the VisionPilot maintainers."):
+        assert upstream.count(phrase) == 1, phrase
+    assert "No upstream contact" not in upstream
     framing = _docs(FRAMING)
     assert "tuning the candidate or a scenario until a case passes" in framing
     assert "Their results for the first application are not evidence for this one." in framing

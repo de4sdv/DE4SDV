@@ -133,7 +133,7 @@ OPEN_POINTS = {
     "gapCameraImageAndGeometry": "Simulated images",
     "gapDeclaredOperatingConditions": "Two scenarios outside the declared conditions",
     "gapCandidateAdmission": "No admission",
-    "gapUpstreamContactAndRights": "No upstream contact and no rights clearance",
+    "gapUpstreamContactAndRights": "Upstream contact and rights clearance",
     "gapDriverHmiInProductLine": "The HMI display's place in the product line",
 }
 #: Phase 1: concern -> (its SAF or DE4SDV concern definition, the in-scope items its doc names first, its native
@@ -748,10 +748,117 @@ def test_the_upstream_record_pins_what_the_framing_read():
         assert phrase in _flat(asks), phrase
     contact = _flat(_record_section(record, "Upstream contact"))
     about = [sentence for sentence in re.split(r"(?<=\.) ", contact) if re.search(r"(?i)vision.?pilot", sentence)]
-    assert about == ["In the VisionPilot repository DE4SDV has posted nothing."], about
+    paragraph = contact[contact.index(CONTACT_2026_11_22[0]):contact.index(CONTACT_2026_11_22[-1])
+                        + len(CONTACT_2026_11_22[-1])]
+    assert about and all(sentence in paragraph for sentence in about), \
+        "the contact states what DE4SDV sent in the VisionPilot repository only in the paragraph of 2026-11-22"
     index_row = _row(INDEX, "[VisionPilot]")
     assert "[Driving upstream record](textual-notation-of-model/packages/features/driving/upstream.md)" in index_row
     assert "(https://github.com/autowarefoundation/vision_pilot)" in index_row
+
+
+#: The upstream comment decision of 2026-11-22: the comment that DE4SDV posted on pull request 427 of VisionPilot, as
+#: the folder's upstream record states it under Upstream contact (the one place that states the contact)
+COMMENT_URL = "https://github.com/autowarefoundation/vision_pilot/pull/427#issuecomment-7074513876"
+#: the one name of that decision, wherever it is mentioned
+COMMENT_NAME = "the upstream comment decision of 2026-11-22"
+CONTACT_2026_11_22 = (
+    f"On 2026-11-22, on the owner's word, DE4SDV posted a [comment on pull request 427 of VisionPilot]({COMMENT_URL}): "
+    f"{COMMENT_NAME}.",
+    "The comment reports the runs with a stationary vehicle ahead (SC-DRIVING-012, two runs per speed) of the judged "
+    "session S1 (session `20261121T014447Z`, VisionPilot at `014e0e7a` as pinned) and of the session "
+    "`20261121T194115Z` of the same bench with those two fixes.",
+    "From VisionPilot's own `plan:` log line it reports that the build with the fixes brakes, then loses its CIPO "
+    "close to the vehicle and commands its free-road acceleration up to the contact, and that the pinned build loses "
+    "the CIPO at a similar gap.",
+    "These are measurements: S1 stays the evidence of record, and the session with the fixes has no desk record and "
+    "is no evidence of INC-DRIVING-002.",
+    "The comment asks whether the CIPO is expected to be lost at that range and, with the fixes, what the planner "
+    "should do when a CIPO this close is lost.",
+    "It does not show the draft of the warning output or the interface seam that the upstream contact decision of "
+    "2026-11-18 names for the maintainers.",
+    "It holds no video, no question on the terms of the network weights or of their training data, and no claim of "
+    "rights clearance or endorsement.",
+    "When the comment was posted, the pull request was a draft and not merged.",
+)
+#: the dated paragraph that the gap gains after its baseline paragraph; the older paragraphs stay as they were
+GAP_AFTER_BASELINE = (
+    "After the baseline, on 2026-11-22: DE4SDV posted a comment on pull request 427 of VisionPilot, by the upstream "
+    "comment decision of 2026-11-22.",
+    "The driving folder's upstream record (upstream.md, Upstream contact) states what it reports, what it asks and "
+    "what it leaves out.",
+    "It does not show the maintainers the draft of the warning output or the interface seam.",
+    "No endorsement and no rights clearance exists, and the terms of the network weights and of their data are not "
+    "read.",
+    "Still deferred to a later increment.",
+)
+#: the record of the decision in the head of the framing file
+HEAD_COMMENT_RECORD = (
+    "On 2026-11-22 the owner approved the exact text of a comment on pull request 427 of VisionPilot, and DE4SDV "
+    "posted it.",
+    "The driving folder's upstream record (upstream.md, Upstream contact) states what it reports, what it asks and "
+    "what it leaves out; gapUpstreamContactAndRights records it after the baseline and stays deferred: the upstream "
+    "comment decision of 2026-11-22.",
+)
+#: sentences that the comment of 2026-11-22 made untrue, gone from the record, the model, the guide and the README
+RETIRED_CONTACT_SENTENCES = ("In the VisionPilot repository DE4SDV has posted nothing.",
+                             "No upstream contact and no rights clearance",
+                             "The results are not shown to the VisionPilot maintainers yet",
+                             "No upstream contact, endorsement or rights clearance is asserted: the")
+S1_README = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z" / "README.md"
+
+
+def test_the_upstream_record_states_the_comment_of_2026_11_22_once():
+    """The upstream comment decision of 2026-11-22: the Upstream contact section states the comment once, dated by
+    our own message, after the paragraph of 2026-11-12 and before the closing paragraph, which stays."""
+    record = UPSTREAM_RECORD.read_text(encoding="utf-8")
+    contact = _flat(_record_section(record, "Upstream contact"))
+    _in_order(CONTACT_2026_11_22, contact, "upstream contact of 2026-11-22")
+    for sentence in CONTACT_2026_11_22:
+        assert contact.count(sentence) == 1, sentence
+    assert record.count(COMMENT_URL) == 1, "one link to the comment, in the Upstream contact section"
+    assert contact.index("On 2026-11-12, on the owner's word, DE4SDV posted a") < contact.index(CONTACT_2026_11_22[0])
+    assert contact.index(CONTACT_2026_11_22[-1]) < contact.index(
+        "DE4SDV has opened no pull request in any of these repositories."), "the closing paragraph stays last"
+    assert "has posted nothing" not in contact
+
+
+def test_the_gap_records_the_comment_of_2026_11_22_after_its_baseline_paragraph():
+    """The older paragraphs of the gap stay as they were written; a dated paragraph after them points to the upstream
+    record and states what stays open. The disposition stays deferred."""
+    doc = _flat_body(_raw(), "part gapUpstreamContactAndRights : IncrementGap")
+    _in_order(GAP_AFTER_BASELINE, doc, "gap after the baseline")
+    for sentence in GAP_AFTER_BASELINE:
+        assert doc.count(sentence) == 1, sentence
+    baseline = FRAMING_GAP_BASELINE_STATEMENTS["gapUpstreamContactAndRights"]
+    assert doc.index(baseline[-1]) < doc.index(GAP_AFTER_BASELINE[0]), "after the baseline paragraph"
+    assert doc.index(GAPS["gapUpstreamContactAndRights"]) < doc.index(baseline[0]), "the framing text stays first"
+    assert GAP_DISPOSITIONS["gapUpstreamContactAndRights"] == "deferred"
+    assert COMMENT_URL not in doc and "issuecomment" not in doc, "the model points to the record, not to the thread"
+
+
+def test_the_head_records_the_upstream_comment_decision_under_one_name():
+    """The decision has its own dated record in the head of the framing file, stated as a decision and not as a
+    quote, and one name wherever it is mentioned."""
+    raw = _raw()
+    head = _flat(raw.split("package", 1)[0].replace("*", ""))
+    _in_order(HEAD_COMMENT_RECORD, head, "head")
+    assert head.index("the baseline decision states what the increment reached.") < head.index(HEAD_COMMENT_RECORD[0])
+    assert head.count(COMMENT_NAME) == 1
+    assert not re.search(r"(?i)\bthe owner (?:said|answered|wrote)\b|\"", head), "a decision, never a quote"
+    texts = {path.name: _flat(re.sub(r"(?m)^\s*\*\s?", "", path.read_text(encoding="utf-8"))) for path in SLICES}
+    texts["guide"] = _flat(GUIDE.read_text(encoding="utf-8"))
+    texts["upstream record"] = _flat(UPSTREAM_RECORD.read_text(encoding="utf-8"))
+    texts["S1 README"] = _flat(S1_README.read_text(encoding="utf-8"))
+    for where, text in texts.items():
+        assert len(re.findall(r"(?i)comment decision", text)) == text.count(COMMENT_NAME), (where, "one name")
+        for other in ("upstream contact of 2026-11-22", "upstream contact decision of 2026-11-22", "posting decision"):
+            assert other not in text, (where, other)
+        for retired in RETIRED_CONTACT_SENTENCES:
+            assert retired not in text, (where, retired)
+    named = [where for where, text in texts.items() if COMMENT_NAME in text]
+    assert named == ["driver_assistance_framing.sysml", "driver_assistance_verification_evidence.sysml", "guide",
+                     "upstream record", "S1 README"], named
 
 
 def _answers(doc: str) -> set[tuple[int, str]]:
