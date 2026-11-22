@@ -11,9 +11,9 @@ the owner decided on 2026-11-17 to use it for the speed and the warning. This
 increment asks whether the HMI display of the VisionPilot configuration can do
 both, and holds what it shows against what the application gives.
 
-**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and
-Phase 3 capability classification, proposal.** No implementation, run, result,
-product-line admission or compliance is claimed.
+**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
+Phase 3 capability classification and Phase 4 stakeholder needs, proposal.** No
+implementation, run, result, product-line admission or compliance is claimed.
 
 ## Authoritative frame
 
@@ -21,10 +21,12 @@ product-line admission or compliance is claimed.
   `INC-HMI-001`, its engineering question, charter, scope, assumptions,
   open gaps and Phase 1 concerns.
 - [SysML operational context](../../textual-notation-of-model/packages/features/hmi/hmi_display_operational_context.sysml):
-  the Phase 2 context of the HMI display and its story of six scenarios.
+  the Phase 2 context of the HMI display and its story of seven scenarios.
 - [SysML capability classification](../../textual-notation-of-model/packages/features/hmi/hmi_display_capability_classification.sysml):
   the Phase 3 classification of the display's content, which records no
   feature-model delta.
+- [SysML stakeholder needs](../../textual-notation-of-model/packages/features/hmi/hmi_display_needs_requirements.sysml):
+  the Phase 4 needs of the HMI display and their planned reviews.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/hmi/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/hmi/upstream.md)
@@ -184,7 +186,7 @@ places the source of the vehicle speed at the vehicle; which element of
 System 1 carries it to the SDV Core VM, and on which path the scene leaves the
 candidate's process (`gapHmiSceneOutput`), stay open.
 
-The story holds six scenarios. Two are the scenarios of the driver-assistance
+The story holds seven scenarios. Two are the scenarios of the driver-assistance
 increment as the driver sees them on the display, each tied to them by a
 dependency and none restating them: `SC-HMI-001` the warning scenarios
 `SC-DRIVING-012` and `SC-DRIVING-013`, with the scene, the speed and the
@@ -193,16 +195,26 @@ no-reaction scenarios `SC-DRIVING-014` and `SC-DRIVING-015`, with the scene and
 the speed and no warning. Four add an outage in the IVI VM to them:
 `SC-HMI-003` the app that draws the scene ends or hangs, `SC-HMI-004` Android
 in the IVI VM boots, `SC-HMI-005` it hangs with its last frame on the display,
-and `SC-HMI-006` it restarts. In each the driver sees the speed and the
-warning, or the fact that the warning is unavailable, and the display shows no
-element as current when it is not. The display shows what the candidate
-perceives, never the simulator's record of the scene. The story states the aim
-of the engineering question; whether the display achieves it is the verdict of
-Phase 10. The criteria, the age from which an element counts as late and how
-the time that the driver-assistance increment allots from the warning request
-to each mode divides (`gapHmiWarningPresentation`) are fixed with the
-requirements in Phase 5. No human-factors, timing, safety or compliance claim
-is made.
+and `SC-HMI-006` it restarts. One adds a missing input: in `SC-HMI-007` the
+warning request stops reaching the display during the further run of
+`SC-DRIVING-012` that stops the Eclipse S-CORE path, which the stop-run
+decision of 2026-11-18 of the driver-assistance increment names, and the
+display shows that the warning is unavailable. In each the driver sees the
+speed and the warning, or the fact that the warning is unavailable, and the
+display shows no element as current when it is not. The display shows what the
+candidate perceives, never the simulator's record of the scene. The story
+states the aim of the engineering question; whether the display achieves it is
+the verdict of Phase 10. The criteria, the age from which an element counts as
+late and how the time that the driver-assistance increment allots from the
+warning request to each mode divides (`gapHmiWarningPresentation`) are fixed
+with the requirements in Phase 5. No human-factors, timing, safety or
+compliance claim is made.
+
+Two corrections of Phase 2 come with Phase 4. On 2026-11-22 the owner decided
+that the story gains `SC-HMI-007`: the missing-request decision of 2026-11-22.
+On 2026-11-22 the owner decided that the scene carries its time, as the vehicle
+speed and the warning request carry theirs: the scene-time decision of
+2026-11-22.
 
 The context view frames `hmiDisplayContextConcern`. The story view frames
 `hmiDisplayStoryConcern` and the Phase 1 concern `hmiDriverSupervisionConcern`,
@@ -247,6 +259,73 @@ by default and get no record.
 The one blocking check of Phase 3 evaluates the characteristics recorded, and
 this phase records none, so the Method Check reports Phase 3 as having nothing
 to evaluate. Review judges the classification.
+
+## Stakeholder needs (Phase 4)
+
+The
+[stakeholder needs](../../textual-notation-of-model/packages/features/hmi/hmi_display_needs_requirements.sysml)
+say what the parties of the Phase 1 concerns expect of the HMI display. Each
+need is held by the parties it serves and leads its source with the concern it
+comes from. Each has one planned stakeholder review on the Phase 2 scenarios it
+covers, carried out by the roles that check the answer.
+
+- `NEED-HMI-001`: the display shows the driver the scene as the
+  driver-assistance system gives it from its own perception, with the
+  object that the system acts on marked. Vehicle occupants. Reviewed by
+  `SC-HMI-008` on `SC-HMI-001` and `SC-HMI-002`.
+- `NEED-HMI-002`: the display shows the driver the vehicle speed that the
+  driver-assistance system is given. Vehicle occupants. Reviewed by
+  `SC-HMI-009` on `SC-HMI-001` and `SC-HMI-002`.
+- `NEED-HMI-003`: the display gives the collision warning on the display and as
+  a sound when the warning request asks for it, and none without a request.
+  Vehicle occupants. Reviewed by `SC-HMI-010` on `SC-HMI-001` and `SC-HMI-002`.
+- `NEED-HMI-004`: the speed and the warning, or, when the warning cannot be
+  given, the fact that it is unavailable, stay on the display while the app
+  that draws the scene or Android in the IVI VM is out. Vehicle occupants.
+  Reviewed by `SC-HMI-011` on `SC-HMI-003` to `SC-HMI-006`.
+- `NEED-HMI-005`: the display shows no element as current when it is not, and
+  shows when the collision warning is unavailable. Vehicle occupants. Reviewed
+  by `SC-HMI-012` on `SC-HMI-003` to `SC-HMI-007`.
+- `NEED-HMI-006`: each run identifies the build and the configuration of the
+  display that ran. Verification engineers and product-line engineers, who use
+  the run identity in their own work. Reviewed by `SC-HMI-013` on all seven
+  scenarios.
+
+On 2026-11-22 the owner decided that the display shows what the
+driver-assistance system perceives, right or wrong, with the object that the
+system acts on marked, and not only what reaches the control of the vehicle:
+the display-rule decision of 2026-11-22. `NEED-HMI-001` and `SC-HMI-008` carry
+it.
+
+Seven concerns get no need of their own: the items that cross into the display,
+its common content, the warning's sequence, the outages of the scene's drawing,
+which renderer draws what, the paths to the renderers, and the late and missing
+content. Their roles check the answer rather than use it, as in the stakeholder
+needs of the driver-assistance and the E/E architecture increments, so each is
+a question for a planned review: `NEED-HMI-001` names the first two in its
+source and `SC-HMI-008` asks them, `NEED-HMI-003` names the third and
+`SC-HMI-010` asks it, `NEED-HMI-004` names the next three and `SC-HMI-011` asks
+them, and `NEED-HMI-005` names the last and `SC-HMI-012` asks it.
+
+No need states a number or names a drawing: Phase 5 derives the requirements
+and their limits, how the app in the IVI VM draws the scene is a choice of
+Phase 8, and no need asks for gear, set speed, speed limit or another telltale.
+Comments about `NEED-HMI-001` and `NEED-HMI-003` keep for Phase 5 what the
+pinned driver-assistance system builds and what the driver-assistance increment
+realizes from it: what the scene of its visualization carries, and what the
+warning request asks for and carries.
+
+`SC-DRIVING-018` of the driver-assistance increment watches the collision
+warning in `SC-DRIVING-012` and `SC-DRIVING-013`, which `SC-HMI-010` watches
+too, for another subject: its need, `NEED-DRIVING-010`, asks the candidate to
+give the warning request, and `NEED-HMI-003` asks the display to give the
+warning from it.
+
+`tests/test_hmi_display_needs_requirements.py` pins the needs, their holders
+and sources, the planned reviews and their scenarios, and the wording a need
+may not use. The Phase 4 gates check that each need has a statement, a
+stakeholder, a source, a rationale and a planned review. Review judges whether
+the needs are the right ones.
 
 ## What the framing already records as open
 
@@ -344,16 +423,15 @@ ASIL certification, and this increment certifies nothing.
 ## Next obligation and execution limits
 
 Use the Method Check of the reviewed pull request to select the next
-obligation, not the phase number alone. Phase 3, the capability
-classification, records no feature-model delta, and review judges it: its one
-blocking check has nothing to evaluate, so the Method Check lists Phase 3 as
-vacuous, with a prompt for review. The next model obligation is **Phase 4**,
-the stakeholder needs. On 2026-11-21 the owner decided that the increment goes
-on without waiting for Phase 10 of the driver-assistance increment. Phase 3
-and later phases waited for the revision of the governed scope, which the
-model now holds, so they go on. On 2026-11-17 the owner decided that the
-readiness probe of the high availability renderer runs with its cost put to
-him first.
+obligation, not the phase number alone. Phase 3, the capability classification,
+records no feature-model delta, and review judges it: its one blocking check
+has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, with a
+prompt for review. The next model obligation is **Phase 5**, the requirements.
+On 2026-11-21 the owner decided that the increment goes on without waiting for
+Phase 10 of the driver-assistance increment. Phase 3 and later phases waited
+for the revision of the governed scope, which the model now holds, so they go
+on. On 2026-11-17 the owner decided that the readiness probe of the high
+availability renderer runs with its cost put to him first.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
