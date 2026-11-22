@@ -7,8 +7,10 @@ its S-CORE services, its adapter and the SDV Core of the guest as references, an
 four bindings make them, and the platform software of the SDV Core, the platform
 stack's parts (owner decisions of 2026-10-23 and 2026-10-28, ADR 0025). The
 platform stack has no feature for the SDV Gateway on IVI, so the product leaves
-that reference unbound. It is no member product
-before the phase-12 decision, and MW-CONFIG-002 is bound to the exact receipt.
+that reference unbound. Since the scope revision of ADR 0023 and ADR 0026 it
+specializes the S-CORE-integrated member definition (ADR 0023, decision 8), and
+MW-CONFIG-002 is bound to the exact receipt. CLS-MW-004 has both integrated
+alternatives as its counterpart (owner decision of 2026-11-21).
 Under rule 5 of the increment workflow, the four HMI-path requirements depend on
 the HMI display, declared with the requirements and outside the feature-model and
 configuration documents.
@@ -34,6 +36,15 @@ SLICE = MIDDLEWARE / "middleware_score_variability_configuration.sysml"
 PHYSICAL = MIDDLEWARE / "middleware_score_physical_software_realization.sysml"
 NEEDS = MIDDLEWARE / "middleware_score_needs_requirements.sysml"
 FRAMING = MIDDLEWARE / "middleware_score_framing.sysml"
+CLASSIFICATION = MIDDLEWARE / "middleware_score_feature_classification.sysml"
+SCOPE = PLE / "scoping" / "de4sdv_aebs_product_line_scope.sysml"
+#: The member definition of the S-CORE-integrated member in the governed scope (ADR 0023, decision 1).
+MEMBER = "DE4SDV_AEBSProductLineScope::SCOREIntegratedAutowareAEBSReferenceMember"
+#: CLS-MW-004's counterpart: both integrated alternatives (owner decision of 2026-11-21, replacing 2026-10-21's).
+COUNTERPARTS = {
+    "hmiGuestCandidateCounterpartOfAAOSIntegratedMode": "aaosIntegrated",
+    "hmiGuestCandidateCounterpartOfSCOREIntegratedMode": "scoreIntegrated",
+}
 #: The validated model roots (AGENTS.md).
 MODEL_ROOTS = (ROOT / "textual-notation-of-model", PLE)
 HMI_DISPLAY = "DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::capabilities::hmiDisplay"
@@ -109,7 +120,15 @@ def _heads(body: str) -> str:
 
 
 def _product_body() -> str:
-    return _body(_code(SLICE), r"\bpart\s+def\s+MiddlewareAutowareSCOREConfiguredProduct\s*:>\s*ProductLineConfiguredProduct\s*\{")
+    return _body(_code(SLICE), r"\bpart\s+def\s+MiddlewareAutowareSCOREConfiguredProduct\s*:>\s*"
+                               rf"{re.escape(MEMBER)}\s*,\s*ProductLineConfiguredProduct\s*\{{")
+
+
+def _docs(path: Path) -> str:
+    """Every comment of ``path``, comment leaders dropped, whitespace collapsed."""
+    text = path.read_text(encoding="utf-8")
+    return " ".join(" ".join(re.sub(r"^\s*\*\s?", "", comment, flags=re.M)
+                             for comment in re.findall(r"/\*(.*?)\*/", text, re.S)).split())
 
 
 def _composite_parts_typed_by(body: str, definition: str) -> list[str]:
@@ -180,16 +199,92 @@ def test_the_configured_product_holds_one_instance_and_one_owner_per_platform_la
         assert not re.search(_TYPED_BY.format(definition=definition), code), f"the slice types a part by {definition}"
 
 
-def test_the_configured_product_is_no_member_product_before_phase_12() -> None:
-    """Until the phase-12 decision it specializes no member-product type (tests/test_member_product_projections.py).
-    It specializes only the kernel's ProductLineConfiguredProduct, the configured product of phase 9 (owner
-    decision of 2026-10-29), which makes no member."""
+def test_the_configured_product_specializes_the_s_core_integrated_member() -> None:
+    """ADR 0023, decision 8: once the scope admits the member, the configured product that phase 9 added for
+    MW-CONFIG-002 specializes the new member definition, as the AAOS-integrated configured member does
+    (tests/test_member_product_projections.py). It also specializes the kernel's ProductLineConfiguredProduct, the
+    configured product of phase 9 (owner decision of 2026-10-29). The member definition is the scope's."""
     code = _code(SLICE)
-    assert re.search(r"\bpart\s+def\s+MiddlewareAutowareSCOREConfiguredProduct\s*:>\s*ProductLineConfiguredProduct\s*\{",
-                     code)
-    assert re.findall(r":>(?!>)\s*([\w:]+)", code) == ["ProductLineConfiguredProduct"]
+    found = [", ".join(re.split(r"\s*,\s*", generals))
+             for generals in re.findall(r":>(?!>)\s*([\w:]+(?:\s*,\s*[\w:]+)*)", code)]
+    assert found == [f"{MEMBER}, ProductLineConfiguredProduct"]
     assert not re.search(r"\bspecializes\b", code)
-    assert "ProductLineMemberProduct" not in code
+    assert "ProductLineMemberProduct" not in code, "the member definition carries the member lineage"
+    assert re.search(r"\bpart\s+def\s+SCOREIntegratedAutowareAEBSReferenceMember\s*:>\s*ProductLineMemberProduct\b",
+                     _code(SCOPE))
+    docs = _docs(SLICE)
+    for phrase in ("The configured product of the S-CORE-integrated member configuration, MW-CONFIG-002.",
+                   "The governed scope admits the configuration since the scope revision of ADR 0023 and ADR 0026: "
+                   "it realizes the alternative S-CORE Integrated, and its configured product specializes the member "
+                   "definition SCOREIntegratedAutowareAEBSReferenceMember.",
+                   "The owner accepted the member on 2026-11-13 (ADR 0023), before the runnable proof of phase 10. "
+                   "That proof stays an obligation of phase 10: it is evidence about the member, not a condition of "
+                   "its membership.",
+                   "The definition specializes the member definition SCOREIntegratedAutowareAEBSReferenceMember of "
+                   "the governed scope (ADR 0023, decision 8), as the AAOS-integrated configured member specializes "
+                   "its member definition."):
+        assert phrase in docs, phrase
+    for stale in ("specializes no member-product type", "The member decision is phase-12 work",
+                  "If the owner admits the member in phase 12", "It stays a phase-12 decision", "C007 to C010",
+                  "Eclipse S-CORE " "reference configuration"):
+        assert stale not in docs, stale
+    configuration = " ".join(re.sub(r"\n\s*\*?", " ", (ROOT / CONFIGURATION).read_text(encoding="utf-8")).split())
+    assert "Eclipse S-CORE " "reference configuration" not in configuration, CONFIGURATION
+    assert "PLEML feature configuration of the S-CORE-integrated member configuration of INC-MW-011" in configuration
+
+
+def test_cls_mw_004_has_both_integrated_alternatives_as_its_counterpart() -> None:
+    """Owner decision of 2026-11-21 (ADR 0023, decision 3): since ADR 0026 the AAOS-integrated member also holds the
+    HMI display in its AAOS SDV guest, so the counterpart of CLS-MW-004 is both integrated alternatives, one
+    dependency each, in the form of the feature model's correspondences. It replaces the choice of 2026-10-21."""
+    code = _code(CLASSIFICATION)
+    found = re.findall(r"\bdependency\s+(\w+)\s+from\s+hmiGuestExecutionDomain\s+to\s+([\w:]+)\s*;", code)
+    assert found == [(name, f"DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::{alternative}")
+                     for name, alternative in COUNTERPARTS.items()]
+    assert len(re.findall(r"\bfrom\s+hmiGuestExecutionDomain\b", code)) == len(COUNTERPARTS)
+    for alternative in COUNTERPARTS.values():
+        assert re.search(rf"\bvariant\s+part\s+{alternative}\s*:", _code(SCOPE)), alternative
+    candidate = _docs(CLASSIFICATION)
+    for phrase in ("CLS-MW-004: an AAOS SDV HMI guest next to the Linux host distinguishes the two integrated members "
+                   "from the standalone member.",
+                   "Its counterpart is both integrated alternatives, AAOS Integrated and S-CORE Integrated (owner "
+                   "decision of 2026-11-21)."):
+        assert phrase in candidate, phrase
+    assert "the AAOS-integrated mode is only a candidate counterpart, and the ADR decides" not in candidate
+    comment = _docs(SLICE)
+    for phrase in ("The owner decided on 2026-11-21 that the counterpart of CLS-MW-004 is both integrated "
+                   "alternatives, AAOS Integrated and S-CORE Integrated.",
+                   "This replaces the decision of 2026-10-21, made before ADR 0026, to re-point it to S-CORE "
+                   "Integrated alone.",
+                   "eclipseSCORE, not hmiDisplay, tells the S-CORE member apart from the AAOS-integrated member."):
+        assert phrase in comment, phrase
+    assert "only hmiDisplay distinguishes the S-CORE product" not in comment
+    text = SLICE.read_text(encoding="utf-8")
+    (about,) = re.findall(r"\bcomment hmiGuestCandidateCounterpartAtBaseline\s+about\s+([^/]*)/\*", text)
+    assert [name.strip() for name in about.split(",")] == [
+        "DE4SDV_MiddlewareSCOREFeatureClassification::hmiGuestExecutionDomain",
+        *(f"DE4SDV_MiddlewareSCOREFeatureClassification::{name}" for name in COUNTERPARTS)]
+
+
+def test_the_classification_concern_names_only_relations_the_model_has() -> None:
+    """The concern framed by scoreTwoDomainClassificationView: no scope decision governs the candidate (a scope
+    decision record governs the scope), and two scope decisions admit the alternatives that are its counterpart:
+    the initial scope of 2026-09-01 (AAOS Integrated) and ADR 0023 of 2026-11-13 (S-CORE Integrated). The concern
+    text reaches VIEWS.md, which scripts/generate_view_index.py regenerates."""
+    concern = _docs(CLASSIFICATION)
+    assert ("Product-line engineers, system architects and open-source reviewers need the new member-distinguishing "
+            "characteristic identified as a feature candidate, with the gap and the scope decisions of 2026-09-01 "
+            "and 2026-11-13 that admit its counterpart.") in concern
+    for stale in ("the scope decision it waits for", "the scope decision that governs it",
+                  "the scope decisions of 2026-11-13 that admit"):
+        assert stale not in concern, stale
+    scope = SCOPE.read_text(encoding="utf-8")
+    for record, date in (("initialAEBSProductLineScopeDecision", "2026-09-01"),
+                         ("scoreIntegratedMemberScopeDecision", "2026-11-13")):
+        assert re.search(rf'part\s+{record}\s*:\s*ProductLineScopeDecisionRecord\s*\{{[^}}]*'
+                         rf'decisionDate\s*=\s*"{date}"', scope), record
+    views = " ".join((MIDDLEWARE / "VIEWS.md").read_text(encoding="utf-8").split())
+    assert "with the gap and the scope decisions of 2026-09-01 and 2026-11-13 that admit its counterpart." in views
 
 
 def test_mw_config_002_is_bound_to_the_exact_receipt() -> None:
@@ -219,18 +314,25 @@ def test_mw_config_002_is_bound_to_the_exact_receipt() -> None:
 
 
 def test_the_receipt_records_what_the_configured_product_states() -> None:
-    """Valid, the derived adapter autowareToSCORE, not admitted, the guest side and the HMI display."""
+    """Valid, the derived adapter autowareToSCORE, admitted with the alternative scoreIntegrated, the guest side and
+    the HMI display, as the slice states."""
     [model] = json.loads(RECEIPT.read_text(encoding="utf-8"))["evaluation"]["feature_models"]
     [configuration] = [item for item in model["configurations"] if item["source"] == CONFIGURATION]
     assert configuration["configuration"] == "middlewareAutowareSCOREReference"
     assert configuration["projection_name"] == "MiddlewareAutowareSCOREReference"
     assert configuration["valid"] is True
-    assert configuration["admission"]["admitted"] is False
+    assert configuration["admission"]["admitted"] is True
+    assert configuration["admission"]["alternative"] == "scoreIntegrated"
+    assert configuration["admission"]["reasons"] == []
     derived = {item["variation"]: item["variant"] for item in configuration["derived_variants"]}
     assert derived["applicationMiddlewareAdapter"] == "autowareToSCORE"
     assert {"platformStack.autoware", "platformStack.eclipseSCORE", "platformStack.linux", "platformStack.kvm",
             "platformStack.guestAndroid", "platformStack.guestAndroidSDV",
             "capabilities.hmiDisplay"} <= set(configuration["selected"])
+    docs = " ".join(re.sub(r"^\s*\*\s?", "", SLICE.read_text(encoding="utf-8"), flags=re.M).split())
+    assert ("valid, with the derived adapter autowareToSCORE, and admitted: it realizes the alternative "
+            "scoreIntegrated.") in docs
+    assert "and not admitted" not in docs
 
 
 def test_the_layer_adapter_is_typed_by_the_derived_adapter_variant() -> None:

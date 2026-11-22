@@ -1,5 +1,5 @@
 /*
- * PLEML feature configuration of the Eclipse S-CORE reference configuration
+ * PLEML feature configuration of the S-CORE-integrated member configuration
  * of INC-MW-011, the configuration authority since the switch of ADR 0022.
  * It restates the Bill-of-Features example-linux-score-autoware.yaml, which
  * retired at step S7; INC-MW-011 phase 9 renamed it and gave it the guest
@@ -13,7 +13,7 @@ package DE4SDV_MiddlewareAutowareSCOREReferenceConfiguration {
     private import DE4SDV_ProductLineDerivation::ProductModelProjectionName;
 
     #featureConfiguration occurrence middlewareAutowareSCOREReference : SDVProductLineFeatureTree :> featureConfigurations {
-        doc /* Eclipse S-CORE reference configuration on one SoC: Autoware on
+        doc /* S-CORE-integrated reference member (ADR 0023) on one SoC: Autoware on
              * Eclipse S-CORE on Linux on the main side, which is also the KVM
              * host, and an AAOS SDV guest under KVM that shows the HMI on a
              * display. Vehicle-target AEBS only (no pedestrian/bicycle

@@ -838,11 +838,10 @@ product line.
   pull request cuts the receipt, and the configurator generates the projection
   `DriverAssistanceVisionPilotSCOREReference` from it. By the model's reading
   of the correspondences the configuration is **valid, and the governed scope
-  does not admit it**: the driving stack is deferred variability, Eclipse
-  S-CORE is reference-only, the display, adaptive cruise control and lane-keep
-  assist are outside the governed scope, the guest side realizes the
-  AAOS-integrated alternative without its middleware, and the configuration
-  does not represent the common content (no Autoware, no LiDAR). The receipt
+  does not admit it**: it realizes the S-CORE-integrated alternative, but the
+  driving stack is deferred variability, adaptive cruise control and
+  lane-keep assist are outside the governed scope, and the configuration does
+  not represent the common content (no Autoware, no LiDAR). The receipt
   records the verdict.
 - **The configured product.** `DRIVING-CONFIG-002` pairs the projection with
   the Phase 8 realization of the driver-assistance system and binds nothing.

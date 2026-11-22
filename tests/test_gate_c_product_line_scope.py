@@ -41,6 +41,15 @@ SCOPE_SOURCE = (
     "de4sdv_aebs_product_line_scope.sysml"
 )
 FORBIDDEN_SHORTHAND = re.compile(r"\b(?:MP|VC|VD|C|D)-0?\d+\b")
+SCOPE_SCHEMA = "de4sdv-aebs-product-line-scope-validation/v2"
+#: The scope decision records that govern the scope: the initial record of ADR 0014, and the records of ADR 0023
+#: (the S-CORE-integrated member) and ADR 0026 (the HMI display in every member), with their fixture identities.
+SCOPE_DECISIONS = {
+    "initialAEBSProductLineScopeDecision": "scope-decision",
+    "scoreIntegratedMemberScopeDecision": "score-decision",
+    "hmiDisplayInEveryMemberScopeDecision": "hmi-decision",
+}
+DECISION_AUTHORITY = "Orkun Yilmaz, DE4SDV technical lead and maintainer"
 
 
 def _element(identifier: str, element_type: str, name: str | None = None, **extra):
@@ -105,8 +114,10 @@ def _scope_fixture() -> tuple[list[dict[str, object]], dict[str, str]]:
         "scope-def": "GovernedDE4SDVAEBSReferenceProductLineScope",
         "standalone-member-def": "StandaloneAutowareAEBSReferenceMember",
         "integrated-member-def": "AAOSIntegratedAutowareAEBSReferenceMember",
+        "score-member-def": "SCOREIntegratedAutowareAEBSReferenceMember",
         "standalone-mode-def": "StandaloneVehiclePlatformIntegration",
         "integrated-mode-def": "AAOSIntegratedVehiclePlatformIntegration",
+        "score-mode-def": "SCOREIntegratedVehiclePlatformIntegration",
         "common-set-def": "InitialCommonCoreEngineeringContent",
         "common-def": "CommonCurrentScopeEngineeringContent",
         "derived-set-def": "DerivedArchitectureAndTechnicalRealization",
@@ -135,6 +146,7 @@ def _scope_fixture() -> tuple[list[dict[str, object]], dict[str, str]]:
     modes = {
         "standalone-mode": ("standalone", "standalone-mode-def"),
         "integrated-mode": ("aaosIntegrated", "integrated-mode-def"),
+        "score-mode": ("scoreIntegrated", "score-mode-def"),
     }
     for usage, (name, definition) in modes.items():
         elements.extend(
@@ -156,6 +168,11 @@ def _scope_fixture() -> tuple[list[dict[str, object]], dict[str, str]]:
             "integrated-member-def",
             "integrated-mode",
         ),
+        "score-member": (
+            "scoreIntegratedAutowareAEBSReferenceMember",
+            "score-member-def",
+            "score-mode",
+        ),
     }
     for usage, (name, definition, mode) in members.items():
         elements.extend(
@@ -176,6 +193,7 @@ def _scope_fixture() -> tuple[list[dict[str, object]], dict[str, str]]:
                 "linuxROS2AutowareRuntime",
                 "currentSensingBaseline",
                 "protectedEmergencyCommandPathIndependence",
+                "driverHMIDisplay",
             ),
         ),
         "derived-set-def": (
@@ -185,6 +203,7 @@ def _scope_fixture() -> tuple[list[dict[str, object]], dict[str, str]]:
                 "aaosIntegratedExecutionDomainTopology",
                 "androidKVMTopology",
                 "adapterRealization",
+                "scoreIntegratedExecutionDomainTopology",
             ),
         ),
         "reference-set-def": (
@@ -192,7 +211,6 @@ def _scope_fixture() -> tuple[list[dict[str, object]], dict[str, str]]:
             (
                 "apollo",
                 "openpilot",
-                "eclipseSCORE",
                 "autosarAdaptive",
                 "automotiveGradeLinux",
                 "qnxQVM",
@@ -230,13 +248,18 @@ def _scope_fixture() -> tuple[list[dict[str, object]], dict[str, str]]:
                 )
             )
 
+    for name, decision in SCOPE_DECISIONS.items():
+        elements.extend(
+            (
+                _element(decision, "PartUsage", name),
+                _typing(f"typing-{decision}", decision, "scope-decision-def"),
+                _dependency(f"governs-{decision}", decision, "governed-scope"),
+            )
+        )
     elements.extend(
         (
-            _element("scope-decision", "PartUsage", "initialAEBSProductLineScopeDecision"),
-            _typing("typing-scope-decision", "scope-decision", "scope-decision-def"),
             _element("governed-scope", "PartUsage", "governedDE4SDVAEBSReferenceProductLineScope"),
             _typing("typing-governed-scope", "governed-scope", "scope-def"),
-            _dependency("scopeDecisionGovernsPortfolio", "scope-decision", "governed-scope"),
             _element("development-stage", "PartUsage", "developmentProductDecisionBindingStage"),
             _typing("typing-development-stage", "development-stage", "development-def"),
             _dependency(
@@ -262,6 +285,21 @@ def _scope_fixture() -> tuple[list[dict[str, object]], dict[str, str]]:
             _dependency(
                 "integratedModeDerivesAdapter",
                 "integrated-mode",
+                "usage-adapterRealization",
+            ),
+            _dependency(
+                "scoreIntegratedModeDerivesSCORETopology",
+                "score-mode",
+                "usage-scoreIntegratedExecutionDomainTopology",
+            ),
+            _dependency(
+                "scoreIntegratedModeDerivesAndroidKVM",
+                "score-mode",
+                "usage-androidKVMTopology",
+            ),
+            _dependency(
+                "scoreIntegratedModeDerivesAdapter",
+                "score-mode",
                 "usage-adapterRealization",
             ),
         )
@@ -303,6 +341,10 @@ def test_governed_artifacts_use_descriptive_identity_and_record_ratification() -
     assert "variation part vehiclePlatformIntegrationMode" in model
     assert "variant part standalone" in model
     assert "variant part aaosIntegrated" in model
+    assert "variant part scoreIntegrated : SCOREIntegratedVehiclePlatformIntegration;" in model
+    assert "part scoreIntegratedAutowareAEBSReferenceMember : SCOREIntegratedAutowareAEBSReferenceMember;" in model
+    assert "part driverHMIDisplay : CommonCurrentScopeEngineeringContent;" in model
+    assert "part scoreIntegratedExecutionDomainTopology : DerivedTechnicalRealization;" in model
     assert "DevelopmentProductDecisionBindingStage" in model
     assert "ProductionProductDecisionBindingStage" not in model
     assert "OperationProductDecisionBindingStage" not in model
@@ -324,11 +366,18 @@ def test_api_scope_validation_resolves_exact_members_and_semantic_classes() -> N
     elements, sources = _scope_fixture()
     result = validate_scope_elements(elements, sources)
 
+    assert result["schema"] == SCOPE_SCHEMA
     assert result["planned_reference_members"] == [
         {
             "declared_name": "aaosIntegratedAutowareAEBSReferenceMember",
             "element_id": "integrated-member",
             "integration_mode_element_id": "integrated-mode",
+            "source": SCOPE_SOURCE,
+        },
+        {
+            "declared_name": "scoreIntegratedAutowareAEBSReferenceMember",
+            "element_id": "score-member",
+            "integration_mode_element_id": "score-mode",
             "source": SCOPE_SOURCE,
         },
         {
@@ -341,6 +390,7 @@ def test_api_scope_validation_resolves_exact_members_and_semantic_classes() -> N
     assert result["vehicle_platform_integration_mode"]["element_id"] == "integration-mode"
     assert result["vehicle_platform_integration_mode"]["alternatives"] == {
         "aaosIntegrated": "integrated-mode",
+        "scoreIntegrated": "score-mode",
         "standalone": "standalone-mode",
     }
     assert result["binding_stage"] == {
@@ -348,14 +398,21 @@ def test_api_scope_validation_resolves_exact_members_and_semantic_classes() -> N
         "element_id": "development-stage",
         "source": SCOPE_SOURCE,
     }
-    assert result["scope_decision"] == {
-        "decision_element_id": "scope-decision",
-        "governed_scope_element_id": "governed-scope",
-        "source": SCOPE_SOURCE,
-    }
+    # Schema v2: every scope decision record that governs the scope, in name order, replaces the one record of v1.
+    assert "scope_decision" not in result
+    assert result["scope_decisions"] == [
+        {
+            "declared_name": name,
+            "decision_element_id": SCOPE_DECISIONS[name],
+            "governed_scope_element_id": "governed-scope",
+            "source": SCOPE_SOURCE,
+        }
+        for name in sorted(SCOPE_DECISIONS)
+    ]
     assert set(result["common_core"]) == {
         "autowareApplication",
         "currentSensingBaseline",
+        "driverHMIDisplay",
         "linuxROS2AutowareRuntime",
         "protectedEmergencyCommandPathIndependence",
         "vehicleTargetAEBS",
@@ -364,7 +421,11 @@ def test_api_scope_validation_resolves_exact_members_and_semantic_classes() -> N
         "adapterRealization",
         "androidKVMTopology",
         "aaosIntegratedExecutionDomainTopology",
+        "scoreIntegratedExecutionDomainTopology",
         "standaloneExecutionDomainTopology",
+    }
+    assert set(result["reference_only"]) == {
+        "acrn", "apollo", "automotiveGradeLinux", "autosarAdaptive", "openpilot", "qnxQVM",
     }
     assert "apollo" in result["reference_only"]
     assert "drivingStackVariability" in result["deferred"]
@@ -376,11 +437,11 @@ def test_api_scope_validation_counts_distinct_alternatives_with_implied_subsetti
     SerializationOptions include_implied the licensed serializer emits an
     implied Subsetting alongside the authored variant relationship for the
     SAME alternative; the alternative population must stay distinct
-    ('expected 2, found 4' otherwise)."""
+    ('expected 2, found 4' otherwise, with the two alternatives of that run)."""
     from de4sdv.sysml_api.product_line_scope import validate_scope_elements
 
     elements, sources = _scope_fixture()
-    for usage in ("standalone-mode", "integrated-mode"):
+    for usage in ("standalone-mode", "integrated-mode", "score-mode"):
         implied = _subsetting(f"implied-subset-{usage}", usage, "integration-mode")
         implied["isImplied"] = True
         implied["isImpliedIncluded"] = True
@@ -391,24 +452,155 @@ def test_api_scope_validation_counts_distinct_alternatives_with_implied_subsetti
 
     assert result["vehicle_platform_integration_mode"]["alternatives"] == {
         "aaosIntegrated": "integrated-mode",
+        "scoreIntegrated": "score-mode",
         "standalone": "standalone-mode",
     }
 
 
-def test_api_scope_validation_rejects_a_third_planned_member() -> None:
+def test_api_scope_validation_rejects_a_fourth_planned_member() -> None:
+    """ADR 0023 decision 7: the test that refused a third member refuses a fourth."""
     from de4sdv.sysml_api.product_line_scope import ScopeSemanticError, validate_scope_elements
 
     elements, sources = _scope_fixture()
     elements.extend(
         (
-            _element("third-member", "PartUsage", "apolloReferenceMember"),
-            _membership("member-third", "portfolio-def", "third-member"),
+            _element("fourth-member", "PartUsage", "apolloReferenceMember"),
+            _membership("member-fourth", "portfolio-def", "fourth-member"),
         )
     )
-    sources.update({"third-member": SCOPE_SOURCE, "member-third": SCOPE_SOURCE})
+    sources.update({"fourth-member": SCOPE_SOURCE, "member-fourth": SCOPE_SOURCE})
 
-    with pytest.raises(ScopeSemanticError, match="exactly two planned reference members"):
+    with pytest.raises(ScopeSemanticError, match="exactly three planned reference members"):
         validate_scope_elements(elements, sources)
+
+
+@pytest.mark.parametrize("name", sorted(SCOPE_DECISIONS))
+def test_api_scope_validation_requires_every_scope_decision_record(name: str) -> None:
+    from de4sdv.sysml_api.product_line_scope import ScopeSemanticError, validate_scope_elements
+
+    elements, sources = _scope_fixture()
+    decision = SCOPE_DECISIONS[name]
+    removed = {decision, f"typing-{decision}", f"governs-{decision}"}
+    elements = [item for item in elements if item["@id"] not in removed]
+    sources = {key: value for key, value in sources.items() if key not in removed}
+
+    with pytest.raises(ScopeSemanticError, match=f"expected one PartUsage named {name}, found 0"):
+        validate_scope_elements(elements, sources)
+
+
+@pytest.mark.parametrize("name", sorted(SCOPE_DECISIONS))
+def test_api_scope_validation_rejects_a_record_that_does_not_govern_the_scope(name: str) -> None:
+    from de4sdv.sysml_api.product_line_scope import ScopeSemanticError, validate_scope_elements
+
+    elements, sources = _scope_fixture()
+    governs = f"governs-{SCOPE_DECISIONS[name]}"
+    elements = [item for item in elements if item["@id"] != governs]
+    sources.pop(governs)
+
+    with pytest.raises(ScopeSemanticError, match=f"scope decision {name} does not govern the scope"):
+        validate_scope_elements(elements, sources)
+
+
+@pytest.mark.parametrize("name", sorted(SCOPE_DECISIONS))
+def test_api_scope_validation_rejects_a_record_with_another_type(name: str) -> None:
+    from de4sdv.sysml_api.product_line_scope import ScopeSemanticError, validate_scope_elements
+
+    elements, sources = _scope_fixture()
+    typing = next(item for item in elements if item["@id"] == f"typing-{SCOPE_DECISIONS[name]}")
+    typing["type"] = typing["general"] = {"@id": "scope-def"}
+
+    with pytest.raises(ScopeSemanticError, match=f"scope decision {name} has the wrong API type identity"):
+        validate_scope_elements(elements, sources)
+
+
+def test_api_scope_validation_rejects_an_unlisted_scope_decision_record() -> None:
+    from de4sdv.sysml_api.product_line_scope import ScopeSemanticError, validate_scope_elements
+
+    elements, sources = _scope_fixture()
+    extra = (
+        _element("extra-decision", "PartUsage", "laterScopeDecision"),
+        _typing("typing-extra-decision", "extra-decision", "scope-decision-def"),
+        _dependency("governs-extra-decision", "extra-decision", "governed-scope"),
+    )
+    elements.extend(extra)
+    sources.update({str(item["@id"]): SCOPE_SOURCE for item in extra})
+
+    with pytest.raises(ScopeSemanticError, match="scope decision records differ"):
+        validate_scope_elements(elements, sources)
+
+
+@pytest.mark.parametrize("dependency", [
+    "scoreIntegratedModeDerivesSCORETopology",
+    "scoreIntegratedModeDerivesAndroidKVM",
+    "scoreIntegratedModeDerivesAdapter",
+])
+def test_api_scope_validation_requires_what_score_integrated_derives(dependency: str) -> None:
+    """ADR 0023 decision 3: the S-CORE two-domain topology, and the shared Android/KVM topology and adapter."""
+    from de4sdv.sysml_api.product_line_scope import ScopeSemanticError, validate_scope_elements
+
+    elements, sources = _scope_fixture()
+    elements = [item for item in elements if item["@id"] != dependency]
+    sources.pop(dependency)
+
+    with pytest.raises(ScopeSemanticError, match="lacks its derived realization"):
+        validate_scope_elements(elements, sources)
+
+
+def test_api_scope_validation_refuses_eclipse_score_as_reference_only() -> None:
+    """ADR 0023 decision 3: Eclipse S-CORE leaves the reference-only set."""
+    from de4sdv.sysml_api.product_line_scope import ScopeSemanticError, validate_scope_elements
+
+    elements, sources = _scope_fixture()
+    extra = (
+        _element("usage-eclipseSCORE", "PartUsage", "eclipseSCORE"),
+        _membership("membership-eclipseSCORE", "reference-set-def", "usage-eclipseSCORE"),
+        _typing("typing-eclipseSCORE", "usage-eclipseSCORE", "reference-def"),
+    )
+    elements.extend(extra)
+    sources.update({str(item["@id"]): SCOPE_SOURCE for item in extra})
+
+    with pytest.raises(ScopeSemanticError, match="ReferenceOnlyAlternativeSet member count differs"):
+        validate_scope_elements(elements, sources)
+
+
+#: The relationships of the S-CORE-integrated member and mode in the scope model (ADR 0023, decisions 1 to 3 and 8):
+#: the member uses the mode, the mode derives its three realizations, and the member traces to its configured product.
+SCORE_INTEGRATED_RELATIONSHIPS = (
+    ("scoreIntegratedMemberUsesSCOREIntegration",
+     "InitialPlannedReferenceMemberPortfolio::scoreIntegratedAutowareAEBSReferenceMember",
+     "vehiclePlatformIntegrationMode::scoreIntegrated"),
+    ("scoreIntegratedModeDerivesSCORETopology", "vehiclePlatformIntegrationMode::scoreIntegrated",
+     "DerivedArchitectureAndTechnicalRealization::scoreIntegratedExecutionDomainTopology"),
+    ("scoreIntegratedModeDerivesAndroidKVM", "vehiclePlatformIntegrationMode::scoreIntegrated",
+     "DerivedArchitectureAndTechnicalRealization::androidKVMTopology"),
+    ("scoreIntegratedModeDerivesAdapter", "vehiclePlatformIntegrationMode::scoreIntegrated",
+     "DerivedArchitectureAndTechnicalRealization::adapterRealization"),
+    ("scoreIntegratedMemberEvidenceTrace",
+     "InitialPlannedReferenceMemberPortfolio::scoreIntegratedAutowareAEBSReferenceMember",
+     "DE4SDV_MiddlewareSCOREVariabilityConfiguration::MiddlewareAutowareSCOREConfiguredProduct"),
+)
+
+
+def test_the_scope_model_records_both_scope_decisions_of_2026_11_13() -> None:
+    """ADR 0023 decision 7 and ADR 0026 (Consequences): one more record each, with the decision authority of the
+    initial record, each governing the scope. The real scope file also holds each relationship of the new member
+    and mode by name; the validator tests read a synthetic fixture, and no validator reads the evidence trace."""
+    model = SCOPE_MODEL.read_text(encoding="utf-8")
+    for name in SCOPE_DECISIONS:
+        match = re.search(rf"\bpart {name} : ProductLineScopeDecisionRecord \{{(.*?)\n  \}}", model, re.DOTALL)
+        assert match, name
+        assert f'attribute :>> decisionAuthority = "{DECISION_AUTHORITY}";' in match[1], name
+        assert re.search(rf"\bdependency \w+\s+from {name}\s+to governedDE4SDVAEBSReferenceProductLineScope;",
+                         model), name
+    for name in ("scoreIntegratedMemberScopeDecision", "hmiDisplayInEveryMemberScopeDecision"):
+        body = re.search(rf"\bpart {name} : ProductLineScopeDecisionRecord \{{(.*?)\n  \}}", model, re.DOTALL)[1]
+        assert 'attribute :>> decisionDate = "2026-11-13";' in body, name
+    for name, source, target in SCORE_INTEGRATED_RELATIONSHIPS:
+        assert re.search(rf"\bdependency {name}\s+from {re.escape(source)}\s+to {re.escape(target)};", model), name
+    reference_only = re.search(r"part def ReferenceOnlyAlternativeSet \{(.*?)\n  \}", model, re.DOTALL)[1]
+    assert "eclipseSCORE" not in reference_only
+    portfolio = re.search(r"part def InitialPlannedReferenceMemberPortfolio \{(.*?)\n  \}", model, re.DOTALL)[1]
+    assert "Exactly the three governed planned reference members" in " ".join(portfolio.split())
 
 
 def test_api_scope_validation_rejects_common_or_derived_content_as_selectable() -> None:
@@ -588,6 +780,16 @@ def test_scope_validator_uses_uuid_relationships_after_resolution() -> None:
 
     result = validate_scope_elements(changed, sources)
 
-    assert result["planned_reference_members"][1]["integration_mode_element_id"] == (
+    assert result["planned_reference_members"][2]["integration_mode_element_id"] == (
         "standalone-mode"
     )
+
+
+def test_the_readers_of_the_scope_record_expect_its_schema() -> None:
+    """Schema v2 (a list of scope decisions): the evaluator, which reads the record for admission, and the release
+    evidence check, which reads the ingestion's scope battery, expect the schema the validator writes."""
+    from de4sdv.semantic import pleml_configuration
+    from scripts import check_release_evidence
+
+    assert pleml_configuration.SCOPE_SCHEMA == SCOPE_SCHEMA
+    assert check_release_evidence.BATTERY_SCHEMAS["scope_validation"] == SCOPE_SCHEMA

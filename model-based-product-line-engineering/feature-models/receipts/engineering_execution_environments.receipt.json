@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "536d1e25437523bbdcc7f56c1652e1c489c4fbe32602de864833580c781bd70a",
+    "content_sha256": "12f092602453d46ad4e3118763a9e08368993f3479faf92704b75978a1552dde",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "7b9730b61c891d85217328f9fbe64c31bc65b1622958a90fc423a92aea11ce68"
+    "sha256": "9ddda470ee182cc9ef7543b94f1c50f357aa6f255d836afadfa709c4623f71bd"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -133,6 +133,13 @@
                   "represented_by": []
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": null,
                   "exempted": [],
@@ -228,6 +235,13 @@
                 },
                 {
                   "asset": "currentSensingBaseline",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "driverHMIDisplay",
                   "complete": null,
                   "exempted": [],
                   "missing": [],
@@ -651,12 +665,12 @@
   },
   "evaluator": {
     "modules": {
-      "de4sdv/semantic/pleml_configuration.py": "6f2f5b5d3d353202d4f84ec33bc4d80d98d6e0719c2a772edb98ddf58797636c",
+      "de4sdv/semantic/pleml_configuration.py": "d09ec0d30111720774541fe9c5fc534552256d6f6f59bedd4ff9d9d8cfce44da",
       "de4sdv/semantic/pleml_package.py": "8d09409d802616780641fcfb8c86b41c21faeedb1a75989c17dfb76ef3cc9dfe",
       "de4sdv/semantic/pleml_receipts.py": "325bd1f47d9608a223354b7d78708709fb110ba56d50ecea0f7637ee3dfea1d7",
       "scripts/run_pleml_configuration_evaluation.py": "ade6a0c5077948162d99e975dfd5e115a395ee7ace70e180cb53c7b7fbaae12e"
     },
-    "sha256": "4b00cc77bb2c297f8bf73073d8c52d25b64ccfbd7ea2a6a5946fd6aca531a056"
+    "sha256": "19301cb06126940c3cad88efb67ac463469f8235de2796daa2b2210099918fc8"
   },
   "feature_models": [
     "EngineeringExecutionEnvironmentFeatureModel"
@@ -675,8 +689,8 @@
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "4985c9a82b007e1f44e5d3e5203d4b655bd668b3",
-    "executor_revision": "4985c9a82b007e1f44e5d3e5203d4b655bd668b3"
+    "bundle_git_commit": "333614ea488880ab3e17aa559c3d48dde5779f50",
+    "executor_revision": "333614ea488880ab3e17aa559c3d48dde5779f50"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v2",
@@ -695,8 +709,8 @@
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
-      "sha256": "35ce40733e3ccfe030d48a815b4eb403fa61035f0ffcf7a1dc86a68ad3bc1128",
-      "size": 2530
+      "sha256": "6ba75fb8536161871757d388d44131749f0d4e53fb4b0a192d8007a2825e491a",
+      "size": 2672
     },
     {
       "authority": "pleml-feature-configuration",
@@ -827,8 +841,8 @@
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/vehicle_target_aebs_off_probe.sysml",
-      "sha256": "8a211f5ae997b44f4c87dc41351625cb417550425d6851b768e4c598331b7a62",
-      "size": 2869
+      "sha256": "d5fc031fb8db844a5af2f3d4d44062312fa71726ba8eb4d61e0ed435712780ab",
+      "size": 3043
     },
     {
       "authority": "pleml-feature-configuration",
@@ -839,14 +853,14 @@
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
-      "sha256": "d18207b51603af37e9f4f1037bf5789c11e4f7a496e04fc65294f827536f10ad",
-      "size": 3656
+      "sha256": "91ce409bf1c0846679d0fdf4a2cdcfaaa30afb0a7b88f082fd4f423237f16648",
+      "size": 4056
     },
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/middleware_autoware_score_reference.sysml",
-      "sha256": "41ec74ab7c1aaf5318d7c669dc82ba0ef9c350b4f60f5ca5529cdbfca63ac561",
-      "size": 2648
+      "sha256": "ec674044920ef23223d62dafbca3b7e87406a544d278d547d9e59b61c1d55a1f",
+      "size": 2655
     },
     {
       "authority": "pleml-feature-configuration",
@@ -863,8 +877,8 @@
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
-      "sha256": "13b9900ecd143115567bf23e04f549e57b0ac1293bc5c1cf713486b43fdc29f3",
-      "size": 36405
+      "sha256": "a9454920e3c088d54841f4cff129cf9f9ff0561ad98f4e384cd1ec777f85457e",
+      "size": 38231
     },
     {
       "authority": "pleml-feature-model",
@@ -875,8 +889,8 @@
     {
       "authority": "reviewed",
       "path": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
-      "sha256": "dd1218cbe2b8e942b9c10179d9c0737f9dcc18bc81c8642636383c655a46ec11",
-      "size": 10094
+      "sha256": "3b37d3544578ca049902c522d079967536b87246c4715525b488effdcfdb8fb6",
+      "size": 15083
     },
     {
       "authority": "reviewed",
@@ -887,8 +901,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
-      "sha256": "c59fc960e235158086e33bdd3a8bd2e5b650c3d2e6584bdc1cb685614fd45aac",
-      "size": 33478
+      "sha256": "a4a16a7b446117334295e3bf7da3f72591c1d04320109dcb3cf68a53224770ea",
+      "size": 33546
     },
     {
       "authority": "reviewed",

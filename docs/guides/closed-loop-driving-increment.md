@@ -749,12 +749,13 @@ the driving stack is a feature and requires the camera:
   on `hmiDisplay`. The privileged PLE authority workflow cut the receipt;
   the configurator generated the projection
   `ClosedLoopDrivingAutoE2ESCOREReference` from it. The receipt records the
-  configuration as **valid and not admitted**: the driving stack is deferred
-  variability, Eclipse S-CORE is reference-only, the display is outside the
-  governed scope, the guest side realizes the AAOS-integrated alternative
-  without its middleware, and the configuration does not represent the
-  common content (no Autoware, no LiDAR). The same receipt re-cut rebinds
-  MW-CONFIG-002's digest; its own record did not change.
+  configuration as **valid and not admitted**: it realizes the
+  S-CORE-integrated alternative, but the driving stack is deferred
+  variability, and the configuration does not represent the common content
+  (no Autoware, no LiDAR). The receipt cut of this phase rebound
+  MW-CONFIG-002's digest, and that record did not change. The re-cut of the
+  scope revision of ADR 0023 and ADR 0026 changed the records of both
+  configurations and rebound both digests.
 - **The configured product.** `DRIVING-CONFIG-001` pairs the projection
   with the Phase 8 realization of the driving system and binds the
   realization's S-CORE services to the selected middleware. Phase 8

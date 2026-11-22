@@ -27,20 +27,19 @@
  * the warning request, which asks the AAOS SDV for the warning, to the
  * feature guestAndroidSDV. This package holds none of them.
  *
- * The configuration is valid and not admitted. The model's reading of the
- * correspondences gives three reasons, and the receipt of the privileged
+ * The configuration is valid and not admitted. It realizes the alternative
+ * S-CORE Integrated with its derived realizations. The model's reading of
+ * the correspondences gives two reasons, and the receipt of the privileged
  * PLE authority run records the verdict. First, the selections visionPilot,
- * eclipseSCORE, hmiDisplay, adaptiveCruiseControl and laneKeepAssist are
- * content the governed scope does not admit: the driving stack is deferred
- * variability, Eclipse S-CORE is reference-only, and the HMI display,
- * adaptive cruise control and lane-keep assist have no element in the
- * governed scope. Second, the guest side realizes the AAOS-integrated alternative
- * without its middleware androidSDV. Third, the configuration does not
- * represent the common content: no Autoware, no LiDAR. So the configured
- * product specializes no member-product type. ADR 0014 bounds the existing
- * product line; the member decision follows the runnable proof of phase 10
- * (framing gap gapCandidateAdmission). This slice is configuration evidence
- * only: it proves no runtime behavior and satisfies no requirement.
+ * adaptiveCruiseControl and laneKeepAssist are content the governed scope
+ * does not admit: the driving stack is deferred variability, and adaptive
+ * cruise control and lane-keep assist have no element in the governed
+ * scope. Second, the configuration does not represent the common content:
+ * no Autoware, no LiDAR. So the configured product specializes no
+ * member-product type. ADR 0014 bounds the existing product line; the
+ * member decision follows the runnable proof of phase 10 (framing gap
+ * gapCandidateAdmission). This slice is configuration evidence only: it
+ * proves no runtime behavior and satisfies no requirement.
  */
 
 package DE4SDV_DriverAssistanceVariabilityConfiguration {
@@ -135,7 +134,7 @@ package DE4SDV_DriverAssistanceVariabilityConfiguration {
      * Configuration evidence only. This usage proves no candidate, adapter,
      * gateway or presentation behavior and no requirement satisfaction.
      */
-    attribute receiptSha256 : ScalarValues::String = "848262167497d033b87d4ae90c6f54d3b0edd4c851f80480cd07d8cd860a34a1";
+    attribute receiptSha256 : ScalarValues::String = "50cab825ea8ad7ade74173a7b4c1e7db47d68adf0b25867b8441c1387a63f357";
   }
 
   dependency configuredAssistanceSoftwareTrace

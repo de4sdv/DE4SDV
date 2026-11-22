@@ -21,7 +21,9 @@ package DE4SDV_VehicleTargetAEBSOffProbeConfiguration {
         doc /* Parity probe ug-10-vehicle-target-aebs-false. The common
              * vehicle-target AEBS capability switched off, which a bill of
              * features could state and a PLEML configuration cannot, because
-             * common content has no feature. */
+             * common content has no feature. It selects the HMI display, common
+             * content of every member since ADR 0026, so it still probes only
+             * the common vehicle-target AEBS switched off. */
         @ProductModelProjectionName {
             partDefinitionName = "VehicleTargetAEBSOffProbe";
         }
@@ -50,7 +52,7 @@ package DE4SDV_VehicleTargetAEBSOffProbeConfiguration {
             #feature occurrence :>> bicycleDetection[0];
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
-            #feature occurrence :>> hmiDisplay[0];
+            #feature occurrence :>> hmiDisplay[1];
         }
     }
 }
