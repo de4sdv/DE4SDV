@@ -281,7 +281,7 @@ timing claim for a vehicle network.
 - `REQ-EE-003`: the commands of a run only through the elements of its route.
   From `NEED-EE-001`, by test; a design constraint.
 - `REQ-EE-004`: in each run, the delivery to the actuation ECU of each command
-  that no fault reaches, once, in its order and unchanged. From `NEED-EE-001`,
+  that no fault affects, once, in its order and unchanged. From `NEED-EE-001`,
   by test; functional.
 - `REQ-EE-005`: in a run without a fault, each command carried from the
   boundary interface to the actuation ECU within 50 ms of simulation time.

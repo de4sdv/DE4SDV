@@ -87,7 +87,7 @@ STATEMENTS = {
         'the route of the run.'),
     "reqDeliverCommandStreamUnchanged": (
         'In each run, the vehicle network shall deliver to the actuation ECU each driving command that '
-        'no fault reaches, once, in its order and with each part unchanged.'),
+        'no fault affects, once, in its order and with each part unchanged.'),
     "reqCarryEachCommandWithin50Ms": (
         'In each run without a fault, the vehicle network shall carry each driving command from the '
         'boundary interface to the actuation ECU within 50 ms of simulation time after taking it.'),
@@ -117,10 +117,10 @@ SOURCES = {
     "reqCommandsOnlyFromSCOREPath": 'NEED-EE-001; assumption asmEEScoreCommandSource; eeCommandRouteExchangeConcern',
     "reqCommandsOnlyOnTheirRoute": (
         'NEED-EE-001; eeCommandRouteExchangeConcern; scope item eeCommandRouteInScope; scenarios '
-        'SC-EE-001 and SC-EE-002'),
+        'SC-EE-001 to SC-EE-004'),
     "reqDeliverCommandStreamUnchanged": (
         'NEED-EE-001; eeVehicleCommandConcern; assumption asmEECommandFromDrivingBaseline; scenarios '
-        'SC-EE-001 and SC-EE-002'),
+        'SC-EE-001 to SC-EE-004'),
     "reqCarryEachCommandWithin50Ms": (
         'NEED-EE-001; eeVehicleCommandConcern; assumption asmEECommandFromDrivingBaseline; scenarios '
         'SC-EE-001 and SC-EE-002'),
@@ -171,7 +171,7 @@ RATIONALES = {
         'increment fixes at its baseline (asmEECommandFromDrivingBaseline). Whether it fits a CAN '
         'frame is open (gapEEActuationEnd); however the elements pack it, each part arrives as it was '
         'taken. In a run with a fault, of SC-EE-003 or SC-EE-004, it holds for each command that no '
-        'fault reaches, so the vehicle network keeps carrying the stream around the fault; REQ-EE-008 '
+        'fault affects, so the vehicle network keeps carrying the stream around the fault; REQ-EE-008 '
         'and REQ-EE-009 state what the actuation ECU does with what reaches it.'),
     "reqCarryEachCommandWithin50Ms": (
         'This is a performance requirement on the carriage of the command. The actuation ECU takes a '
@@ -219,13 +219,15 @@ RATIONALES = {
         '2026-11-18), with the arrival time set here in place of the newest world time of that '
         'adapter. Nothing is applied in place of an invalid command, so the vehicle keeps the last '
         'valid one; an invalid command, a neutral control in place of one, or a value that no command '
-        'carried each breaks this requirement. A delay or a repetition costs that one command; a loss '
-        'or a corruption costs the lost or corrupted command and the next one, which reveals the gap. '
-        'A corruption that the check value misses is judged by its sequence count and its issue time '
-        'alone and can make the actuation ECU reject later valid commands as repetitions: the bound of '
-        'the check value (the check-value bound decision of 2026-11-21 of that increment). Which '
-        'element detects and rejects is decided in phases 6 to 8 (gapEEActuationEnd). The requirement '
-        'carries no safety claim and no claim of freedom from interference.'),
+        'carried each breaks this requirement. A repetition costs that one command; the delay of the '
+        'run set costs the delayed command and those that it holds behind it, and the stop response '
+        'follows (REQ-EE-009); a loss or a corruption costs the lost or corrupted command and the next '
+        'one, which reveals the gap. A corruption that the check value misses is judged by its '
+        'sequence count and its issue time alone and can make the actuation ECU reject later valid '
+        'commands as repetitions: the bound of the check value (the check-value bound decision of '
+        '2026-11-21 of that increment). Which element detects and rejects is decided in phases 6 to 8 '
+        '(gapEEActuationEnd). The requirement carries no safety claim and no claim of freedom from '
+        'interference.'),
     "reqStopResponseAfter200Ms": (
         'This is the share of the vehicle network in the stop response that REQ-DRIVING-028 of '
         'INC-DRIVING-001 asks and SC-EE-004 takes for a link that goes down. The adapter of the '
@@ -279,7 +281,7 @@ CRITERIA = {
         'route, the network side of the central computer and the direct link.'),
     "reqDeliverCommandStreamUnchanged": (
         'Met when the run set is judged and, in each of its runs, the driving commands that reach the '
-        'actuation ECU, apart from those that the fault of the run reaches, are the command stream '
+        'actuation ECU, apart from those that the fault of the run affects, are the command stream '
         'without those, each once and in its order, with each part equal to the part that the vehicle '
         'network took.'),
     "reqCarryEachCommandWithin50Ms": (
@@ -361,15 +363,16 @@ TERM_DEFINITIONS = {
     "Command stream": 'the driving commands that the vehicle network takes in a run, in the order in which it takes them.',
     "Run": (
         'one execution of the vehicle network on one route of one scenario, from the first driving '
-        'command that it takes to the end of the scenario.'),
+        'command that it takes until 100 ms of simulation time after the last one that it takes.'),
     "Fault": (
         'a disturbance of one link of the route of a run, made from outside the vehicle network, that '
         'makes a driving command lost, delayed so that it reaches the actuation ECU more than 100 ms '
         'of simulation time after its issue time, repeated, or changed in a part, that is a loss, a '
         'delay, a repetition or a corruption, or that takes the link down for the rest of the run. A '
-        'fault reaches the driving command that it loses, delays, repeats or changes, and each driving '
-        'command given to the link while the link is down. A defect of an element is no fault; the '
-        'requirements hold with it in every run.'),
+        'fault affects the driving command that it loses, delays, repeats or changes, and each driving '
+        'command given to the link while the link is down; it affects no other command, so a command '
+        'that a delay holds behind the delayed one counts as unaffected. A defect of an element is no '
+        'fault; the requirements hold with it in every run.'),
     "Judged run": (
         'a run in which the path that carries the driving commands to the boundary interface gives '
         'each of them there no more than 50 ms of simulation time after its issue time.'),
@@ -447,19 +450,20 @@ GAP_COMMENTS = {
             'to the boundary interface no more than 50 ms of simulation time after its issue time; a '
             'run in which it misses this is reported with what it missed, gets no verdict and is run '
             'again, and both runs are reported. The fault injection makes the one fault that a run of '
-            'the run set names, on its link, after the first valid driving command and at least 300 ms '
-            'of simulation time before the run ends, because the stop response holds until the run '
-            'ends; a delay holds the delayed command on its link for 300 ms of simulation time and '
-            'keeps the order of the commands, and the records name its size. The replay and the fault '
-            'injection give no element of the vehicle network a driving command other than through the '
-            'Eclipse S-CORE path. The records hold, with its simulation time, each driving command '
-            'where the vehicle network takes it, at each element that it passes and where it reaches '
-            'the actuation ECU, identified by the sequence count that the vehicle network took, and '
-            'what the actuation ECU gives the vehicle. The vehicle model takes the steering angle and '
-            'the acceleration that the actuation ECU gives it, keeps a vehicle at standstill under a '
-            'deceleration, and gets its control only from the actuation ECU. Open: the testbed, its '
-            'readiness probe, its cost and its host (gapEEBenchPlatform), and which recording gives '
-            'the stream and how the stream is bound to the revision that made it '
+            'the run set names, on its link, after the first valid driving command and at least 500 ms '
+            'of simulation time before the run ends, so that the stop response starts within the run '
+            'and a command that a delay holds reaches the actuation ECU, with those held behind it, '
+            'before the run ends; a delay holds the delayed command on its link for 300 ms of '
+            'simulation time and keeps the order of the commands, and the records name its size. The '
+            'replay and the fault injection give no element of the vehicle network a driving command '
+            'other than through the Eclipse S-CORE path. The records hold, with its simulation time, '
+            'each driving command where the vehicle network takes it, at each element that it passes '
+            'and where it reaches the actuation ECU, identified by the sequence count that the vehicle '
+            'network took, and what the actuation ECU gives the vehicle. The vehicle model takes the '
+            'steering angle and the acceleration that the actuation ECU gives it, keeps a vehicle at '
+            'standstill under a deceleration, and gets its control only from the actuation ECU. Open: '
+            'the testbed, its readiness probe, its cost and its host (gapEEBenchPlatform), and which '
+            'recording gives the stream and how the stream is bound to the revision that made it '
             '(gapEERecordedCommandStream).')),
 }
 
@@ -475,17 +479,17 @@ HEADER_PARAGRAPH = (
     'the vehicle network in the delay limit; the arrival time at the actuation ECU in place of the '
     'newest world time of that adapter; the start of the stop response once more than 200 ms pass, and '
     'no earlier; its deceleration until the run ends and its steering of 0° before any valid command; '
-    'and the run set, with its delay of 300 ms. Keeping the rules of that adapter makes one lost or '
-    'corrupted command start the stop response, which REQ-DRIVING-028 reads as a stopped path only '
-    'after two missed commands. Each time limit counts on the clock of the virtual vehicle. The '
-    'comment on gapEEActuationEnd gives what phase 5 fixes of that gap and what stays open, and the '
-    'comment on gapEEBenchPlatform and gapEERecordedCommandStream gives what the criteria ask of '
-    'System 2. Rule 5 of the increment workflow makes a requirement core when its subject has no link '
-    'and it has none of its own. No requirement carries a link at this revision, so all ten read as '
-    'core. REQ-EE-002 names the Eclipse S-CORE path and so depends on the feature eclipseSCORE beyond '
-    'its subject; phase 9 links it. Phase 3 records no feature candidate for the vehicle network and '
-    'leaves open whether the governed scope takes it as common content, so phase 9 decides on a link '
-    'of its system of interest.')
+    'the run set, with its delay of 300 ms; and the end of each run 100 ms after its last command. '
+    'Keeping the rules of that adapter makes one lost or corrupted command start the stop response, '
+    'which REQ-DRIVING-028 reads as a stopped path only after two missed commands. Each time limit '
+    'counts on the clock of the virtual vehicle. The comment on gapEEActuationEnd gives what phase 5 '
+    'fixes of that gap and what stays open, and the comment on gapEEBenchPlatform and '
+    'gapEERecordedCommandStream gives what the criteria ask of System 2. Rule 5 of the increment '
+    'workflow makes a requirement core when its subject has no link and it has none of its own. No '
+    'requirement carries a link at this revision, so all ten read as core. REQ-EE-002 names the '
+    'Eclipse S-CORE path and so depends on the feature eclipseSCORE beyond its subject; phase 9 links '
+    'it. Phase 3 records no feature candidate for the vehicle network and leaves open whether the '
+    'governed scope takes it as common content, so phase 9 decides on a link of its system of interest.')
 #: the header sentence that phase 5 replaces
 HEADER_OLD = 'Phase 5 adds to this package the requirements derived from these needs.'
 
@@ -561,7 +565,7 @@ GUIDE_BULLETS = {
         'the commands of a run only through the elements of its route. From `NEED-EE-001`, by test; a '
         'design constraint.'),
     "REQ-EE-004": (
-        'in each run, the delivery to the actuation ECU of each command that no fault reaches, once, '
+        'in each run, the delivery to the actuation ECU of each command that no fault affects, once, '
         'in its order and unchanged. From `NEED-EE-001`, by test; functional.'),
     "REQ-EE-005": (
         'in a run without a fault, each command carried from the boundary interface to the actuation '
@@ -905,9 +909,14 @@ def test_no_feature_link_before_phase_9():
     assert "DE4SDV_SDVProductLineFeatureModel" not in raw
     assert not re.search(r"\bimport\s+DE4SDV_ProductLine", raw)
     assert "#FeatureBinding" not in raw
-    # rule 5 reads a dependency of a requirement on a feature, a variant or its definition as a link
+    # rule 5 reads a dependency of a requirement on a feature, a variant or its definition as a link: no client of any
+    # dependency is one of the ten, by declared name, qualified name or short name, in any place of the client list
     names = "|".join(REQUIREMENTS)
-    assert not re.findall(rf"\bdependency\b[^;]*?\bfrom\s+(?:{names})\b", _code()), "no requirement has a dependency"
+    shorts = "|".join(re.escape(short) for short, _need, _kind, _method in REQUIREMENTS.values())
+    client = re.compile(rf"(?:^|[\s,:])(?:{names}|'(?:{shorts})')(?![\w'])")
+    for dependency in re.findall(r"\bdependency\b[^;{]*", _code()):
+        clients = re.search(r"\bfrom\b(.*?)\bto\b", dependency, re.S)
+        assert not (clients and client.search(clients.group(1))), f"a requirement has a dependency: {dependency}"
 
 
 def _columns(body: str) -> list[str]:
@@ -968,7 +977,7 @@ def test_each_identity_and_declared_name_is_declared_once_in_the_model():
     counts = dict.fromkeys(names, 0)
     pattern = re.compile(r"\b(?:requirement|connection|comment|concern|view|part|attribute|item|action|dependency|"
                          r"port|interface|allocation|constraint|state|use\s+case|verification|analysis|viewpoint|"
-                         r"rendering|occurrence|calc|enum|package)\s+(?:def\s+)?(?:<'[^']*'>\s+)?(\w+)\b")
+                         r"rendering|occurrence|calc|enum|package)\s+(?:def\b\s*)?(?:<'[^']*'>\s*)?(?!def\b)(\w+)\b")
     for path in sorted(path for root in MODEL_ROOTS for path in root.rglob("*.sysml")):
         for name in pattern.findall(strip_comments(path.read_text(encoding="utf-8"))):
             if name in counts:
