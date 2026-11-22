@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "536d1e25437523bbdcc7f56c1652e1c489c4fbe32602de864833580c781bd70a",
+    "content_sha256": "12f092602453d46ad4e3118763a9e08368993f3479faf92704b75978a1552dde",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "7b9730b61c891d85217328f9fbe64c31bc65b1622958a90fc423a92aea11ce68"
+    "sha256": "9ddda470ee182cc9ef7543b94f1c50f357aa6f255d836afadfa709c4623f71bd"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -480,6 +480,15 @@
                   ]
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
+                  ]
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": true,
                   "exempted": [],
@@ -556,12 +565,13 @@
                 "variation": "vehicleApplication"
               }
             ],
-            "description": "AEBS reference member product.\nAutoware on Linux, single-domain (no middleware, no hypervisor,\nno guest side).\nLiDAR + camera perception, IMU + wheel odometry common.\nVehicle-target AEBS only (no pedestrian/bicycle detection).",
+            "description": "AEBS reference member product.\nAutoware on Linux, single-domain (no middleware, no hypervisor,\nno guest side).\nLiDAR + camera perception, IMU + wheel odometry common.\nVehicle-target AEBS only (no pedestrian/bicycle detection).\nThe HMI display, common content of every member (ADR 0026), on\nthe Linux side: that display does not exist yet.",
             "element_id": "01c24551-6a90-5b5e-a730-5d80b95f4943",
             "projection_name": "AEBSAutowareLinuxLidarCamera",
             "reasons": [],
             "selected": [
               "capabilities",
+              "capabilities.hmiDisplay",
               "platformStack",
               "platformStack.autoware",
               "platformStack.guestMiddleware",
@@ -585,7 +595,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
-              "capabilities.hmiDisplay": "disabled",
+              "capabilities.hmiDisplay": "enabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -626,8 +636,11 @@
           {
             "admission": {
               "admitted": false,
-              "alternative": "standalone",
+              "alternative": null,
               "alternatives_realized": {
+                "scoreIntegrated": [
+                  "platformStack.eclipseSCORE"
+                ],
                 "standalone": [
                   "platformStack.noGuestOperatingSystem",
                   "platformStack.noGuestMiddleware"
@@ -655,6 +668,17 @@
                   "represented_by": [
                     "sensingBoundary.lidar",
                     "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
                   ]
                 },
                 {
@@ -689,9 +713,9 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "selects content the governed scope does not admit: platformStack.apollo: reference-only apollo | platformStack.eclipseSCORE: reference-only eclipseSCORE | platformStack.qnx: reference-only qnxQVM | platformStack.qvm: reference-only qnxQVM | sensingBoundary.radar: deferred sensingVariability",
-                "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware, platformStack.hypervisor = platformStack.noHypervisor",
-                "does not represent the common content: autowareApplication (missing platformStack.autoware); currentSensingBaseline (missing sensingBoundary.camera); linuxROS2AutowareRuntime (missing platformStack.linux)"
+                "selects content the governed scope does not admit: platformStack.apollo: reference-only apollo | platformStack.qnx: reference-only qnxQVM | platformStack.qvm: reference-only qnxQVM | sensingBoundary.radar: deferred sensingVariability",
+                "realizes more than one admitted alternative: scoreIntegrated, standalone",
+                "does not represent the common content: autowareApplication (missing platformStack.autoware); currentSensingBaseline (missing sensingBoundary.camera); driverHMIDisplay (missing capabilities.hmiDisplay); linuxROS2AutowareRuntime (missing platformStack.linux)"
               ]
             },
             "configuration": "apolloQNXQVMVariant",
@@ -810,9 +834,15 @@
           {
             "admission": {
               "admitted": false,
-              "alternative": "aaosIntegrated",
+              "alternative": "scoreIntegrated",
               "alternatives_realized": {
                 "aaosIntegrated": [
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
+                ],
+                "scoreIntegrated": [
+                  "platformStack.eclipseSCORE",
                   "platformStack.kvm",
                   "platformStack.guestAndroid",
                   "platformStack.guestAndroidSDV"
@@ -840,6 +870,15 @@
                   "represented_by": [
                     "sensingBoundary.lidar",
                     "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "driverHMIDisplay",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
                   ]
                 },
                 {
@@ -872,8 +911,7 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "selects content the governed scope does not admit: platformStack.autoE2E: deferred drivingStackVariability | platformStack.eclipseSCORE: reference-only eclipseSCORE | capabilities.hmiDisplay: not in the governed scope",
-                "misses derived realizations of aaosIntegrated: platformStack.middleware = platformStack.androidSDV",
+                "selects content the governed scope does not admit: platformStack.autoE2E: deferred drivingStackVariability",
                 "does not represent the common content: autowareApplication (missing platformStack.autoware); currentSensingBaseline (missing sensingBoundary.lidar)"
               ]
             },
@@ -993,9 +1031,15 @@
           {
             "admission": {
               "admitted": false,
-              "alternative": "aaosIntegrated",
+              "alternative": "scoreIntegrated",
               "alternatives_realized": {
                 "aaosIntegrated": [
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
+                ],
+                "scoreIntegrated": [
+                  "platformStack.eclipseSCORE",
                   "platformStack.kvm",
                   "platformStack.guestAndroid",
                   "platformStack.guestAndroidSDV"
@@ -1023,6 +1067,15 @@
                   "represented_by": [
                     "sensingBoundary.lidar",
                     "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "driverHMIDisplay",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
                   ]
                 },
                 {
@@ -1055,8 +1108,7 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "selects content the governed scope does not admit: platformStack.visionPilot: deferred drivingStackVariability | platformStack.eclipseSCORE: reference-only eclipseSCORE | capabilities.adaptiveCruiseControl: not in the governed scope | capabilities.laneKeepAssist: not in the governed scope | capabilities.hmiDisplay: not in the governed scope",
-                "misses derived realizations of aaosIntegrated: platformStack.middleware = platformStack.androidSDV",
+                "selects content the governed scope does not admit: platformStack.visionPilot: deferred drivingStackVariability | capabilities.adaptiveCruiseControl: not in the governed scope | capabilities.laneKeepAssist: not in the governed scope",
                 "does not represent the common content: autowareApplication (missing platformStack.autoware); currentSensingBaseline (missing sensingBoundary.lidar)"
               ]
             },
@@ -1178,8 +1230,11 @@
           {
             "admission": {
               "admitted": false,
-              "alternative": "standalone",
+              "alternative": null,
               "alternatives_realized": {
+                "scoreIntegrated": [
+                  "platformStack.eclipseSCORE"
+                ],
                 "standalone": [
                   "platformStack.noHypervisor",
                   "platformStack.noGuestOperatingSystem",
@@ -1206,6 +1261,17 @@
                   "represented_by": [
                     "sensingBoundary.lidar",
                     "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
                   ]
                 },
                 {
@@ -1241,9 +1307,9 @@
               ],
               "reasons": [
                 "invalid configuration: constraint",
-                "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE | platformStack.android: not in the governed scope",
-                "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware",
-                "does not represent the common content: currentSensingBaseline (missing sensingBoundary.camera); linuxROS2AutowareRuntime (missing platformStack.linux)"
+                "selects content the governed scope does not admit: platformStack.android: not in the governed scope",
+                "realizes more than one admitted alternative: scoreIntegrated, standalone",
+                "does not represent the common content: currentSensingBaseline (missing sensingBoundary.camera); driverHMIDisplay (missing capabilities.hmiDisplay); linuxROS2AutowareRuntime (missing platformStack.linux)"
               ]
             },
             "configuration": "invalidSCOREAndroidVariant",
@@ -1370,6 +1436,17 @@
                   ]
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
+                  ]
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": true,
                   "exempted": [],
@@ -1399,7 +1476,8 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "selects content the governed scope does not admit: capabilities.adaptiveCruiseControl: not in the governed scope"
+                "selects content the governed scope does not admit: capabilities.adaptiveCruiseControl: not in the governed scope",
+                "does not represent the common content: driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "adaptiveCruiseControlProbe",
@@ -1526,6 +1604,11 @@
                   "platformStack.kvm",
                   "platformStack.guestAndroid",
                   "platformStack.guestAndroidSDV"
+                ],
+                "scoreIntegrated": [
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
                 ]
               },
               "common_content": [
@@ -1548,6 +1631,17 @@
                   "represented_by": [
                     "sensingBoundary.lidar",
                     "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
                   ]
                 },
                 {
@@ -1582,7 +1676,7 @@
               "reasons": [
                 "invalid configuration: pair-exclusion",
                 "selects content the governed scope does not admit: platformStack.apollo: reference-only apollo",
-                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+                "does not represent the common content: autowareApplication (missing platformStack.autoware); driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "apolloAndroidSDVPairProbe",
@@ -1700,6 +1794,17 @@
                   ]
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
+                  ]
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": true,
                   "exempted": [],
@@ -1732,7 +1837,7 @@
                 "invalid configuration: pair-exclusion",
                 "selects content the governed scope does not admit: platformStack.apollo: reference-only apollo | platformStack.autosarAdaptive: reference-only autosarAdaptive",
                 "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware",
-                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+                "does not represent the common content: autowareApplication (missing platformStack.autoware); driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "apolloAUTOSARAdaptivePairProbe",
@@ -1851,6 +1956,17 @@
                   ]
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
+                  ]
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": true,
                   "exempted": [],
@@ -1881,7 +1997,7 @@
               ],
               "reasons": [
                 "selects content the governed scope does not admit: platformStack.apollo: reference-only apollo",
-                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+                "does not represent the common content: autowareApplication (missing platformStack.autoware); driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "apolloNoMiddlewarePairProbe",
@@ -2028,6 +2144,17 @@
                   ]
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
+                  ]
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": true,
                   "exempted": [],
@@ -2058,7 +2185,8 @@
               ],
               "reasons": [
                 "selects content the governed scope does not admit: platformStack.autosarAdaptive: reference-only autosarAdaptive | platformStack.acrn: reference-only acrn",
-                "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware, platformStack.hypervisor = platformStack.noHypervisor"
+                "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware, platformStack.hypervisor = platformStack.noHypervisor",
+                "does not represent the common content: driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "autosarAdaptiveACRNProbe",
@@ -2185,6 +2313,11 @@
                   "platformStack.guestAndroid",
                   "platformStack.guestAndroidSDV"
                 ],
+                "scoreIntegrated": [
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
+                ],
                 "standalone": [
                   "platformStack.noMiddleware",
                   "platformStack.noHypervisor",
@@ -2210,6 +2343,17 @@
                   "represented_by": [
                     "sensingBoundary.lidar",
                     "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
                   ]
                 },
                 {
@@ -2244,7 +2388,8 @@
               "reasons": [
                 "invalid configuration: upper-bound",
                 "selects content the governed scope does not admit: platformStack.android: not in the governed scope",
-                "realizes more than one admitted alternative: aaosIntegrated, standalone"
+                "realizes more than one admitted alternative: aaosIntegrated, scoreIntegrated, standalone",
+                "does not represent the common content: driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "bothIntegrationModesProbe",
@@ -2397,6 +2542,17 @@
                   ]
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
+                  ]
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": true,
                   "exempted": [],
@@ -2426,7 +2582,7 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "does not represent the common content: currentSensingBaseline (missing sensingBoundary.lidar)"
+                "does not represent the common content: currentSensingBaseline (missing sensingBoundary.lidar); driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "cameraOnlySensingProbe",
@@ -2574,6 +2730,17 @@
                   ]
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
+                  ]
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": true,
                   "exempted": [],
@@ -2603,7 +2770,8 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "invalid configuration: derived-variant-not-selectable"
+                "invalid configuration: derived-variant-not-selectable",
+                "does not represent the common content: driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "handPickedAdapterProbe",
@@ -2720,6 +2888,17 @@
                   ]
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
+                  ]
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": true,
                   "exempted": [],
@@ -2749,7 +2928,7 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "does not represent the common content: currentSensingBaseline (missing sensingBoundary.camera)"
+                "does not represent the common content: currentSensingBaseline (missing sensingBoundary.camera); driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "lidarOnlySensingProbe",
@@ -2874,6 +3053,11 @@
                   "platformStack.guestAndroid",
                   "platformStack.guestAndroidSDV"
                 ],
+                "scoreIntegrated": [
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
+                ],
                 "standalone": [
                   "platformStack.noMiddleware"
                 ]
@@ -2896,6 +3080,17 @@
                   "represented_by": [
                     "sensingBoundary.lidar",
                     "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
                   ]
                 },
                 {
@@ -2928,7 +3123,8 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "realizes more than one admitted alternative: aaosIntegrated, standalone"
+                "realizes more than one admitted alternative: aaosIntegrated, scoreIntegrated, standalone",
+                "does not represent the common content: driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "mixedDerivedSetProbe",
@@ -3070,6 +3266,17 @@
                   ]
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
+                  ]
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": false,
                   "exempted": [],
@@ -3103,7 +3310,7 @@
               "reasons": [
                 "invalid configuration: constraint, lower-bound",
                 "realizes no admitted alternative",
-                "does not represent the common content: linuxROS2AutowareRuntime (missing platformStack.linux)"
+                "does not represent the common content: driverHMIDisplay (missing capabilities.hmiDisplay); linuxROS2AutowareRuntime (missing platformStack.linux)"
               ]
             },
             "configuration": "noIntegrationModeProbe",
@@ -3232,6 +3439,11 @@
                   "platformStack.kvm",
                   "platformStack.guestAndroid",
                   "platformStack.guestAndroidSDV"
+                ],
+                "scoreIntegrated": [
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
                 ]
               },
               "common_content": [
@@ -3254,6 +3466,17 @@
                   "represented_by": [
                     "sensingBoundary.lidar",
                     "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
                   ]
                 },
                 {
@@ -3288,7 +3511,7 @@
               "reasons": [
                 "invalid configuration: pair-exclusion",
                 "selects content the governed scope does not admit: platformStack.openpilot: reference-only openpilot",
-                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+                "does not represent the common content: autowareApplication (missing platformStack.autoware); driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "openpilotAndroidSDVPairProbe",
@@ -3406,6 +3629,17 @@
                   ]
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
+                  ]
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": true,
                   "exempted": [],
@@ -3438,7 +3672,7 @@
                 "invalid configuration: pair-exclusion",
                 "selects content the governed scope does not admit: platformStack.openpilot: reference-only openpilot | platformStack.autosarAdaptive: reference-only autosarAdaptive",
                 "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware",
-                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+                "does not represent the common content: autowareApplication (missing platformStack.autoware); driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "openpilotAUTOSARAdaptivePairProbe",
@@ -3525,8 +3759,11 @@
           {
             "admission": {
               "admitted": false,
-              "alternative": "standalone",
+              "alternative": null,
               "alternatives_realized": {
+                "scoreIntegrated": [
+                  "platformStack.eclipseSCORE"
+                ],
                 "standalone": [
                   "platformStack.noHypervisor",
                   "platformStack.noGuestOperatingSystem",
@@ -3553,6 +3790,17 @@
                   "represented_by": [
                     "sensingBoundary.lidar",
                     "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
                   ]
                 },
                 {
@@ -3585,9 +3833,9 @@
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
               "reasons": [
-                "selects content the governed scope does not admit: platformStack.openpilot: reference-only openpilot | platformStack.eclipseSCORE: reference-only eclipseSCORE",
-                "misses derived realizations of standalone: platformStack.middleware = platformStack.noMiddleware",
-                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+                "selects content the governed scope does not admit: platformStack.openpilot: reference-only openpilot",
+                "realizes more than one admitted alternative: scoreIntegrated, standalone",
+                "does not represent the common content: autowareApplication (missing platformStack.autoware); driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "openpilotEclipseSCOREPairProbe",
@@ -3738,6 +3986,17 @@
                   ]
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
+                  ]
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": true,
                   "exempted": [],
@@ -3768,7 +4027,7 @@
               ],
               "reasons": [
                 "selects content the governed scope does not admit: platformStack.openpilot: reference-only openpilot",
-                "does not represent the common content: autowareApplication (missing platformStack.autoware)"
+                "does not represent the common content: autowareApplication (missing platformStack.autoware); driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "openpilotNoMiddlewareProbe",
@@ -3920,6 +4179,17 @@
                   ]
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "capabilities.hmiDisplay"
+                  ],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
+                  ]
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": true,
                   "exempted": [],
@@ -3950,7 +4220,7 @@
               ],
               "reasons": [
                 "selects content the governed scope does not admit: sensingBoundary.radar: deferred sensingVariability",
-                "does not represent the common content: currentSensingBaseline (missing sensingBoundary.lidar, sensingBoundary.camera)"
+                "does not represent the common content: currentSensingBaseline (missing sensingBoundary.lidar, sensingBoundary.camera); driverHMIDisplay (missing capabilities.hmiDisplay)"
               ]
             },
             "configuration": "radarOnlySensingProbe",
@@ -4098,6 +4368,15 @@
                   ]
                 },
                 {
+                  "asset": "driverHMIDisplay",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
+                  ]
+                },
+                {
                   "asset": "linuxROS2AutowareRuntime",
                   "complete": true,
                   "exempted": [],
@@ -4174,12 +4453,13 @@
                 "variation": "vehicleApplication"
               }
             ],
-            "description": "Parity probe ug-10-vehicle-target-aebs-false. The common\nvehicle-target AEBS capability switched off, which a bill of\nfeatures could state and a PLEML configuration cannot, because\ncommon content has no feature.",
+            "description": "Parity probe ug-10-vehicle-target-aebs-false. The common\nvehicle-target AEBS capability switched off, which a bill of\nfeatures could state and a PLEML configuration cannot, because\ncommon content has no feature. It selects the HMI display, common\ncontent of every member since ADR 0026, so it still probes only\nthe common vehicle-target AEBS switched off.",
             "element_id": "0cf0519e-2863-54a5-9b96-b7c6df5bb524",
             "projection_name": "VehicleTargetAEBSOffProbe",
             "reasons": [],
             "selected": [
               "capabilities",
+              "capabilities.hmiDisplay",
               "platformStack",
               "platformStack.autoware",
               "platformStack.guestMiddleware",
@@ -4203,7 +4483,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
-              "capabilities.hmiDisplay": "disabled",
+              "capabilities.hmiDisplay": "enabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -4251,6 +4531,11 @@
                   "platformStack.kvm",
                   "platformStack.guestAndroid",
                   "platformStack.guestAndroidSDV"
+                ],
+                "scoreIntegrated": [
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
                 ]
               },
               "common_content": [
@@ -4271,6 +4556,15 @@
                   "represented_by": [
                     "sensingBoundary.lidar",
                     "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "driverHMIDisplay",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
                   ]
                 },
                 {
@@ -4350,12 +4644,13 @@
                 "variation": "vehicleApplication"
               }
             ],
-            "description": "Planned Autoware + AAOS SDV middleware reference member on one\nSoC, with LiDAR and camera perception. Autoware runs on its ROS\n2/Linux application runtime on the main side, which is also the\nKVM host. The AAOS SDV middleware runs in the AAOS SDV guest under\nKVM, the SDV Core platform domain with no HMI display (owner\ndecisions D3 of 2026-10-21 and D2 V3 of 2026-10-22).\nCross-domain transport remains unresolved. This configuration\nand its projection do not prove provider, generated binding,\ndiscovery, transport, adapter deployment, ROS 2 publication,\nAutoware observation, safety, compliance, or runtime\ninteroperability.\n\nConfiguration management note: this is MW-CONFIG-001, and the\nidentity is not renumbered. Until INC-MW-011 phase 9 its single\noperating-system selection was Android HLOS, and it had no guest\nside. E-MW-011 to E-MW-014, BL-MW-010-P12 and CLM-MW-010-01 were\nretained against that pre-correction content, at the INC-MW-010\nbaseline revision b8170f6953567b07164b8c02be05be137f8047f0. Their\nrecords are not edited.",
+            "description": "Planned Autoware + AAOS SDV middleware reference member on one\nSoC, with LiDAR and camera perception. Autoware runs on its ROS\n2/Linux application runtime on the main side, which is also the\nKVM host. The AAOS SDV middleware runs in the AAOS SDV guest under\nKVM, which holds the HMI display, common content of every member\n(ADR 0026).\nCross-domain transport remains unresolved. This configuration\nand its projection do not prove provider, generated binding,\ndiscovery, transport, adapter deployment, ROS 2 publication,\nAutoware observation, safety, compliance, or runtime\ninteroperability.\n\nConfiguration management note: this is MW-CONFIG-001, and the\nidentity is not renumbered. Until INC-MW-011 phase 9 its single\noperating-system selection was Android HLOS, and it had no guest\nside. E-MW-011 to E-MW-014, BL-MW-010-P12 and CLM-MW-010-01 were\nretained against that pre-correction content, at the INC-MW-010\nbaseline revision b8170f6953567b07164b8c02be05be137f8047f0. Their\nrecords are not edited.\n\nOn 2026-11-13 the HMI display became common content of every\nmember (ADR 0026), and this configuration selects it. Until then\nits guest was the SDV Core platform domain without a display\n(owner decisions D3 of 2026-10-21 and D2 V3 of 2026-10-22). The\nINC-MW-010 records stay retained against the earlier content and\nare not edited.",
             "element_id": "e4b7316b-9878-5127-af74-e525e518be3a",
             "projection_name": "MiddlewareAutowareAAOSSDVReference",
             "reasons": [],
             "selected": [
               "capabilities",
+              "capabilities.hmiDisplay",
               "platformStack",
               "platformStack.androidSDV",
               "platformStack.autoware",
@@ -4379,7 +4674,7 @@
               "capabilities": "enabled",
               "capabilities.adaptiveCruiseControl": "disabled",
               "capabilities.bicycleDetection": "disabled",
-              "capabilities.hmiDisplay": "disabled",
+              "capabilities.hmiDisplay": "enabled",
               "capabilities.laneKeepAssist": "disabled",
               "capabilities.pedestrianDetection": "disabled",
               "platformStack": "enabled",
@@ -4419,10 +4714,16 @@
           },
           {
             "admission": {
-              "admitted": false,
-              "alternative": "aaosIntegrated",
+              "admitted": true,
+              "alternative": "scoreIntegrated",
               "alternatives_realized": {
                 "aaosIntegrated": [
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
+                ],
+                "scoreIntegrated": [
+                  "platformStack.eclipseSCORE",
                   "platformStack.kvm",
                   "platformStack.guestAndroid",
                   "platformStack.guestAndroidSDV"
@@ -4446,6 +4747,15 @@
                   "represented_by": [
                     "sensingBoundary.lidar",
                     "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "driverHMIDisplay",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "capabilities.hmiDisplay"
                   ]
                 },
                 {
@@ -4477,10 +4787,7 @@
                 "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
                 "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
               ],
-              "reasons": [
-                "selects content the governed scope does not admit: platformStack.eclipseSCORE: reference-only eclipseSCORE | capabilities.hmiDisplay: not in the governed scope",
-                "misses derived realizations of aaosIntegrated: platformStack.middleware = platformStack.androidSDV"
-              ]
+              "reasons": []
             },
             "configuration": "middlewareAutowareSCOREReference",
             "derived_variants": [
@@ -4528,7 +4835,7 @@
                 "variation": "vehicleApplication"
               }
             ],
-            "description": "Eclipse S-CORE reference configuration on one SoC: Autoware on\nEclipse S-CORE on Linux on the main side, which is also the KVM\nhost, and an AAOS SDV guest under KVM that shows the HMI on a\ndisplay. Vehicle-target AEBS only (no pedestrian/bicycle\ndetection).",
+            "description": "S-CORE-integrated reference member (ADR 0023) on one SoC: Autoware on\nEclipse S-CORE on Linux on the main side, which is also the KVM\nhost, and an AAOS SDV guest under KVM that shows the HMI on a\ndisplay. Vehicle-target AEBS only (no pedestrian/bicycle\ndetection).",
             "element_id": "935078fc-afd7-56f8-8510-d578c2c19b8b",
             "projection_name": "MiddlewareAutowareSCOREReference",
             "reasons": [],
@@ -4811,19 +5118,6 @@
             "owner": "platformStack.guestAndroidSDV",
             "pair_exclusion": false,
             "short_name": "C008"
-          },
-          {
-            "element_id": "ffa630a1-d2e0-5c66-b91c-a9b37cad0528",
-            "kind": "requires",
-            "operand_a": [
-              "capabilities.hmiDisplay"
-            ],
-            "operand_b": [
-              "platformStack.guestAndroidSDV"
-            ],
-            "owner": "capabilities.hmiDisplay",
-            "pair_exclusion": false,
-            "short_name": "C010"
           }
         ],
         "correspondences": [
@@ -4876,12 +5170,12 @@
             "governed_id": "d5cdb8e3-7771-52bb-89b6-3a7428147fe3"
           },
           {
-            "classification": "reference-only",
-            "correspondence": "eclipseSCORECorrespondsToReferenceOnlyEclipseSCORE",
-            "element_id": "ed993c7f-0d23-56e0-904a-8d51247b269d",
+            "classification": "admitted-alternative",
+            "correspondence": "eclipseSCORECorrespondsToSCOREIntegrated",
+            "element_id": "4a3eca76-1247-5613-867d-077f185aa112",
             "feature": "platformStack.eclipseSCORE",
-            "governed": "eclipseSCORE",
-            "governed_id": "0320d441-642c-5029-8ae7-fb55a26b89f5"
+            "governed": "scoreIntegrated",
+            "governed_id": "e41fca38-7874-53de-b1fd-8d1a81801a6a"
           },
           {
             "classification": "admitted-alternative",
@@ -4949,6 +5243,14 @@
           },
           {
             "classification": "admitted-alternative",
+            "correspondence": "kvmCorrespondsToSCOREIntegrated",
+            "element_id": "599a5f64-a619-587f-9491-639098bd7ca8",
+            "feature": "platformStack.kvm",
+            "governed": "scoreIntegrated",
+            "governed_id": "e41fca38-7874-53de-b1fd-8d1a81801a6a"
+          },
+          {
+            "classification": "admitted-alternative",
             "correspondence": "noHypervisorCorrespondsToStandalone",
             "element_id": "ec390384-ace0-5e24-b18f-23949f808f7c",
             "feature": "platformStack.noHypervisor",
@@ -4965,6 +5267,14 @@
           },
           {
             "classification": "admitted-alternative",
+            "correspondence": "guestAndroidCorrespondsToSCOREIntegrated",
+            "element_id": "99f7e33e-94fe-5c06-9935-60387558f015",
+            "feature": "platformStack.guestAndroid",
+            "governed": "scoreIntegrated",
+            "governed_id": "e41fca38-7874-53de-b1fd-8d1a81801a6a"
+          },
+          {
+            "classification": "admitted-alternative",
             "correspondence": "noGuestOperatingSystemCorrespondsToStandalone",
             "element_id": "5932cbbf-3b51-50d6-bba4-75fd065fad8a",
             "feature": "platformStack.noGuestOperatingSystem",
@@ -4978,6 +5288,14 @@
             "feature": "platformStack.guestAndroidSDV",
             "governed": "aaosIntegrated",
             "governed_id": "bbcaaea1-e378-5dc2-8751-c871bb5a14f1"
+          },
+          {
+            "classification": "admitted-alternative",
+            "correspondence": "guestAndroidSDVCorrespondsToSCOREIntegrated",
+            "element_id": "f3e7f6c2-3a50-5642-a607-10e9eaeac80b",
+            "feature": "platformStack.guestAndroidSDV",
+            "governed": "scoreIntegrated",
+            "governed_id": "e41fca38-7874-53de-b1fd-8d1a81801a6a"
           },
           {
             "classification": "admitted-alternative",
@@ -5034,6 +5352,14 @@
             "feature": "capabilities.bicycleDetection",
             "governed": "expandedAEBSCapabilityVariability",
             "governed_id": "bbc3a850-629e-546f-aeaa-0ac014f3935b"
+          },
+          {
+            "classification": "common",
+            "correspondence": "hmiDisplayCorrespondsToCommonDriverHMIDisplay",
+            "element_id": "8e5888b8-30ae-5708-9d28-5707bec754bc",
+            "feature": "capabilities.hmiDisplay",
+            "governed": "driverHMIDisplay",
+            "governed_id": "2b3d31db-428d-5b81-99fd-e50b898e42be"
           }
         ],
         "derivations": [
@@ -5752,7 +6078,7 @@
             "owner": "capabilities",
             "path": "capabilities.hmiDisplay",
             "short_name": "F-CAPABILITY-HMI-DISPLAY",
-            "unassigned": true
+            "unassigned": false
           }
         ],
         "integrity_errors": [],
@@ -5811,12 +6137,12 @@
   },
   "evaluator": {
     "modules": {
-      "de4sdv/semantic/pleml_configuration.py": "6f2f5b5d3d353202d4f84ec33bc4d80d98d6e0719c2a772edb98ddf58797636c",
+      "de4sdv/semantic/pleml_configuration.py": "d09ec0d30111720774541fe9c5fc534552256d6f6f59bedd4ff9d9d8cfce44da",
       "de4sdv/semantic/pleml_package.py": "8d09409d802616780641fcfb8c86b41c21faeedb1a75989c17dfb76ef3cc9dfe",
       "de4sdv/semantic/pleml_receipts.py": "325bd1f47d9608a223354b7d78708709fb110ba56d50ecea0f7637ee3dfea1d7",
       "scripts/run_pleml_configuration_evaluation.py": "ade6a0c5077948162d99e975dfd5e115a395ee7ace70e180cb53c7b7fbaae12e"
     },
-    "sha256": "4b00cc77bb2c297f8bf73073d8c52d25b64ccfbd7ea2a6a5946fd6aca531a056"
+    "sha256": "19301cb06126940c3cad88efb67ac463469f8235de2796daa2b2210099918fc8"
   },
   "feature_models": [
     "SDVProductLineFeatureModel"
@@ -5857,8 +6183,8 @@
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "4985c9a82b007e1f44e5d3e5203d4b655bd668b3",
-    "executor_revision": "4985c9a82b007e1f44e5d3e5203d4b655bd668b3"
+    "bundle_git_commit": "333614ea488880ab3e17aa559c3d48dde5779f50",
+    "executor_revision": "333614ea488880ab3e17aa559c3d48dde5779f50"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v2",
@@ -5877,8 +6203,8 @@
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
-      "sha256": "35ce40733e3ccfe030d48a815b4eb403fa61035f0ffcf7a1dc86a68ad3bc1128",
-      "size": 2530
+      "sha256": "6ba75fb8536161871757d388d44131749f0d4e53fb4b0a192d8007a2825e491a",
+      "size": 2672
     },
     {
       "authority": "pleml-feature-configuration",
@@ -6009,8 +6335,8 @@
     {
       "authority": "pleml-fixture",
       "path": "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/vehicle_target_aebs_off_probe.sysml",
-      "sha256": "8a211f5ae997b44f4c87dc41351625cb417550425d6851b768e4c598331b7a62",
-      "size": 2869
+      "sha256": "d5fc031fb8db844a5af2f3d4d44062312fa71726ba8eb4d61e0ed435712780ab",
+      "size": 3043
     },
     {
       "authority": "pleml-feature-configuration",
@@ -6021,14 +6347,14 @@
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
-      "sha256": "d18207b51603af37e9f4f1037bf5789c11e4f7a496e04fc65294f827536f10ad",
-      "size": 3656
+      "sha256": "91ce409bf1c0846679d0fdf4a2cdcfaaa30afb0a7b88f082fd4f423237f16648",
+      "size": 4056
     },
     {
       "authority": "pleml-feature-configuration",
       "path": "model-based-product-line-engineering/feature-configurations/middleware_autoware_score_reference.sysml",
-      "sha256": "41ec74ab7c1aaf5318d7c669dc82ba0ef9c350b4f60f5ca5529cdbfca63ac561",
-      "size": 2648
+      "sha256": "ec674044920ef23223d62dafbca3b7e87406a544d278d547d9e59b61c1d55a1f",
+      "size": 2655
     },
     {
       "authority": "pleml-feature-configuration",
@@ -6045,8 +6371,8 @@
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
-      "sha256": "13b9900ecd143115567bf23e04f549e57b0ac1293bc5c1cf713486b43fdc29f3",
-      "size": 36405
+      "sha256": "a9454920e3c088d54841f4cff129cf9f9ff0561ad98f4e384cd1ec777f85457e",
+      "size": 38231
     },
     {
       "authority": "pleml-feature-model",
@@ -6057,8 +6383,8 @@
     {
       "authority": "reviewed",
       "path": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
-      "sha256": "dd1218cbe2b8e942b9c10179d9c0737f9dcc18bc81c8642636383c655a46ec11",
-      "size": 10094
+      "sha256": "3b37d3544578ca049902c522d079967536b87246c4715525b488effdcfdb8fb6",
+      "size": 15083
     },
     {
       "authority": "reviewed",
@@ -6069,8 +6395,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
-      "sha256": "c59fc960e235158086e33bdd3a8bd2e5b650c3d2e6584bdc1cb685614fd45aac",
-      "size": 33478
+      "sha256": "a4a16a7b446117334295e3bf7da3f72591c1d04320109dcb3cf68a53224770ea",
+      "size": 33546
     },
     {
       "authority": "reviewed",

@@ -96,8 +96,9 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json.
      * That receipt records the evaluation of the feature configuration
      * middlewareAutowareSCOREReference: valid, with the derived adapter
-     * autowareToSCORE, and not admitted. A receipt re-cut keeps this
-     * identity and rebinds receiptSha256 here. The pull request that rebinds
+     * autowareToSCORE, and admitted: it realizes the alternative
+     * scoreIntegrated. A receipt re-cut keeps this identity and rebinds
+     * receiptSha256 here. The pull request that rebinds
      * it states whether the configuration's own receipt record changed.
      * By the decision of 2026-11-17, the record has not changed when its
      * only difference is added states omitted for features that it does
@@ -119,7 +120,7 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * Configuration evidence only. This usage proves no provider, transport,
      * gateway, adapter or HMI behavior and no requirement satisfaction.
      */
-    attribute receiptSha256 : ScalarValues::String = "848262167497d033b87d4ae90c6f54d3b0edd4c851f80480cd07d8cd860a34a1";
+    attribute receiptSha256 : ScalarValues::String = "50cab825ea8ad7ade74173a7b4c1e7db47d68adf0b25867b8441c1387a63f357";
   }
 
   dependency configuredIntegrationLayerTrace

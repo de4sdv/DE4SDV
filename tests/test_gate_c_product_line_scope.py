@@ -563,8 +563,8 @@ def test_api_scope_validation_refuses_eclipse_score_as_reference_only() -> None:
         validate_scope_elements(elements, sources)
 
 
-#: The relationships of the S-CORE-integrated member and mode in the scope model (ADR 0023, decisions 1 to 3): the
-#: member uses the mode, the mode derives its three realizations, and the member traces to its configured product.
+#: The relationships of the S-CORE-integrated member and mode in the scope model (ADR 0023, decisions 1 to 3 and 8):
+#: the member uses the mode, the mode derives its three realizations, and the member traces to its configured product.
 SCORE_INTEGRATED_RELATIONSHIPS = (
     ("scoreIntegratedMemberUsesSCOREIntegration",
      "InitialPlannedReferenceMemberPortfolio::scoreIntegratedAutowareAEBSReferenceMember",

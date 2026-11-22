@@ -226,10 +226,10 @@ def test_the_configured_product_specializes_the_s_core_integrated_member() -> No
         assert phrase in docs, phrase
     for stale in ("specializes no member-product type", "The member decision is phase-12 work",
                   "If the owner admits the member in phase 12", "It stays a phase-12 decision", "C007 to C010",
-                  "Eclipse S-CORE reference configuration"):
+                  "Eclipse S-CORE " "reference configuration"):
         assert stale not in docs, stale
     configuration = " ".join(re.sub(r"\n\s*\*?", " ", (ROOT / CONFIGURATION).read_text(encoding="utf-8")).split())
-    assert "Eclipse S-CORE reference configuration" not in configuration, CONFIGURATION
+    assert "Eclipse S-CORE " "reference configuration" not in configuration, CONFIGURATION
     assert "PLEML feature configuration of the S-CORE-integrated member configuration of INC-MW-011" in configuration
 
 
@@ -314,18 +314,25 @@ def test_mw_config_002_is_bound_to_the_exact_receipt() -> None:
 
 
 def test_the_receipt_records_what_the_configured_product_states() -> None:
-    """Valid, the derived adapter autowareToSCORE, not admitted, the guest side and the HMI display."""
+    """Valid, the derived adapter autowareToSCORE, admitted with the alternative scoreIntegrated, the guest side and
+    the HMI display, as the slice states."""
     [model] = json.loads(RECEIPT.read_text(encoding="utf-8"))["evaluation"]["feature_models"]
     [configuration] = [item for item in model["configurations"] if item["source"] == CONFIGURATION]
     assert configuration["configuration"] == "middlewareAutowareSCOREReference"
     assert configuration["projection_name"] == "MiddlewareAutowareSCOREReference"
     assert configuration["valid"] is True
-    assert configuration["admission"]["admitted"] is False
+    assert configuration["admission"]["admitted"] is True
+    assert configuration["admission"]["alternative"] == "scoreIntegrated"
+    assert configuration["admission"]["reasons"] == []
     derived = {item["variation"]: item["variant"] for item in configuration["derived_variants"]}
     assert derived["applicationMiddlewareAdapter"] == "autowareToSCORE"
     assert {"platformStack.autoware", "platformStack.eclipseSCORE", "platformStack.linux", "platformStack.kvm",
             "platformStack.guestAndroid", "platformStack.guestAndroidSDV",
             "capabilities.hmiDisplay"} <= set(configuration["selected"])
+    docs = " ".join(re.sub(r"^\s*\*\s?", "", SLICE.read_text(encoding="utf-8"), flags=re.M).split())
+    assert ("valid, with the derived adapter autowareToSCORE, and admitted: it realizes the alternative "
+            "scoreIntegrated.") in docs
+    assert "and not admitted" not in docs
 
 
 def test_the_layer_adapter_is_typed_by_the_derived_adapter_variant() -> None:

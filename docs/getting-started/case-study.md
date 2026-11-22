@@ -85,8 +85,9 @@ is managed together. Two levels matter, and it is easy to confuse them:
   options remain reference-only or deferred until a future reviewed decision
   admits a member that needs them.
 
-Eclipse S-CORE is the first of those options under test: increment
-`INC-MW-011` (an increment answers one engineering question; see
+Eclipse S-CORE, reference-only until ADR 0023, is the first of those options
+under test: increment `INC-MW-011` (an increment answers one engineering
+question; see
 [part 2](#2-how-the-engineering-work-runs)), in progress, asks whether S-CORE
 can realize the middleware layer of a member with Autoware on a Linux host and
 an Android Automotive OS (AAOS) guest for the display

@@ -465,8 +465,9 @@ def test_driving_config_002_is_bound_to_the_exact_receipt() -> None:
 
 
 def test_the_receipt_records_what_the_configured_product_states() -> None:
-    """Valid, the adapter derived for the pair with Eclipse S-CORE, not admitted for the documented reasons.
-    Receipt-bound: the record exists once the licensed PLE authority run has cut the receipt."""
+    """Valid, the adapter derived for the pair with Eclipse S-CORE, the alternative S-CORE Integrated realized, not
+    admitted for the documented reasons. Receipt-bound: the record exists once the licensed PLE authority run has
+    cut the receipt."""
     record = _receipt_record()
     assert record["projection_name"] == PROJECTION
     assert record["valid"] is True and record["admission"]["admitted"] is False
@@ -481,37 +482,39 @@ def test_the_receipt_records_what_the_configured_product_states() -> None:
             "capabilities.hmiDisplay", "capabilities.adaptiveCruiseControl", "capabilities.laneKeepAssist"} <= selected
     assert not {"sensingBoundary.lidar", "sensingBoundary.radar", "platformStack.autoware",
                 "platformStack.androidSDV"} & selected
-    reasons = " ".join(record["admission"]["reasons"])
-    for reason in ("platformStack.visionPilot: deferred drivingStackVariability", "reference-only eclipseSCORE",
-                   "capabilities.hmiDisplay: not in the governed scope",
-                   "capabilities.adaptiveCruiseControl: not in the governed scope",
-                   "capabilities.laneKeepAssist: not in the governed scope", "misses derived realizations of aaosIntegrated",
-                   "does not represent the common content"):
-        assert reason in reasons, reason
+    assert record["admission"]["alternative"] == "scoreIntegrated"
+    assert record["admission"]["reasons"] == [
+        "selects content the governed scope does not admit: platformStack.visionPilot: deferred drivingStackVariability"
+        " | capabilities.adaptiveCruiseControl: not in the governed scope"
+        " | capabilities.laneKeepAssist: not in the governed scope",
+        "does not represent the common content: autowareApplication (missing platformStack.autoware); "
+        "currentSensingBaseline (missing sensingBoundary.lidar)"]
 
 
 def test_the_model_reading_of_admission_gives_the_reasons_the_slice_states() -> None:
     """Before the receipt: the stated reading of the correspondences (test_ple_authority_model.admission) blocks the
-    configuration for the reasons the package doc names, and realizes the AAOS-integrated alternative only in part."""
+    configuration for the reasons the package doc names, and realizes the S-CORE-integrated alternative."""
     from tests import test_ple_authority_model as ple
 
     family, selected = ple._configuration_selection(CONFIGURATION.relative_to(ROOT).as_posix())
     correspondences, family_elements = ple._correspondences(family)
     alternative, blocking = ple.admission(ple._tree(family)[1], correspondences, family_elements, selected)
-    assert alternative == "vehiclePlatformIntegrationMode::aaosIntegrated"
-    for reason in ("visionPilot: deferred", "eclipseSCORE: reference-only", "hmiDisplay: not in the governed scope",
-                   "adaptiveCruiseControl: not in the governed scope", "laneKeepAssist: not in the governed scope",
-                   "a derived realization of vehiclePlatformIntegrationMode::aaosIntegrated is missing in middleware",
-                   "InitialCommonCoreEngineeringContent::autowareApplication is not represented: autoware is not selected",
-                   "InitialCommonCoreEngineeringContent::currentSensingBaseline is not represented: lidar is not selected"):
-        assert reason in blocking, reason
+    assert alternative == "vehiclePlatformIntegrationMode::scoreIntegrated"
+    assert sorted(blocking) == sorted((
+        "visionPilot: deferred", "adaptiveCruiseControl: not in the governed scope",
+        "laneKeepAssist: not in the governed scope",
+        "InitialCommonCoreEngineeringContent::autowareApplication is not represented: autoware is not selected",
+        "InitialCommonCoreEngineeringContent::currentSensingBaseline is not represented: lidar is not selected"))
     docs = _docs(SLICE)
-    for statement in ("the driving stack is deferred variability", "Eclipse S-CORE is reference-only",
-                      "the HMI display, adaptive cruise control and lane-keep assist have no element in the governed scope",
+    for statement in ("It realizes the alternative S-CORE Integrated with its derived realizations.",
+                      "the correspondences gives two reasons", "the driving stack is deferred variability",
+                      "adaptive cruise control and lane-keep assist have no element in the governed scope",
                       "Adaptive cruise control and lane-keep assist have no shared asset either",
-                      "realizes the AAOS-integrated alternative without its middleware androidSDV",
                       "does not represent the common content: no Autoware, no LiDAR"):
         assert statement in docs, statement
+    for stale in ("Eclipse S-CORE is reference-only", "the HMI display, adaptive cruise control",
+                  "realizes the AAOS-integrated alternative without its middleware androidSDV"):
+        assert stale not in docs, stale
 
 
 # -- the links of rule 5 -------------------------------------------------------------------------------------------
@@ -650,7 +653,8 @@ def test_the_guide_describes_phase_9_and_its_decisions() -> None:
     for text in (IDENTITY, "`visionPilot`", "C014", "C015", "`androidSDV`", "`autosarAdaptive`", "`noMiddleware`",
                  "`visionPilotToSCORE`", "valid, and the governed scope does not admit it", "`hmiDisplay`",
                  "receipt", "2026-11-06", "It selects adaptive cruise control and lane-keep assist",
-                 "the display, adaptive cruise control and lane-keep assist are outside the governed scope",
+                 "it realizes the S-CORE-integrated alternative, but the driving stack is deferred variability",
+                 "adaptive cruise control and lane-keep assist are outside the governed scope",
                  "2026-11-14", "`assistanceSystemOnVisionPilotFeature`", "`eclipseSCORE`", "No check reads them",
                  "(../../textual-notation-of-model/packages/features/driving/"
                  "driver_assistance_variability_configuration.sysml)",
@@ -658,6 +662,9 @@ def test_the_guide_describes_phase_9_and_its_decisions() -> None:
         assert text in section, text
     for count in ("215,040", "17,680", "832"):
         assert count not in section, "the guide quotes no count the receipt has not produced"
+    for stale in ("Eclipse S-CORE is reference-only", "the display, adaptive cruise control",
+                  "the AAOS-integrated alternative without its middleware"):
+        assert stale not in " ".join(section.split()), stale
     check = " ".join(guide.split("## Check the framing change", 1)[1].split())
     assert "tests/test_driver_assistance_variability_configuration.py" in check
 

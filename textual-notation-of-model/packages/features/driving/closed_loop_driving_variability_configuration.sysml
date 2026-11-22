@@ -22,12 +22,10 @@
  * the system of interest to that feature and to the two shared-asset
  * variants, as phase 5 promised.
  *
- * The configuration is valid and not admitted. The receipt gives three
- * reasons. First, the selections autoE2E, eclipseSCORE and hmiDisplay are
- * content the governed scope does not admit: the driving stack is deferred
- * variability, Eclipse S-CORE is reference-only, and the HMI display has no
- * element in the governed scope. Second, the guest side realizes the
- * AAOS-integrated alternative without its middleware androidSDV. Third, the
+ * The configuration is valid and not admitted. It realizes the alternative
+ * S-CORE Integrated with its derived realizations, and the receipt gives two
+ * reasons. First, the selection autoE2E is content the governed scope does
+ * not admit: the driving stack is deferred variability. Second, the
  * configuration does not represent the common content: no Autoware, no
  * LiDAR. So the configured product specializes no member-product type. ADR
  * 0014 bounds the existing product line; the member decision follows the
@@ -132,7 +130,7 @@ package DE4SDV_ClosedLoopDrivingVariabilityConfiguration {
      * publisher, gateway or observer behavior and no requirement
      * satisfaction.
      */
-    attribute receiptSha256 : ScalarValues::String = "848262167497d033b87d4ae90c6f54d3b0edd4c851f80480cd07d8cd860a34a1";
+    attribute receiptSha256 : ScalarValues::String = "50cab825ea8ad7ade74173a7b4c1e7db47d68adf0b25867b8441c1387a63f357";
   }
 
   dependency configuredDrivingSoftwareTrace

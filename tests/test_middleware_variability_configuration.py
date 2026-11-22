@@ -277,17 +277,23 @@ class TestMWVariabilityConfiguration(unittest.TestCase):
                            if item["source"] == CONFIGURATION.relative_to(REPO_ROOT).as_posix()]
         self.assertTrue(configuration["valid"])
         # One SoC (owner decision D3, INC-MW-011 phase 9): Autoware on Linux on the main side, the KVM host,
-        # and the AAOS SDV middleware in the Android guest. No HMI display (owner decisions D3 and D2 V3).
+        # and the AAOS SDV middleware in the Android guest. Since 2026-11-13 the HMI display is common content of
+        # every member (ADR 0026), and the guest holds it.
         self.assertEqual(
             {"platformStack.autoware", "platformStack.androidSDV", "platformStack.linux", "platformStack.kvm",
              "platformStack.guestAndroid", "platformStack.guestAndroidSDV",
-             "sensingBoundary.lidar", "sensingBoundary.camera"} - set(configuration["selected"]),
+             "sensingBoundary.lidar", "sensingBoundary.camera", "capabilities.hmiDisplay"}
+            - set(configuration["selected"]),
             set(),
         )
         self.assertFalse({"platformStack.noMiddleware", "platformStack.android",
                           "platformStack.noGuestOperatingSystem", "platformStack.noGuestMiddleware",
-                          "capabilities.hmiDisplay", "sensingBoundary.radar"}
+                          "sensingBoundary.radar"}
                          & set(configuration["selected"]))
+        self.assertTrue(configuration["admission"]["admitted"])
+        (display,) = [item for item in configuration["admission"]["common_content"]
+                      if item["asset"] == "driverHMIDisplay"]
+        self.assertEqual((display["complete"], display["represented_by"]), (True, ["capabilities.hmiDisplay"]))
         exempted = [item["asset"] for item in configuration["admission"]["common_content"] if item["exempted"]]
         self.assertEqual(exempted, [], "the member needs no exemption")
         self.assertFalse(any("adapter" in path.lower() for path in configuration["selected"]))
