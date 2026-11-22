@@ -11,9 +11,9 @@ the owner decided on 2026-11-17 to use it for the speed and the warning. This
 increment asks whether the HMI display of the VisionPilot configuration can do
 both, and holds what it shows against what the application gives.
 
-**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context,
-proposal.** No implementation, run, result, product-line admission or
-compliance is claimed.
+**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and
+Phase 3 capability classification, proposal.** No implementation, run, result,
+product-line admission or compliance is claimed.
 
 ## Authoritative frame
 
@@ -22,6 +22,9 @@ compliance is claimed.
   open gaps and Phase 1 concerns.
 - [SysML operational context](../../textual-notation-of-model/packages/features/hmi/hmi_display_operational_context.sysml):
   the Phase 2 context of the HMI display and its story of six scenarios.
+- [SysML capability classification](../../textual-notation-of-model/packages/features/hmi/hmi_display_capability_classification.sysml):
+  the Phase 3 classification of the display's content, which records no
+  feature-model delta.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/hmi/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/hmi/upstream.md)
@@ -86,8 +89,9 @@ items, held by the parties whose interest it states. The driver, a vehicle
 occupant, holds the operational concern beside the engineering roles. Each
 concern is typed by the SAF concern that asks its question, the product-line
 question by the method's classification concern, and its text names the view
-of a later phase that answers it. The framing viewpoint frames all nine, and a
-view of a later phase that answers a concern frames it as well.
+of a later phase that answers it, save the product-line question: Phase 3
+records no characteristic and has no view. The framing viewpoint frames all
+nine, and a view of a later phase that answers a concern frames it as well.
 
 - **What the driver sees:** `hmiDriverSupervisionConcern`. What the driving
   application perceives, its lane, the path it fits to that lane and the
@@ -108,7 +112,10 @@ view of a later phase that answers a concern frames it as well.
   the display is common to the member products and which derives from a
   member's driving application. The scenes of the other driving applications
   are out of scope. Product-line capability classification; product-line
-  engineers. Answered by the product-line classification view of Phase 3.
+  engineers. The framing view frames it. Phase 3 gives each content item its
+  reason in its classification and records no characteristic, since the
+  increment adds none that tells the member products apart, so Phase 3 has
+  no view; which content becomes common is for the lifecycle decision.
 - **The warning's sequence:** `hmiWarningSequenceConcern`. The sequence from
   the warning request to the warning on the display and to its sound, and the
   time of each step within the time that the driver-assistance increment
@@ -201,6 +208,46 @@ The context view frames `hmiDisplayContextConcern`. The story view frames
 `hmiDisplayStoryConcern` and the Phase 1 concern `hmiDriverSupervisionConcern`,
 which the story answers.
 
+## Capability classification (Phase 3)
+
+The increment adds no characteristic that distinguishes member products. Its
+[capability classification](../../textual-notation-of-model/packages/features/hmi/hmi_display_capability_classification.sysml)
+records no feature candidate and no deferred scope. Core elements are common
+by default and get no record.
+
+- **The display itself:** common content of every member (ADR 0026) and no
+  selectable feature for members. In the feature model `hmiDisplay` is
+  optional, so that configurations which are not members can leave it out
+  (validity), and it corresponds to that common content (admission).
+- **Where it runs:** derived from the integration mode, in the AAOS SDV guest
+  of an integrated member or on the Linux side of the standalone member. The
+  guest is the feature candidate `hmiGuestExecutionDomain` of the Eclipse
+  S-CORE middleware increment.
+- **The scene:** VisionPilot's own, so it comes with the vehicle application,
+  a feature of the feature model. The display of this increment belongs to the
+  VisionPilot configuration, which is not a member product.
+- **The speed, the warning and its sound:** no member differs by them. The
+  collision warning and the indication that it is unavailable rest on
+  REQ-AEBS-002, N-AEBS-008 and REQ-AEBS-013 of the product line, and neither
+  the feature model nor the governed scope holds a warning mode.
+- **Behavior, realization and evidence:** late content and the outages of
+  Android are behavior for Phases 5 and 6; which renderer draws what, the VMs
+  of the guest and the displays of the members are realization; the verdicts
+  are System 2. None of them is a feature.
+- **Scope decisions** (`gapHmiDisplayInProductLine`): whether the scene of
+  each member's driving application and the speed become common content of
+  the display; whether the warning and the indication that it is unavailable
+  become content of the display of every member, a question that belongs to
+  the AEBS requirements and architecture; whether the acoustic warning
+  becomes common content of the driver warning; and whether the high
+  availability renderer or an app in the IVI VM draws the common content
+  where a member has an AAOS SDV guest, are open for the lifecycle decision.
+  This increment admits nothing.
+
+The one blocking check of Phase 3 evaluates the characteristics recorded, and
+this phase records none, so the Method Check reports Phase 3 as having nothing
+to evaluate. Review judges the classification.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -282,11 +329,12 @@ both. Two parts of **System 1** are outside its boundary, and neither is an
 enabler: the candidate application, which perceives, plans and requests the
 warning, and the Eclipse S-CORE path that carries its outputs to the SDV Core
 VM. Which part of System 1 brings the vehicle speed to the SDV Core VM is for
-Phases 2 and 3 to place. CARLA, the cloud hosts, the scenario runner, the means that make Android in
-the IVI VM hang, end and restart, the record of what the candidate gives, the
-capture of the display and of the sound, the evaluators and the recordings are
-**System 2** enablers, not vehicle features. The capture observes the AAOS SDV
-and is no part of it.
+the architecture phases to place. CARLA, the cloud hosts, the scenario
+runner, the means that make Android in the IVI VM hang, end and restart, the
+record of what the candidate gives, the capture of the display and of the
+sound, the evaluators and the recordings are **System 2** enablers, not vehicle
+features.
+The capture observes the AAOS SDV and is no part of it.
 
 The renderer's drawing of the speed and the warning is examined as behavior on
 the bench. It is no safety claim: the documentation calls the renderer a
@@ -296,17 +344,16 @@ ASIL certification, and this increment certifies nothing.
 ## Next obligation and execution limits
 
 Use the Method Check of the reviewed pull request to select the next
-obligation, not the phase number alone. The next model obligation is **Phase
-3**, the capability classification, which review judges: which content of the
-display is common to the member products and which derives from a member's
-driving application. With no characteristic recorded, the one blocking check of
-Phase 3 has nothing to evaluate, so the Method Check lists Phase 3 as vacuous
-and names its next obligation in Phase 4. On 2026-11-21 the owner decided that
-the increment goes on without waiting for Phase 10 of the driver-assistance
-increment. Phase 3 and later phases waited for the revision of the governed
-scope, which the model now holds, so they go on. On 2026-11-17 the owner
-decided that the readiness probe of the high availability renderer runs with
-its cost put to him first.
+obligation, not the phase number alone. Phase 3, the capability
+classification, records no feature-model delta, and review judges it: its one
+blocking check has nothing to evaluate, so the Method Check lists Phase 3 as
+vacuous, with a prompt for review. The next model obligation is **Phase 4**,
+the stakeholder needs. On 2026-11-21 the owner decided that the increment goes
+on without waiting for Phase 10 of the driver-assistance increment. Phase 3
+and later phases waited for the revision of the governed scope, which the
+model now holds, so they go on. On 2026-11-17 the owner decided that the
+readiness probe of the high availability renderer runs with its cost put to
+him first.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh

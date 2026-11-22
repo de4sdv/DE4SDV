@@ -249,10 +249,11 @@ GUIDE_PHASE_TWO = (
     "The story view frames `hmiDisplayStoryConcern` and the Phase 1 concern `hmiDriverSupervisionConcern`, which "
     "the story answers.",
 )
-#: The one sentence of the next-obligation paragraph that may name the classification of Phase 3.
+#: The one sentence of the next-obligation paragraph that may name the classification of Phase 3: it records no
+#: feature-model delta, so the next obligation after Phase 2 is Phase 4.
 NEXT_OBLIGATION_PHASE_THREE = (
-    "The next model obligation is **Phase 3**, the capability classification, which review judges: which content "
-    "of the display is common to the member products and which derives from a member's driving application.")
+    "Phase 3, the capability classification, records no feature-model delta, and review judges it: its one blocking "
+    "check has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, with a prompt for review.")
 #: A Phase 3 classification or record, claimed outside that sentence.
 PHASE_THREE_CLAIM = re.compile(r"(?i)\bcommon\b|\bderives? from a member|feature candidate|classif|\bvariant|variab")
 
@@ -621,10 +622,8 @@ def test_dependencies_trace_the_story_and_the_context_to_phase_zero():
                       ("guestAcrossBoundaryComment", f"{FRAMING_PACKAGE}::gapHmiMemberGuestLayout")]
     speed = _comment(raw, "vehicleSpeedSourceComment")
     for phrase in ("Phase 2 places the source of the vehicle speed: the vehicle gives the display the speed that "
-                   "it gives the candidate.",
-                   "Phase 0 leaves its carrier to phases 2 and 3; phase 3 places no element, so the carrier, a "
-                   "platform element of System 1 that brings the speed to the SDV Core VM, goes to the "
-                   "architecture phases.",
+                   "it gives the candidate; phase 3 places no element, so the carrier, a platform element of System 1 "
+                   "that brings the speed to the SDV Core VM, goes to the architecture phases.",
                    "this context draws no path for the speed."):
         assert phrase in speed, phrase
     scene = _comment(raw, "sceneOutputComment")
@@ -671,8 +670,8 @@ def test_phase_two_makes_no_timing_safety_or_approval_claim_and_names_no_number(
 
 def test_the_guide_has_a_phase_two_section():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert ("**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context, proposal.**"
-            in _flat(guide))
+    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and Phase 3 capability "
+            "classification, proposal.**") in _flat(guide)
     assert "](../../textual-notation-of-model/packages/features/hmi/hmi_display_operational_context.sysml)" in guide
     assert guide.index("## Concerns (Phase 1)") < guide.index("## Operational context and story (Phase 2)") \
         < guide.index("## What the framing already records as open")
@@ -715,17 +714,16 @@ def test_the_simulator_and_stale_content_appear_only_in_the_rule_sentences():
 def test_the_guide_names_the_next_obligation_after_phase_two():
     flat = _flat(GUIDE.read_text(encoding="utf-8").split("## Next obligation and execution limits", 1)[1]
                  .split("\n## ", 1)[0])
-    # Phase 3 is owed: only its one sentence names the classification, and nothing in the section claims it or
-    # names the simulator
+    # Phase 3 is judged by review and has nothing to evaluate: only its one sentence names the classification, and
+    # nothing in the section claims it or names the simulator
     assert flat.count(NEXT_OBLIGATION_PHASE_THREE) == 1
     rest = flat.replace(NEXT_OBLIGATION_PHASE_THREE, "")
     assert not PHASE_THREE_CLAIM.search(rest), PHASE_THREE_CLAIM.search(rest)
     assert "simulator" not in rest
-    for phrase in ("The next model obligation is **Phase 3**, the capability classification, which review judges:",
-                   "With no characteristic recorded, the one blocking check of Phase 3 has nothing to evaluate, so "
-                   "the Method Check lists Phase 3 as vacuous and names its next obligation in Phase 4.",
+    for phrase in ("The next model obligation is **Phase 4**, the stakeholder needs.",
                    "Phase 3 and later phases waited for the revision of the governed scope, which the model now "
                    "holds"):
         assert phrase in flat, phrase
     assert "The next model obligation is **Phase 2**" not in flat
+    assert "The next model obligation is **Phase 3**" not in flat
     assert "Phase 3 and later phases wait for the revision" not in flat, "the scope revision ended the wait"
