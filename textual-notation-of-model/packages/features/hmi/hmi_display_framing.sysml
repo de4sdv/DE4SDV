@@ -27,12 +27,10 @@ package DE4SDV_HmiDisplayFraming {
      * The increment does not change what the candidate application perceives,
      * plans, requests or commands. The owner decided on 2026-11-21 that the
      * increment goes on without waiting for Phase 10 of the driver-assistance
-     * increment. Phase 3 and later phases wait for the revision of the
-     * governed scope (gapHmiDisplayInProductLine), which waits for the
-     * baseline of the driver-assistance increment, so that it does not move
-     * the product-line receipt to which the configuration of that increment is
-     * bound. All phases retain this identity. This package holds Phase 0 and
-     * the Phase 1 concerns.
+     * increment. Phase 3 and later phases waited for the revision of the
+     * governed scope (gapHmiDisplayInProductLine), which the model now holds,
+     * so they go on. All phases retain this identity. This package holds
+     * Phase 0 and the Phase 1 concerns.
      */
   }
 
@@ -360,15 +358,44 @@ package DE4SDV_HmiDisplayFraming {
      * assumption is open, and it is settled outside this increment.
      */
   }
+  part gapHmiStandaloneLinuxDisplay : IncrementGap {
+    doc /*
+     * The standalone member selects the HMI display, common content of every
+     * member product (ADR 0026). It has no AAOS SDV guest, so its display is
+     * a Linux-side display, and no such display exists: no shared asset
+     * implements one, and the standalone member selects a display that has
+     * no realization. That the display is common is a scope classification,
+     * not evidence about the display. This increment leaves the Linux-side
+     * display out of its scope (hmiStandaloneDisplayOutOfScope), and its
+     * design is open.
+     */
+  }
+  part gapHmiAAOSIntegratedGuestDisplay : IncrementGap {
+    doc /*
+     * The AAOS-integrated member, MW-CONFIG-001, selects the HMI display,
+     * which it holds in its AAOS SDV guest (ADR 0026). Its configured member
+     * models a headless guest: its guest middleware is a headless SDV Core
+     * boundary, and its retained evidence names the headless sdv_core_cf
+     * image. Its guest now needs a display. Which VM of the guest holds the
+     * display is realization content, as ADR 0025 says for the S-CORE
+     * member, and it is open. The records of INC-MW-010 stay retained
+     * against the earlier content and are not edited.
+     */
+  }
   part gapHmiDisplayInProductLine : IncrementGap {
     doc /*
-     * The feature model holds the HMI display as an optional feature that
-     * requires the AAOS SDV guest, with no binding time assigned, and neither
-     * governed member selects it. The owner's decision of 2026-11-13 that
-     * every member product has an HMI display takes effect with a revision of
-     * the governed scope that is made outside this increment. Phase 3
-     * classifies the content of the display against the scope as it then
-     * stands.
+     * The owner decided on 2026-11-13 that every member product has an HMI
+     * display (ADR 0026). The governed scope holds the HMI display as common
+     * content of every planned member, bound during Development, and every
+     * member configuration selects the feature hmiDisplay, which corresponds
+     * to that common content. Where the display runs follows the integration
+     * mode: in the AAOS SDV guest of the two integrated members, and on the
+     * Linux side of the standalone member. No shared asset implements the
+     * display yet, and what it shows in each member is open. The owner
+     * decided on 2026-11-21 that this increment records the two gaps that the
+     * scope revision leaves in the members (gapHmiStandaloneLinuxDisplay,
+     * gapHmiAAOSIntegratedGuestDisplay). Phase 3 classifies the content of
+     * the display against the scope as it now stands.
      */
   }
   part gapHmiUpstreamContact : IncrementGap {
@@ -662,6 +689,8 @@ package DE4SDV_HmiDisplayFraming {
     expose gapHmiWarningPresentation;
     expose gapHmiWarningAvailability;
     expose gapHmiMemberGuestLayout;
+    expose gapHmiStandaloneLinuxDisplay;
+    expose gapHmiAAOSIntegratedGuestDisplay;
     expose gapHmiDisplayInProductLine;
     expose gapHmiUpstreamContact;
     render asTreeDiagram;

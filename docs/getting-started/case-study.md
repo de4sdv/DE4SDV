@@ -5,19 +5,21 @@ open-source parts and keep the design, configuration choices, tests, and
 evidence connected while those parts change. We build an open engineering
 reference, not a production car or a certificate.
 
-![Concept illustration, not a model view: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and verification and validation (V&V) evidence (existing today), is configured along dimensions such as these two. Platform stack: a configuration has a main side and can have a guest side under KVM on the same chip. Each side lists its layers in the order application · middleware · OS. Two member configurations exist today: Autoware · Linux with no guest side, and Autoware · Linux with an AAOS SDV · Android guest side. Not admitted yet: the candidate Autoware · Eclipse S-CORE · Linux with an AAOS SDV · Android guest side and a human-machine interface (HMI) display, in progress. More stacks are deferred and not admitted. Sensor set: LiDAR and camera, shared by both members, exists today; variants, for example entry, mid and premium, are deferred and not admitted. Every change is re-checked by CI and review, and model changes also by the Method Check; evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
+![Concept illustration, not a model view, drawn before the scope revision of ADR 0023 and ADR 0026, so it shows the two members of that time: four stages from left to right. One SysML v2 model, with requirements, architecture, variability and verification and validation (V&V) evidence (existing today), is configured along dimensions such as these two. Platform stack: a configuration has a main side and can have a guest side under KVM on the same chip. Each side lists its layers in the order application · middleware · OS. Two member configurations exist today: Autoware · Linux with no guest side, and Autoware · Linux with an AAOS SDV · Android guest side. Not admitted yet: the candidate Autoware · Eclipse S-CORE · Linux with an AAOS SDV · Android guest side and a human-machine interface (HMI) display, in progress. More stacks are deferred and not admitted. Sensor set: LiDAR and camera, shared by both members, exists today; variants, for example entry, mid and premium, are deferred and not admitted. Every change is re-checked by CI and review, and model changes also by the Method Check; evidence per member is in progress. The aim is re-checkable evidence for every member and a continuously certifiable product line.](concept-vision-and-aim.drawio.svg)
 
-*Concept illustration, not a model view: the vision at a glance.* DE4SDV
+*Concept illustration, not a model view: the vision at a glance, drawn before
+the scope revision of ADR 0023 and ADR 0026, so it shows two members.* DE4SDV
 keeps one SysML v2 model for the whole product line and configures each member
 product from it. The configuration dimensions include the platform stack
-(application, middleware, OS) and the sensor set. Today two members are
-admitted. Both select Autoware on Linux for the main side of the chip. One of
-them adds a guest side under the KVM hypervisor, with the Android SDV
-middleware (AAOS SDV) on Android. Both members share one LiDAR and camera
-sensor set. Another configuration is valid but not admitted. It selects
-Autoware on Eclipse S-CORE on Linux, with an AAOS SDV guest for a
-human-machine interface (HMI) display. The owner decides on its admission after
-a runnable proof. Sensor-set variants, for example entry, mid and premium, are
+(application, middleware, OS) and the sensor set. Today three members are
+admitted. All select Autoware on Linux for the main side of the chip. Two of
+them add a guest side under the KVM hypervisor, with the Android SDV
+middleware (AAOS SDV) on Android: one integrates Autoware with AAOS SDV, the
+other with Eclipse S-CORE on the main side. All three members share one LiDAR
+and camera sensor set and a human-machine interface (HMI) display, which runs
+in the AAOS SDV guest where there is one. The standalone member's display is
+on the Linux side and does not exist yet. Sensor-set variants, for example
+entry, mid and premium, are
 deferred until a scope decision admits them. CI and review re-check every
 change, and the Method Check also checks model changes. The aim is traceable,
 re-checkable evidence for every member: that is what **continuously certifiable
@@ -77,18 +79,22 @@ is managed together. Two levels matter, and it is easy to confuse them:
   [reviewed scope decision](../architecture-decisions/0014-ratify-initial-aebs-product-line-scope.md)
   and its
   [scope model](../../model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml)
-  admit exactly two planned reference members. Apollo, Openpilot, Eclipse
-  S-CORE, AUTOSAR Adaptive, QNX/QVM, ACRN, and similar options remain
-  reference-only or deferred until a future reviewed decision admits a member
-  that needs them.
+  admit two planned reference members, and
+  [ADR 0023](../architecture-decisions/0023-admit-score-integrated-aebs-reference-member.md)
+  a third. Apollo, Openpilot, AUTOSAR Adaptive, QNX/QVM, ACRN, and similar
+  options remain reference-only or deferred until a future reviewed decision
+  admits a member that needs them.
 
-Eclipse S-CORE is the first of those options under test: increment
-`INC-MW-011` (an increment answers one engineering question; see
+Eclipse S-CORE, reference-only until ADR 0023, is the first of those options
+under test: increment `INC-MW-011` (an increment answers one engineering
+question; see
 [part 2](#2-how-the-engineering-work-runs)), in progress, asks whether S-CORE
 can realize the middleware layer of a member with Autoware on a Linux host and
 an Android Automotive OS (AAOS) guest for the display
 ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml)).
-Admitting such a member would take a new reviewed scope decision.
+On 2026-11-13 the owner accepted ADR 0023, the reviewed scope decision that
+admits that member, before the runnable proof, which stays evidence about the
+member.
 
 ![Before the switch to PLEML: a concept illustration, not a model view. A shared model holds every option. Platform stack: application Autoware, Openpilot or Apollo; middleware Eclipse S-CORE, Android SDV, AUTOSAR Adaptive or none; operating system Linux, Android or QNX; an adapter derived from application and middleware. Sensors: LiDAR, radar and camera: at least one, in any combination. Common: vehicle-target AEBS and motion sensors. Bill of features A selects Autoware, no middleware, Linux, LiDAR and camera; bill of features B selects Autoware, Android SDV, Android, LiDAR and camera. The configurator checks the rules, derives the adapter and generates the two members' product models: the standalone member with no adapter and simulation-bench evidence, and the AAOS-integrated member with the Autoware-to-AAOS SDV adapter and evidence still planned.](concept-product-line.drawio.svg)
 
@@ -107,20 +113,21 @@ come from the same model, not from copies, share the LiDAR and camera sensor
 set, and each has its own evidence status. Hypervisor choices are left out of
 the picture.
 
-The two governed members differ in one product decision, **Vehicle Platform
+The three governed members differ in one product decision, **Vehicle Platform
 Integration Mode**, and that one decision drives several layer choices. The
-last two rows are common to both members:
+last three rows are common to all members:
 
-| Aspect | Standalone member | AAOS-integrated member |
-|---|---|---|
-| Vehicle application | Autoware | Autoware |
-| Middleware | none | Android SDV, in the guest¹ |
-| Operating system (main side) | Linux | Linux |
-| Hypervisor | none | KVM |
-| Guest operating system and middleware | none | Android with AAOS SDV¹ |
-| Adapter | none (derived) | Autoware→AAOS SDV (derived) |
-| Capability (common) | Emergency braking (vehicle-target AEBS) | Emergency braking (vehicle-target AEBS) |
-| Sensing baseline (common) | LiDAR + camera, IMU, wheel odometry | LiDAR + camera, IMU, wheel odometry |
+| Aspect | Standalone member | AAOS-integrated member | S-CORE-integrated member |
+|---|---|---|---|
+| Vehicle application | Autoware | Autoware | Autoware |
+| Middleware | none | Android SDV, in the guest¹ | Eclipse S-CORE, on the main side |
+| Operating system (main side) | Linux | Linux | Linux |
+| Hypervisor | none | KVM | KVM |
+| Guest operating system and middleware | none | Android with AAOS SDV¹ | Android with AAOS SDV |
+| Adapter | none (derived) | Autoware→AAOS SDV (derived) | Autoware→S-CORE (derived) |
+| Capability (common) | Emergency braking (vehicle-target AEBS) | Emergency braking (vehicle-target AEBS) | Emergency braking (vehicle-target AEBS) |
+| Sensing baseline (common) | LiDAR + camera, IMU, wheel odometry | LiDAR + camera, IMU, wheel odometry | LiDAR + camera, IMU, wheel odometry |
+| HMI display (common) | Linux-side, does not exist yet | in the AAOS SDV guest | in the AAOS SDV guest |
 
 ¹ Autoware keeps its own Linux and ROS 2 (Robot Operating System 2) runtime on
 the main side, which is also the KVM host. The AAOS SDV middleware runs in an
@@ -131,7 +138,7 @@ cross-domain transport remains unresolved. Its
 [evidence record](../../model-based-product-line-engineering/feature-configurations/evidence/middleware-autoware-aaos-sdv-reference.yaml)
 states the evidence status `planned`.
 
-This is what the right-hand column looks like in the model itself:
+This is what the AAOS-integrated column looks like in the model itself:
 
 ![SysIDE render of the model view middlewareProductLineConfigurationView: the part definition MiddlewareAutowareAAOSSDVReference specializes SDVPlatformStack and selects vehicleApplication autoware, middleware androidSDV, osPlatform linux, hypervisor kvm, guestOSPlatform android, guestMiddleware androidSDV and applicationMiddlewareAdapter autowareToAAOSSDV.](../../textual-notation-of-model/packages/features/middleware/diagrams/diagram-middlewareProductLineConfigurationView.svg)
 
@@ -144,12 +151,12 @@ stack.
 
 Two lessons sit in this table. First, the adapter is **derived** from the
 application and middleware choices, never selected on its own. Second,
-emergency braking, Autoware, and the sensing baseline are **common** to both
-members; the
+emergency braking, Autoware, the sensing baseline and the HMI display are
+**common** to all members; the
 [scope decision](../architecture-decisions/0014-ratify-initial-aebs-product-line-scope.md#common-within-the-governed-portfolio)
 lists all common content. A characteristic is a product feature only when it
 distinguishes one member from another. Planned membership also does not mean
-both members have the same implementation or test maturity.
+the members have the same implementation or test maturity.
 
 ### The capability that exercises it: emergency braking
 
@@ -212,7 +219,7 @@ In the repository today:
 - the middleware chain, increments `INC-MW-001` to `INC-MW-010`, closed at a
   bounded baseline recorded in the
   [baseline register](../../configuration-management/baseline-register.md);
-- the PLEML feature model and the feature configurations of the two planned
+- the PLEML feature model and the feature configurations of the three planned
   members, the configurator, and the product models it generates from the
   configurations' receipts. The YAML feature catalogue and bills of features
   that they restate retired at step S7 of ADR 0022;
@@ -232,8 +239,9 @@ In progress, or not there yet:
   signals to the HMI in the guest. Guard rails in the model bound the
   gateway's known defects, and phase 10 tests them. Variability and
   configuration (phase 9) gave the platform a guest
-  side and added the configured product `MW-CONFIG-002`. It is valid and not
-  admitted, and admission is the owner's phase-12 decision. Verification and
+  side and added the configured product `MW-CONFIG-002`. Since the scope
+  revision of ADR 0023 it is admitted as the S-CORE-integrated member, which
+  the owner accepted on 2026-11-13, before its runnable proof. Verification and
   evidence (phase 10) has begun: one verification case per requirement, and no
   case has started. The runnable proof on a bench comes next, and phases 11
   and 12 are still to come
@@ -244,7 +252,7 @@ In progress, or not there yet:
 - executable method checks for the phases that have none yet;
 - verification of the candidate requirements; `REQ-AEBS-003` is still
   `NotStarted`;
-- any member beyond the two planned ones, which needs a new reviewed scope
+- any member beyond the three planned ones, which needs a new reviewed scope
   decision.
 
 No example shows more than its own evidence. The moving-target bench supports
@@ -458,8 +466,8 @@ After reading it, can you explain:
 
 1. What problem DE4SDV helps engineers solve, and what "continuously
    certifiable" means here as an aim?
-2. What the stack layers are, how the two governed members differ, and why the
-   adapter is derived rather than chosen?
+2. What the stack layers are, how the three governed members differ, and why
+   the adapter is derived rather than chosen?
 3. What an increment is, what the agent, the Method Check, and people each do
    in it, and why a valid configuration, passing checks, or a replayed
    simulation does not mean a vehicle is certified?

@@ -134,7 +134,7 @@ IDENTIFIER = re.compile(r"[A-Za-z_]\w*")
 #: The governed-scope sets a correspondence may name, with the class each confers (ADR 0014). The
 #: integration-mode alternatives confer ``admitted-alternative``. A derived realization corresponds to
 #: its alternative, never to a feature.
-SCOPE_SCHEMA = "de4sdv-aebs-product-line-scope-validation/v1"
+SCOPE_SCHEMA = "de4sdv-aebs-product-line-scope-validation/v2"
 SCOPE_CLASSES = (("common_core", "common"), ("reference_only", "reference-only"), ("deferred", "deferred"),
                  ("excluded_system2", "excluded"))
 ADMISSIBLE = frozenset({"admitted-alternative", "common"})

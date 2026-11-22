@@ -1,7 +1,8 @@
 """The governed members use the projections of their configurations.
 
-ADR 0014 admits two planned reference members, Standalone and AAOS-integrated.
-The product-level model of each specializes its member decision in the
+ADR 0014 admits two planned reference members, Standalone and AAOS-integrated,
+and ADR 0023 a third, S-CORE-integrated. The product-level model of each
+specializes its member decision in the
 governed product-line scope, and types its platform stack by the part
 definition that the configurator generates from its configuration's receipt. A
 configuration applies to the member products whose definitions own a usage
@@ -50,6 +51,13 @@ MEMBERS = {
         "MiddlewareAutowareAAOSSDVConfiguredMember",
         "DE4SDV_AEBSProductLineScope::AAOSIntegratedAutowareAEBSReferenceMember",
         "middleware_autoware_aaos_sdv_reference.sysml",
+    ),
+    # ADR 0023, decision 8: the configured product of MW-CONFIG-002 specializes the new member definition.
+    "SCOREIntegratedAutowareAEBSReferenceMember": (
+        Path("textual-notation-of-model/packages/features/middleware/middleware_score_variability_configuration.sysml"),
+        "MiddlewareAutowareSCOREConfiguredProduct",
+        "DE4SDV_AEBSProductLineScope::SCOREIntegratedAutowareAEBSReferenceMember",
+        "middleware_autoware_score_reference.sysml",
     ),
 }
 

@@ -82,7 +82,7 @@ from de4sdv.sysml_api.served_model import served_model_digest  # noqa: E402
 REPORT_SCHEMA = "de4sdv.release-evidence/v1"
 BATTERY_SCHEMAS = {
     "query_coverage": "de4sdv-full-model-semantic-query-coverage/v2",
-    "scope_validation": "de4sdv-aebs-product-line-scope-validation/v1",
+    "scope_validation": "de4sdv-aebs-product-line-scope-validation/v2",
     "mcp_validation": "de4sdv-semantic-mcp-validation/v2",
 }
 EXPORT_API_URL = "export://the-licensed-export"

@@ -41,8 +41,9 @@ How the catalogue was restated:
   its variation points; an alternative group a `[1]` feature whose `[0..1]`
   choices subset it; the perception sensors a `[1..*]` group; an optional
   capability a `[0..1]` feature. Every feature keeps the Development binding
-  time; the five capabilities with an unassigned binding time carry
-  `#UnassignedBindingTime`.
+  time; the four capabilities with an unassigned binding time carry
+  `#UnassignedBindingTime`. The HMI display binds during Development, as
+  common content of every member (ADR 0026, decision 4).
 - **Exclusions.** C001 and C003 (allowed lists) and C004 and C005 become
   exclusions. C002 and C006 never fire in any structurally valid selection,
   so they are dropped as constraints; their rationale stays in the model.
@@ -60,11 +61,11 @@ How the catalogue was restated:
   like its superset variants. With KVM the main side is the KVM host. The
   `middleware` group is the middleware that the vehicle application
   integrates with, so its derivation rules stay. The optional
-  capability `hmiDisplay` has no shared asset yet. Five requires constraints
+  capability `hmiDisplay` has no shared asset yet. Four requires constraints
   relate the sides: C007 `noHypervisor` requires `noGuestOperatingSystem`,
   C008 `guestAndroidSDV` requires `guestAndroid`, C009 `androidSDV` requires
-  `guestAndroidSDV`, C010 `hmiDisplay` requires `guestAndroidSDV` and C011
-  `autoware` requires `linux`.
+  `guestAndroidSDV` and C011 `autoware` requires `linux`. C010, `hmiDisplay`
+  requires `guestAndroidSDV`, went with ADR 0026 (decision 3).
 - **Bindings.** One feature binding per shared-asset variant, with the variant
   as client. A binding takes the name of its client,
   `<variation><Variant>Binding`. The superset keeps `OS` in its names
@@ -128,13 +129,13 @@ the repository, and CI does not repeat it.
 
 | Feature model | Structurally valid selections | Valid | Verdict classes |
 |---|---|---|---|
-| SDV product line | 215,040 | 17,680 | 268 |
+| SDV product line | 215,040 | 26,976 | 162 |
 | Engineering execution environments | 27 | 3 | 10 |
 | Vehicle-target execution environments | 8 | 2 | 7 |
 
-The 17,680 valid SDV selections are 143 valid platform and display
+The 26,976 valid SDV selections are 218 valid platform and display
 selections of Autoware, Openpilot and Apollo, each with the 112 choices of the
-sensors and the four other capabilities, which no constraint names, and 13
+sensors and the four other capabilities, which no constraint names, and 20
 valid platform and display selections each of AutoE2E and VisionPilot (Linux;
 Eclipse S-CORE, the one pair with a rule), each with the four sensor choices
 that keep the camera and the 16 choices of the four other capabilities. Each
@@ -172,19 +173,19 @@ configuration is admitted when all of these hold:
 - Every common asset that features represent is represented by all of them.
   A choice is exempt only where the realized alternative selects another
   member of its group. Since INC-MW-011 phase 9 no member needs that
-  exemption: both run Autoware on Linux on the main side, and the guest
-  choices carry the split topology of the AAOS-integrated alternative.
+  exemption: all three run Autoware on Linux on the main side, and the guest
+  choices correspond to both integrated alternatives (ADR 0023). Every
+  member selects the HMI display, common content of every member (ADR 0026).
   Common content without a feature is part of every member.
 
-So the two governed members of ADR 0014 are admitted: the standalone member
-(`aebs_autoware_linux_lidar_camera`) and the AAOS-integrated member
-(`middleware_autoware_aaos_sdv_reference`). The other SDV configurations are
-not admitted: the Eclipse S-CORE reference configuration
-(`middleware_autoware_score_reference`), Apollo on QNX, and the driving
-configurations of INC-DRIVING-001 (`closed_loop_driving_autoe2e_score_reference`)
-and INC-DRIVING-002 (`driver_assistance_visionpilot_score_reference`), whose
-applications correspond to the deferred driving-stack variability. Neither is
-any
+So the three governed members of ADR 0014 and ADR 0023 are admitted: the
+standalone member (`aebs_autoware_linux_lidar_camera`), the AAOS-integrated
+member (`middleware_autoware_aaos_sdv_reference`) and the S-CORE-integrated
+member (`middleware_autoware_score_reference`). The other SDV configurations
+are not admitted: Apollo on QNX, and the driving configurations of
+INC-DRIVING-001 (`closed_loop_driving_autoe2e_score_reference`) and
+INC-DRIVING-002 (`driver_assistance_visionpilot_score_reference`), whose
+applications correspond to the deferred driving-stack variability. Nor is any
 configuration of the two execution-environment families: the engineering
 family is the excluded System 2 concern, and the vehicle-target family is
 the deferred vehicle runtime variability. A test computes these verdicts from
@@ -198,14 +199,16 @@ configuration of their family selects, or that every one selects:
 
 | Family | In every configuration | In no configuration | In no governed member yet, with no governed-scope element |
 |---|---|---|---|
-| SDV product line (6 configurations) | none | Openpilot, AUTOSAR Adaptive, main-side Android, ACRN, and pedestrian and bicycle detection | the HMI display, adaptive cruise control and lane-keep assist |
+| SDV product line (6 configurations) | none | Openpilot, AUTOSAR Adaptive, main-side Android, ACRN, and pedestrian and bicycle detection | adaptive cruise control and lane-keep assist |
 | Engineering execution environments (2) | none | the Intel x86-64 nested-KVM host, the x86-64 Linux AOSP build, and nested-KVM Cuttlefish | none |
 | Vehicle-target execution environments (1) | NXP compute, Zephyr and native Zephyr | the three "no concrete" choices | none |
 
-The HMI display (INC-MW-011 phase 9) is an option that no governed member
-selects yet: of the six configurations, the three Eclipse S-CORE
-configurations of INC-MW-011, INC-DRIVING-001 and INC-DRIVING-002 select it,
-and none of them is admitted. No shared
+The HMI display (INC-MW-011 phase 9) left the table with the scope revision
+of ADR 0023 and ADR 0026: it corresponds to common content, and a
+configuration that is not a member can leave it out, as `autoware` and
+`linux`: of the six SDV configurations, five select the HMI display, the
+three members and the AutoE2E and VisionPilot configurations, and the Apollo
+on QNX configuration leaves it out. No shared
 asset implements the display yet, so no feature binding resolves it. Like the
 sensing and the other capability selections, each projection lists it among
 the selections that SysML does not resolve.

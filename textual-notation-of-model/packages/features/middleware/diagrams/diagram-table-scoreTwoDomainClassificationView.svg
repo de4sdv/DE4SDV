@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="928" height="274" viewBox="0 0 928 274" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="928" height="314" viewBox="0 0 928 314" role="img" aria-labelledby="title description">
   <title id="title">table-scoreTwoDomainClassificationView</title>
   <desc id="description">table-scoreTwoDomainClassificationView. Generated from SysIDE grid CSV.</desc>
   <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
@@ -18,24 +18,26 @@
   <text x="580" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="580" dy="0">Rationale</tspan>
   </text>
-  <rect x="0" y="94" width="208" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="0" y="94" width="208" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">hmiGuestExecutionDomain</tspan>
   </text>
-  <rect x="208" y="94" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="208" y="94" width="360" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="220" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="220" dy="0">ProductLineFeatureCandidate,</tspan>
     <tspan x="220" dy="20">ProductLineCharacteristic</tspan>
   </text>
-  <rect x="568" y="94" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="568" y="94" width="360" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="580" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="580" dy="0">CLS-MW-004: an AAOS SDV HMI guest next to</tspan>
-    <tspan x="580" dy="20">the Linux host distinguishes the two-</tspan>
-    <tspan x="580" dy="20">domain member from the standalone member.</tspan>
-    <tspan x="580" dy="20">Acceptance waits for the scope ADR and</tspan>
-    <tspan x="580" dy="20">phase 9; the AAOS-integrated mode is only</tspan>
-    <tspan x="580" dy="20">a candidate counterpart, and the ADR</tspan>
-    <tspan x="580" dy="20">decides. Structural consequence: per-</tspan>
-    <tspan x="580" dy="20">domain platform selection.</tspan>
+    <tspan x="580" dy="20">the Linux host distinguishes the two</tspan>
+    <tspan x="580" dy="20">integrated members from the standalone</tspan>
+    <tspan x="580" dy="20">member. Its counterpart is both integrated</tspan>
+    <tspan x="580" dy="20">alternatives, AAOS Integrated and S-CORE</tspan>
+    <tspan x="580" dy="20">Integrated (owner decision of 2026-11-21).</tspan>
+    <tspan x="580" dy="20">Since ADR 0026 both integrated members</tspan>
+    <tspan x="580" dy="20">hold the HMI display in their AAOS SDV</tspan>
+    <tspan x="580" dy="20">guest. Structural consequence: per-domain</tspan>
+    <tspan x="580" dy="20">platform selection.</tspan>
   </text>
 </svg>

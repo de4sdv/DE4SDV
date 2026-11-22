@@ -98,9 +98,13 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
      *
      * Headless or display: the binding makes the guest middleware of this
      * member a headless SDV Core boundary (no JVM, no Android applications,
-     * no GUI). That is right for MW-CONFIG-001: it selects no HMI display,
-     * and its runtime evidence names the headless sdv_core_cf image
-     * (E-MW-011, E-MW-013). The INC-AEBS-010 test article inherits this
+     * no GUI). Until the scope revision of ADR 0026 that matched
+     * MW-CONFIG-001: it selected no HMI display, and its runtime evidence
+     * names the headless sdv_core_cf image (E-MW-011, E-MW-013). Since that
+     * revision MW-CONFIG-001 selects the HMI display, which it holds in its
+     * AAOS SDV guest, while this guest middleware models no display
+     * (gapHmiAAOSIntegratedGuestDisplay of INC-HMI-001). The INC-AEBS-010
+     * test article inherits this
      * headless guest middleware. It also composes a second AAOS SDV guest:
      * the display-capable sdv_ivi_cf guest of its System 2 instrument
      * (iviGuest : SdvIviCfGuestTarget). Its evidence ran that image. The doc
