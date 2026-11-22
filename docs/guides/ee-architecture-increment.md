@@ -13,9 +13,9 @@ properties that the model asks of the command paths of earlier increments. It
 judges two routes: through a zone controller, and over a direct link.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
-Phase 3 capability classification and Phase 4 stakeholder needs, proposal.**
-No implementation, run, result, product-line admission or compliance is
-claimed.
+Phase 3 capability classification, Phase 4 stakeholder needs and Phase 5
+requirements, proposal.** No implementation, run, result, product-line
+admission or compliance is claimed.
 
 ## Authoritative frame
 
@@ -254,14 +254,99 @@ and `SC-EE-006` asks them. No need states a number: Phase 5 derives the
 requirements, their limits and the share of the network in the response when
 no valid command arrives, after REQ-DRIVING-028 of INC-DRIVING-001. The form
 of the command comes from the baseline of the driver-assistance increment,
-which states no cadence of the command as such; a comment about `NEED-EE-001`
-keeps that input contract for Phase 5.
+which states no cadence of the command as such; Phase 5 states that input
+contract in its requirements.
 
 `tests/test_ee_architecture_needs_requirements.py` pins the needs, their
 holders and sources, the planned reviews and their scenarios, and the wording
 a need may not use. The Phase 4 gates check that each need has a statement, a
 stakeholder, a source, a rationale and a planned review. Review judges whether
 the needs are the right ones.
+
+## Requirements (Phase 5)
+
+The
+[requirements](../../textual-notation-of-model/packages/features/ee/ee_architecture_needs_requirements.sysml)
+state what the vehicle network shall do and how each is verified. Each has one
+subject, the vehicle network, derives from one need, and has one verification
+method and its success criteria. They derive from the Phase 4 needs and from
+REQ-DRIVING-028, REQ-DRIVING-039 and REQ-MW-006, and the scope caps them at
+ten. A time limit counts on the clock of the virtual vehicle and makes no
+timing claim for a vehicle network.
+
+- `REQ-EE-001`: both routes in one topology. From `NEED-EE-001`, by
+  inspection; a design constraint.
+- `REQ-EE-002`: driving commands only from the Eclipse S-CORE path. From
+  `NEED-EE-001`, by test; a design constraint.
+- `REQ-EE-003`: the commands of a run only through the elements of its route.
+  From `NEED-EE-001`, by test; a design constraint.
+- `REQ-EE-004`: in a run without a fault, the delivery of the command stream
+  to the actuation ECU, each command once, in its order and unchanged. From
+  `NEED-EE-001`, by test; functional.
+- `REQ-EE-005`: in a run without a fault, each command carried from the
+  boundary interface to the actuation ECU within 50 ms of simulation time.
+  From `NEED-EE-001`, by test; a performance requirement.
+- `REQ-EE-006`: each valid command applied until the stop response starts.
+  From `NEED-EE-001`, by test; functional.
+- `REQ-EE-007`: each element passes on the issue time, the sequence count and
+  the check value as it received them, computing none anew. From
+  `NEED-EE-002`, by analysis; a design constraint.
+- `REQ-EE-008`: until the stop response, the vehicle gets only the last valid
+  command applied. From `NEED-EE-002`, by test; functional.
+- `REQ-EE-009`: the stop response once more than 200 ms of simulation time
+  pass without a valid command. From `NEED-EE-002`, by test; functional.
+- `REQ-EE-010`: the network identity recorded before the first command of each
+  run. From `NEED-EE-003`, by test; functional.
+
+The Phase 5 decisions, each with its reason in the rationale of the
+requirement that it shapes:
+
+1. A valid driving command is one that the actuation adapter of the
+   driver-assistance increment would accept: its check value holds, its
+   sequence count is one more than the reference count, and its issue time is
+   no more than 100 ms of simulation time old, measured at its arrival in
+   place of the newest world time of that adapter.
+2. One lost or corrupted command costs two, so at one command each 100 ms it
+   leaves the actuation ECU 300 ms without a valid command and the stop
+   response follows, although REQ-DRIVING-028 takes two missed commands as the
+   sign of a path that gives no more commands. Accepting the command after a
+   gap would put the span at exactly 200 ms, where the outcome would depend on
+   the clock of the testbed.
+3. The stop response starts once more than 200 ms of simulation time pass
+   without a valid command, so a command that arrives exactly at 200 ms still
+   counts.
+4. The vehicle network gets 50 ms of simulation time from the boundary
+   interface to the actuation ECU, half of the delay limit; a run is judged
+   only when the path to the boundary interface keeps the other half.
+5. The cadence is at most one command each 100 ms of simulation time, from the
+   baseline: one image of the front camera each 100 ms, one plan per frame
+   with a result and one command per plan. A command carried within 50 ms
+   arrives before the next, so the cadence needs no requirement of its own.
+6. The stop response gives a deceleration of 4 m/s² with the steering held
+   until the run ends, and 0° of steering before any valid command, so the
+   actuation ECU needs no vehicle speed and the vehicle model keeps the
+   vehicle at standstill.
+7. The detection parts are verified by analysis of the realization and of the
+   records of the fault runs: a test cannot tell a new check value over
+   unchanged parts from the one taken.
+8. The run set names every run that the criteria judge: on each route, a run
+   without a fault, a run for each of the four command faults on each link,
+   and a run for each link that goes down.
+9. The four concerns that are reviewer questions get requirements: the
+   topology and the elements of each route in `REQ-EE-001` and `REQ-EE-003`,
+   the exchange items in `REQ-EE-004` and `REQ-EE-007`, and the sequence from
+   a fault to its response in `REQ-EE-006`, `REQ-EE-008` and `REQ-EE-009`.
+10. `REQ-EE-002` names the Eclipse S-CORE path, so Phase 9 links it to the
+    feature `eclipseSCORE`; the other requirements carry no link of their own.
+
+A comment about `gapEEActuationEnd` records what Phase 5 fixes of that gap and
+what stays open, and a comment about `gapEEBenchPlatform` and
+`gapEERecordedCommandStream` records what the criteria ask of the testbed.
+`tests/test_ee_architecture_requirements.py` pins the requirements, their
+derivations, the terms, the two comments and the table. The Phase 5 gates
+check that each requirement has a statement, one subject, a derivation from a
+need and one verification method. Review judges whether the requirements are
+the right ones.
 
 ## What the framing already records as open
 
@@ -372,9 +457,10 @@ blocking check has nothing to evaluate, so the Method Check lists Phase 3 as
 vacuous, with a prompt for review. The owner decided on 2026-11-18 to carry
 out Phases 1 to 3 of this increment before the baseline of the
 driver-assistance increment, whose driving command it carries. After that
-baseline, the owner decided on 2026-11-21 to start Phase 4. The next model
-obligation is **Phase 5**, the requirements. The testbed with its readiness
-probe waits for a further decision of the owner.
+baseline, the owner decided on 2026-11-21 to start Phase 4 and on 2026-11-22
+to go on with Phase 5. The next model obligation is **Phase 6**, the
+functional architecture. The testbed with its readiness probe waits for a
+further decision of the owner.
 
 The testbed is chosen after a readiness probe. Before a paid cloud run,
 refresh the regional price, the capacity and the available credit, obtain the
@@ -387,7 +473,8 @@ authorizes no spend.
 Run `sysand sync`, `python scripts/check_repo.py`, `python
 scripts/smoke_test.py` and `python -m pytest
 tests/test_ee_architecture_framing.py
-tests/test_ee_architecture_needs_requirements.py -q`. These are repository and
+tests/test_ee_architecture_needs_requirements.py
+tests/test_ee_architecture_requirements.py -q`. These are repository and
 lexical checks, not SysML semantic validation and not runtime verification.
 Use `python scripts/validate_sysml.py` where a licensed validator is
 available, or request the maintainer-run **Privileged Syside Validation** on
