@@ -280,9 +280,9 @@ timing claim for a vehicle network.
   `NEED-EE-001`, by test; a design constraint.
 - `REQ-EE-003`: the commands of a run only through the elements of its route.
   From `NEED-EE-001`, by test; a design constraint.
-- `REQ-EE-004`: in a run without a fault, the delivery of the command stream
-  to the actuation ECU, each command once, in its order and unchanged. From
-  `NEED-EE-001`, by test; functional.
+- `REQ-EE-004`: in each run, the delivery to the actuation ECU of each command
+  that no fault reaches, once, in its order and unchanged. From `NEED-EE-001`,
+  by test; functional.
 - `REQ-EE-005`: in a run without a fault, each command carried from the
   boundary interface to the actuation ECU within 50 ms of simulation time.
   From `NEED-EE-001`, by test; a performance requirement.
@@ -311,7 +311,9 @@ requirement that it shapes:
    response follows, although REQ-DRIVING-028 takes two missed commands as the
    sign of a path that gives no more commands. Accepting the command after a
    gap would put the span at exactly 200 ms, where the outcome would depend on
-   the clock of the testbed.
+   the clock of the testbed. A delay that only just makes a command late would
+   put the span at exactly 200 ms under either rule, so the run set delays the
+   command by 300 ms, after which the stop response follows on every clock.
 3. The stop response starts once more than 200 ms of simulation time pass
    without a valid command, so a command that arrives exactly at 200 ms still
    counts.
@@ -324,18 +326,19 @@ requirement that it shapes:
    arrives before the next, so the cadence needs no requirement of its own.
 6. The stop response gives a deceleration of 4 m/s² with the steering held
    until the run ends, and 0° of steering before any valid command, so the
-   actuation ECU needs no vehicle speed and the vehicle model keeps the
-   vehicle at standstill.
+   actuation ECU needs no vehicle speed; the vehicle model is to keep the
+   vehicle at standstill under it.
 7. The detection parts are verified by analysis of the realization and of the
    records of the fault runs: a test cannot tell a new check value over
    unchanged parts from the one taken.
 8. The run set names every run that the criteria judge: on each route, a run
    without a fault, a run for each of the four command faults on each link,
-   and a run for each link that goes down.
+   with the delay holding the command for 300 ms, and a run for each link that
+   goes down.
 9. The four concerns that are reviewer questions get requirements: the
    topology and the elements of each route in `REQ-EE-001` and `REQ-EE-003`,
-   the exchange items in `REQ-EE-004` and `REQ-EE-007`, and the sequence from
-   a fault to its response in `REQ-EE-006`, `REQ-EE-008` and `REQ-EE-009`.
+   the exchange items in `REQ-EE-007`, and the sequence from a fault to its
+   response in `REQ-EE-008` and `REQ-EE-009`.
 10. `REQ-EE-002` names the Eclipse S-CORE path, so Phase 9 links it to the
     feature `eclipseSCORE`; the other requirements carry no link of their own.
 

@@ -35,21 +35,22 @@
  * delay limit; the arrival time at the actuation ECU in place of the
  * newest world time of that adapter; the start of the stop response once
  * more than 200 ms pass, and no earlier; its deceleration until the run
- * ends and its steering of 0° before any valid command; and the run set.
- * Keeping the rules of that adapter makes one lost or corrupted command
- * start the stop response, which REQ-DRIVING-028 reads as a stopped path
- * only after two missed commands. Each time limit counts on the clock of
- * the virtual vehicle. The comment on gapEEActuationEnd gives what phase
- * 5 fixes of that gap and what stays open, and the comment on
- * gapEEBenchPlatform and gapEERecordedCommandStream gives what the
- * criteria ask of System 2. Rule 5 of the increment workflow makes a
- * requirement core when its subject has no link and it has none of its
- * own. No requirement carries a link at this revision, so all ten read as
- * core. REQ-EE-002 names the Eclipse S-CORE path and so depends on the
- * feature eclipseSCORE beyond its subject; phase 9 links it. Phase 3
- * records no feature candidate for the vehicle network and leaves open
- * whether the governed scope takes it as common content, so phase 9
- * decides on a link of its system of interest.
+ * ends and its steering of 0° before any valid command; and the run set,
+ * with its delay of 300 ms. Keeping the rules of that adapter makes one
+ * lost or corrupted command start the stop response, which
+ * REQ-DRIVING-028 reads as a stopped path only after two missed commands.
+ * Each time limit counts on the clock of the virtual vehicle. The comment
+ * on gapEEActuationEnd gives what phase 5 fixes of that gap and what
+ * stays open, and the comment on gapEEBenchPlatform and
+ * gapEERecordedCommandStream gives what the criteria ask of System 2.
+ * Rule 5 of the increment workflow makes a requirement core when its
+ * subject has no link and it has none of its own. No requirement carries
+ * a link at this revision, so all ten read as core. REQ-EE-002 names the
+ * Eclipse S-CORE path and so depends on the feature eclipseSCORE beyond
+ * its subject; phase 9 links it. Phase 3 records no feature candidate for
+ * the vehicle network and leaves open whether the governed scope takes it
+ * as common content, so phase 9 decides on a link of its system of
+ * interest.
  *
  * No safety, timing, on-road or production-readiness claim is made, and
  * no member product is claimed.
@@ -228,21 +229,25 @@ package DE4SDV_EEArchitectureNeedsRequirements {
      * - Run: one execution of the vehicle network on one route of one
      *   scenario, from the first driving command that it takes to the end of
      *   the scenario.
-     * - Fault: a disturbance from outside the vehicle network on one link of
-     *   the route of a run that makes a driving command lost, delayed so that
-     *   it reaches the actuation ECU more than 100 ms of simulation time
-     *   after its issue time, repeated, or changed in a part, that is a loss,
-     *   a delay, a repetition or a corruption, or that takes the link down
-     *   for the rest of the run.
+     * - Fault: a disturbance of one link of the route of a run, made from
+     *   outside the vehicle network, that makes a driving command lost,
+     *   delayed so that it reaches the actuation ECU more than 100 ms of
+     *   simulation time after its issue time, repeated, or changed in a part,
+     *   that is a loss, a delay, a repetition or a corruption, or that takes
+     *   the link down for the rest of the run. A fault reaches the driving
+     *   command that it loses, delays, repeats or changes, and each driving
+     *   command given to the link while the link is down. A defect of an
+     *   element is no fault; the requirements hold with it in every run.
      * - Judged run: a run in which the path that carries the driving commands
      *   to the boundary interface gives each of them there no more than 50 ms
      *   of simulation time after its issue time.
      * - Run set: for each route, a run without a fault, of SC-EE-001 on the
      *   route through a zone controller or of SC-EE-002 on the direct route;
      *   a run of SC-EE-003 for each of a loss, a delay, a repetition and a
-     *   corruption on each link of the route; and a run of SC-EE-004 for each
-     *   link of the route. The run set is judged when each of its runs is a
-     *   judged run.
+     *   corruption on each link of the route, the delay holding the command
+     *   on the link for 300 ms of simulation time; and a run of SC-EE-004 for
+     *   each link of the route. The run set is judged when each of its runs
+     *   is a judged run.
      * - Simulation time: the time on the clock of the virtual vehicle, the
      *   testbed with its model of the vehicle, in seconds; the issue time of
      *   each driving command counts on it.
@@ -310,11 +315,11 @@ package DE4SDV_EEArchitectureNeedsRequirements {
 
   requirement <'REQ-EE-004'> reqDeliverCommandStreamUnchanged : FunctionalRequirementCandidate {
     subject vehicleNetwork :> DE4SDV_EEArchitectureFraming::eeVehicleNetworkSystem;
-    require constraint statement { language "English" /* In each run without a fault, the vehicle network shall deliver the command stream to the actuation ECU with each driving command once, in its order and with each part unchanged. */ }
+    require constraint statement { language "English" /* In each run, the vehicle network shall deliver to the actuation ECU each driving command that no fault reaches, once, in its order and with each part unchanged. */ }
     attribute :>> source = "NEED-EE-001; eeVehicleCommandConcern; assumption asmEECommandFromDrivingBaseline; scenarios SC-EE-001 and SC-EE-002";
-    attribute :>> rationale = "The vehicle can act on a driving command only if the command reaches the actuation ECU as the vehicle network took it. The actuation ECU takes a command for valid only when its check value holds and its sequence count is one more than the reference count, so a command lost, repeated, put out of order or changed on its way is rejected, and a lost or changed one costs the command after it as well. The form of the command is the one that the driver-assistance increment fixes at its baseline (asmEECommandFromDrivingBaseline). Whether it fits a CAN frame is open (gapEEActuationEnd); however the elements pack it, each part arrives as it was taken. A run with a fault, of SC-EE-003 or SC-EE-004, is outside this requirement; REQ-EE-008 and REQ-EE-009 state what the vehicle network does then.";
+    attribute :>> rationale = "The vehicle can act on a driving command only if the command reaches the actuation ECU as the vehicle network took it. The actuation ECU takes a command for valid only when its check value holds and its sequence count is one more than the reference count, so a command lost, repeated, put out of order or changed on its way is rejected, and a lost or changed one costs the command after it as well. The form of the command is the one that the driver-assistance increment fixes at its baseline (asmEECommandFromDrivingBaseline). Whether it fits a CAN frame is open (gapEEActuationEnd); however the elements pack it, each part arrives as it was taken. In a run with a fault, of SC-EE-003 or SC-EE-004, it holds for each command that no fault reaches, so the vehicle network keeps carrying the stream around the fault; REQ-EE-008 and REQ-EE-009 state what the actuation ECU does with what reaches it.";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when the run set is judged and, in each of its runs without a fault, the driving commands that reach the actuation ECU are the command stream, each once and in its order, with each part equal to the part that the vehicle network took.";
+    attribute :>> successCriteria = "Met when the run set is judged and, in each of its runs, the driving commands that reach the actuation ECU, apart from those that the fault of the run reaches, are the command stream without those, each once and in its order, with each part equal to the part that the vehicle network took.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -332,9 +337,9 @@ package DE4SDV_EEArchitectureNeedsRequirements {
     subject vehicleNetwork :> DE4SDV_EEArchitectureFraming::eeVehicleNetworkSystem;
     require constraint statement { language "English" /* Until the stop response starts, the vehicle network shall apply each valid driving command at the actuation ECU. */ }
     attribute :>> source = "NEED-EE-001; eeVehicleCommandConcern; scenarios SC-EE-001 to SC-EE-004";
-    attribute :>> rationale = "The vehicle acts on a driving command only when the actuation ECU applies it, at the simulation time at which it arrives. After a repetition, and after a delay unless the stop response has started, the actuation ECU applies the next valid driving command; a loss, a corruption or a link that goes down leaves it more than 200 ms without one, so the stop response starts (REQ-EE-009) and no later command is applied. The stop response holds until the run ends, as the standstill of REQ-DRIVING-022 does.";
+    attribute :>> rationale = "The vehicle acts on a driving command only when the actuation ECU applies it, at the simulation time at which it arrives. After a repetition the actuation ECU applies the next valid driving command; a loss, a corruption, the delay of the run set or a link that goes down leaves it more than 200 ms without one, so the stop response starts (REQ-EE-009) and no later command is applied. A valid command that arrives more than 200 ms after the last one comes when the stop response is due, so the criteria leave it out even while the start of the response is within its tolerance. The stop response holds until the run ends, as the standstill of REQ-DRIVING-022 does.";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when the run set is judged and, in each of its runs, the actuation ECU applies each valid driving command that reaches it before the stop response starts, at the simulation time at which it reaches it.";
+    attribute :>> successCriteria = "Met when the run set is judged and, in each of its runs, the actuation ECU applies each valid driving command that reaches it before the stop response starts and no more than 200 ms of simulation time after the last valid driving command before it reached the actuation ECU, or after the run started when it is the first, at the simulation time at which it reaches it.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -344,7 +349,7 @@ package DE4SDV_EEArchitectureNeedsRequirements {
     attribute :>> source = "NEED-EE-002; eeCommandItemConcern; REQ-DRIVING-039; gap gapEEActuationEnd";
     attribute :>> rationale = "This is a design constraint on the exchange items of the vehicle network. REQ-DRIVING-039 makes the driving command detectable by its form: its issue time shows a delay, its sequence count a loss or a repetition, and its check value a corruption. That detection holds from the boundary interface to the actuation ECU only if no element computes a detection part anew: a zone controller that repacks the command from Ethernet to CAN with a new check value, issue time or sequence count would hide from the actuation ECU a fault that came before it. A record shows a detection part that changes at an element in a run with a fault, but no test can tell a new check value over unchanged parts from the one taken, so the requirement is verified by analysis of the realization and of the records. How a zone controller repacks the command, and whether the command fits a CAN frame, are decided in phases 6 to 8 (gapEEActuationEnd). The analysis rests on the realization that phase 8 records and makes no freedom-from-interference claim.";
     attribute :>> verificationMethod = "analyze";
-    attribute :>> successCriteria = "Met when the analysis of the realization that phase 8 records, and of the records of the runs of SC-EE-003 in the judged run set, shows, for each element of each route, that the element passes on the issue time, the sequence count and the check value of each driving command as it received them and computes none of them anew.";
+    attribute :>> successCriteria = "Met when the run set is judged and the analysis of the realization that phase 8 records, and of the records of the runs of SC-EE-003 of the run set, shows, for each element of each route, that the element passes on the issue time, the sequence count and the check value of each driving command as it received them and computes none of them anew.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -362,9 +367,9 @@ package DE4SDV_EEArchitectureNeedsRequirements {
     subject vehicleNetwork :> DE4SDV_EEArchitectureFraming::eeVehicleNetworkSystem;
     require constraint statement { language "English" /* The vehicle network shall start the stop response at the actuation ECU once more than 200 ms of simulation time pass with no valid driving command reaching the actuation ECU. */ }
     attribute :>> source = "NEED-EE-002; REQ-DRIVING-028; eeNetworkFaultResponseConcern; gap gapEEActuationEnd; scenarios SC-EE-003 and SC-EE-004";
-    attribute :>> rationale = "This is the share of the vehicle network in the stop response that REQ-DRIVING-028 of INC-DRIVING-001 asks and SC-EE-004 takes for a link that goes down. The adapter of the driver-assistance increment has no stop response, and the actuation ECU is the last element that a command reaches, so it gives the response itself because it can no longer be told to. The 200 ms of simulation time and the 300 ms of the criteria are those of REQ-DRIVING-028, whose rationale counts a command every 100 ms, so that two missed commands mean that the path has stopped; the source of this increment gives at most one each 100 ms. Set here: a command that reaches the actuation ECU exactly 200 ms after the last valid one still counts, and the stop response starts no earlier than that. Set here too: with the rules of the actuation adapter of the driver-assistance increment kept, one lost or corrupted command costs two, so it leaves the actuation ECU 300 ms without a valid command and starts the stop response, although REQ-DRIVING-028 reads two missed commands as a stopped path. A repetition costs only its copy, and a delay costs one command and leaves 200 ms without a valid one at a constant carriage time, so the stop response follows a delay only when the arrival times make the span longer. The stop response gives the deceleration of REQ-DRIVING-020 with the steering of REQ-DRIVING-021 until the run ends, which holds the vehicle at standstill as REQ-DRIVING-022 does, so that it needs no vehicle speed at the actuation ECU, whose inputs stay open (gapEEActuationEnd). The response is shown on the virtual vehicle and carries no safety claim; its time limit counts on the clock of the virtual vehicle and makes no timing claim for a vehicle network.";
+    attribute :>> rationale = "This is the share of the vehicle network in the stop response that REQ-DRIVING-028 of INC-DRIVING-001 asks and SC-EE-004 takes for a link that goes down. The adapter of the driver-assistance increment has no stop response, and the actuation ECU is the last element that a command reaches, so it gives the response itself because it can no longer be told to. The 200 ms of simulation time and the 300 ms of the criteria are those of REQ-DRIVING-028, whose rationale counts a command every 100 ms, so that two missed commands mean that the path has stopped; the source of this increment gives at most one each 100 ms. Set here: a command that reaches the actuation ECU exactly 200 ms after the last valid one still counts, and the stop response starts only after that. Set here too: with the rules of the actuation adapter of the driver-assistance increment kept, one lost or corrupted command costs two, so it leaves the actuation ECU 300 ms without a valid command and starts the stop response, although REQ-DRIVING-028 reads two missed commands as a stopped path. A repetition costs only its copy. A delay that only just makes a command late would leave exactly 200 ms without a valid one, where the outcome would depend on the clock of the testbed, so the run set delays the command by 300 ms; with the commands that it holds behind it, that leaves more than 200 ms without a valid one on every clock, and the stop response follows. The stop response gives the deceleration of REQ-DRIVING-020 with the steering of REQ-DRIVING-021 until the run ends, which holds the vehicle at standstill as REQ-DRIVING-022 does, so that it needs no vehicle speed at the actuation ECU, whose inputs stay open (gapEEActuationEnd). The response is shown on the virtual vehicle and carries no safety claim; its time limit counts on the clock of the virtual vehicle and makes no timing claim for a vehicle network.";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when the run set is judged and, in each of its runs in which more than 200 ms of simulation time pass with no valid driving command reaching the actuation ECU, the actuation ECU gives the vehicle the stop response, with its deceleration and its steering angle, from no earlier than 200 ms and no later than 300 ms of simulation time after the last valid driving command reached it, or after the run started when none did, until the run ends, and applies no driving command that reaches it after those 200 ms; and when no run of the run set holds a start of the stop response at another time.";
+    attribute :>> successCriteria = "Met when the run set is judged and, in each of its runs in which more than 200 ms of simulation time pass with no valid driving command reaching the actuation ECU, the actuation ECU gives the vehicle the stop response, with its deceleration and its steering angle, from later than 200 ms and no later than 300 ms of simulation time after the last valid driving command reached it, or after the run started when none did, until the run ends, and applies no driving command that reaches it after those 200 ms; and when no run of the run set holds a start of the stop response at another time.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -416,7 +421,8 @@ package DE4SDV_EEArchitectureNeedsRequirements {
      * repacks the command (REQ-EE-007); and the actuation ECU gives the
      * vehicle the steering angle and the acceleration of a command as they
      * arrive (the term apply), so it needs no vehicle speed. Open, for phases
-     * 6 to 8: which element holds each of these duties, where it takes the
+     * 6 to 8: which element holds each of these duties other than giving the
+     * stop response, which the actuation ECU gives, where it takes the
      * simulation time, how a zone controller repacks the command and whether
      * the command with its detection parts fits a CAN frame. Neither adapter
      * of the driving benches changes.
@@ -441,20 +447,20 @@ package DE4SDV_EEArchitectureNeedsRequirements {
      * run of the run set names, on its link, after the first valid driving
      * command and at least 300 ms of simulation time before the run ends,
      * because the stop response holds until the run ends; a delay holds the
-     * delayed command on its link and keeps the order of the commands, and
-     * the records name its size. The replay and the fault injection give no
-     * element of the vehicle network a driving command other than through the
-     * Eclipse S-CORE path. The records hold, with its simulation time, each
-     * driving command where the vehicle network takes it, at each element
-     * that it passes and where it reaches the actuation ECU, identified by
-     * the sequence count that the vehicle network took, and what the
-     * actuation ECU gives the vehicle. The vehicle model takes the steering
-     * angle and the acceleration that the actuation ECU gives it, keeps a
-     * vehicle at standstill under a deceleration, and gets its control only
-     * from the actuation ECU. Open: the testbed, its readiness probe, its
-     * cost and its host (gapEEBenchPlatform), and which recording gives the
-     * stream and how the stream is bound to the revision that made it
-     * (gapEERecordedCommandStream).
+     * delayed command on its link for 300 ms of simulation time and keeps the
+     * order of the commands, and the records name its size. The replay and
+     * the fault injection give no element of the vehicle network a driving
+     * command other than through the Eclipse S-CORE path. The records hold,
+     * with its simulation time, each driving command where the vehicle
+     * network takes it, at each element that it passes and where it reaches
+     * the actuation ECU, identified by the sequence count that the vehicle
+     * network took, and what the actuation ECU gives the vehicle. The vehicle
+     * model takes the steering angle and the acceleration that the actuation
+     * ECU gives it, keeps a vehicle at standstill under a deceleration, and
+     * gets its control only from the actuation ECU. Open: the testbed, its
+     * readiness probe, its cost and its host (gapEEBenchPlatform), and which
+     * recording gives the stream and how the stream is bound to the revision
+     * that made it (gapEERecordedCommandStream).
      */
 
   /* ─────────────────────────────── Views ─────────────────────────────── */
