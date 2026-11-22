@@ -343,12 +343,13 @@ def test_the_guide_states_the_classification_and_admits_nothing():
         "the guide's prose wraps at 79 columns; a link or a table row may run longer"
 
 
-def test_the_guide_names_the_next_obligation_in_phase_4():
+def test_the_guide_names_the_next_obligation_after_the_classification():
     flat = " ".join(GUIDE.read_text(encoding="utf-8").split("## Next obligation and execution limits", 1)[1]
                     .split("\n## ", 1)[0].split())
     for phrase in ("Phase 3, the capability classification, records no feature-model delta, and review judges it: "
                    "its one blocking check has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, "
                    "with a prompt for review.",
-                   "The next model obligation is **Phase 4**, the stakeholder needs."):
+                   "The next model obligation is **Phase 5**, the requirements."):
         assert flat.count(phrase) == 1, phrase
     assert "The next model obligation is **Phase 3**" not in flat
+    assert "The next model obligation is **Phase 4**" not in flat
