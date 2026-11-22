@@ -209,7 +209,7 @@ ALLOTTED_WARNING_TIME = re.compile(
 #: (hmiSimulatorTruthOutOfScope); "current", "live", "stale", "frozen" or "freezes", "up to date" and a last frame
 #: only in sentences that never show stale content as current (hmiStaleContentInScope). A claim that uses none of
 #: these words is not caught here. The pinned texts give most of these sentences; RULE_SENTENCES are those of the
-#: texts that no equality pin covers: the file's header, the context's doc and the display's doc.
+#: file's header, which is pinned paragraph by paragraph, and of the context's doc and the display's doc.
 RULE_TERMS = re.compile(r"(?i)\b(?:simulat\w*|carla|ground[- ]truth|truth|current\w*|live\w*|last frames?|stale\w*"
                         r"|froz\w*|freez\w*|up[- ]to[- ]date)\b")
 #: The context doc's sentence on the world outside the display: it reaches the display only through the candidate.
@@ -237,7 +237,21 @@ MISSING_REQUEST_RECORD = (
 SCENE_TIME_RECORD = (
     "The owner decided on 2026-11-22 that the scene carries its time, as the vehicle speed and the warning request "
     "carry theirs, as a correction of phase 2 that comes with phase 4: the scene-time decision of 2026-11-22.")
-#: The guide's closing paragraph of its Phase 2 section on the two corrections, sentence by sentence.
+#: The header's title and the paragraph of the phase, which the two dated records follow.
+HEADER_TITLE = "DE4SDV HMI display: Phase 2 operational context."
+HEADER_SCOPE = (
+    "INC-HMI-001, phase 2: what happens in the world of the HMI display. The candidate application of the "
+    "driver-assistance increment gives its scene and its warning request, the Eclipse S-CORE path carries the request, "
+    "the vehicle gives its speed, and the display shows the driver the scene and the speed and gives the collision "
+    "warning on the display and as a sound. The candidate and the S-CORE path are System 1 parts outside the display, "
+    "as phase 0 draws the boundary. The story is the driver-assistance increment's scenarios as the driver sees them "
+    "on the display, with the outages in the IVI VM and a warning request that stops reaching the display added to "
+    "them; it names those scenarios and restates none of them. The last is the further run of SC-DRIVING-012 in which "
+    "the Eclipse S-CORE path is stopped, which the stop-run decision of 2026-11-18 of the driver-assistance increment "
+    "names. CARLA, the cloud hosts, the scenario runner, the means that make Android in the IVI VM hang, end and "
+    "restart, the captures, the evaluators and the recordings are System 2 and stay out of this context. No "
+    "human-factors, timing, safety, compliance or production-readiness claim is made.")
+#: The guide's paragraph on the two corrections, after the story of its Phase 2 section, sentence by sentence.
 PHASE_TWO_CORRECTIONS = (
     "Two corrections of Phase 2 come with Phase 4.",
     "On 2026-11-22 the owner decided that the story gains `SC-HMI-007`: the missing-request decision of "
@@ -799,3 +813,15 @@ def test_the_two_corrections_of_phase_2_are_recorded_in_day_order_under_one_name
         assert section.count(name) == 1 and guide.count(name) == 1, name
     # one wording of each correction: no other wording dates an amendment or a correction
     assert not re.search(r"(?i)\b(?:amend\w*|correct\w*) (?:on|of) 2026-11-22", prose + " " + guide)
+
+
+def _header_paragraphs(raw: str) -> list[str]:
+    head = raw.split("\npackage ", 1)[0].strip()
+    assert head.startswith("/*") and head.endswith("*/"), "the file opens with its header"
+    return [_prose(part) for part in re.split(r"\n\s*\*\s*\n", head[2:-2])]
+
+
+def test_the_header_is_pinned_paragraph_by_paragraph():
+    # The title, the paragraph of the phase and the two dated records, each whole and in this order. Prose added to
+    # the header in other words, a quotation or another dating of a correction, fails here and is for review.
+    assert _header_paragraphs(_raw()) == [HEADER_TITLE, HEADER_SCOPE, MISSING_REQUEST_RECORD, SCENE_TIME_RECORD]

@@ -411,10 +411,12 @@ CONTRACTS = {
         "closest object only when it is nearer than that distance. The scene names no detection as the closest object. "
         "The fusion gives the closest object a distance and a speed, and moves the distance by that speed over time; "
         "its comment reads a negative speed as approaching, and the planner takes the speed as that of the vehicle "
-        "ahead, so which of the two the display shows is open. Where AutoDrive flags an object in the path and "
-        "AutoSpeed gives no detection of the first level, the visualization also draws a mark for "
-        "the closest object at the distance that AutoDrive gives, the distance that the fusion then takes from "
-        "AutoDrive; NEED-HMI-001 asks for the closest object of the fusion, not for that mark. Phase 5 states as "
+        "ahead where it predicts the gap and as the speed at which the vehicle closes on it where it sets the "
+        "acceleration, so which the display shows is open. Where AutoDrive flags an object in the path and AutoSpeed "
+        "gives no detection of the first level, the visualization also draws a mark for the closest object at the "
+        "distance that AutoDrive gives, the distance that the fusion then takes from AutoDrive, when that distance "
+        "lies within its range and, in its panel, no box lies near it; NEED-HMI-001 asks for the closest object of the "
+        "fusion that the planner plans on, not for that mark. Phase 5 states as "
         "requirements what the display takes from the scene.")),
     "warningRequestContract": ("needCollisionWarningOnRequest", (
         "The warning request is the output that the driver-assistance increment realizes from the warnings of each "
@@ -832,7 +834,8 @@ def test_the_input_contracts_are_comments_for_phase_5():
     scene = CONTRACTS["perceivedSceneContract"][1]
     # the mark that AutoDrive alone gives is the system's own perception, and the planner plans on the closest object
     assert "The planner plans on that closest object" in scene
-    assert "NEED-HMI-001 asks for the closest object of the fusion, not for that mark." in scene
+    assert ("NEED-HMI-001 asks for the closest object of the fusion that the planner plans on, not for that mark."
+            in scene)
     # the lane-departure warnings follow from the lateral offset; only the collision warnings from the acceleration
     assert "and the collision warnings of each plan follow from the acceleration that it plans." in scene
     # the comment names its own contracts and no other comment: a free comment is no reviewed text
