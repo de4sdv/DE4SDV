@@ -2161,9 +2161,10 @@ def test_r12b_a_step_that_fails_after_the_score_host_was_lost_names_the_loss_and
 
 def test_r12b_a_step_that_fails_before_the_loss_stays_the_end(tmp_path: Path) -> None:
     # guard of the order: the loss came after the failure (the S-CORE stop's own SSH answered, the host went after
-    # it), so ended_by stays the step and exit 5; the loss is recorded all the same
+    # it), so ended_by stays the step and exit 5; the loss is recorded all the same.
+    # FAKE_LOSS_AFTER_FAIL: the loss only in a later second than the failure (CI's date misordered one second, rc 3)
     r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_LOST_AFTER=f"{L4}:run score_stop_on_failure",
-            FAKE_FAIL_STEP="app_restart_run1", DA_T_HOST_WATCH_S="600")
+            FAKE_FAIL_STEP="app_restart_run1", FAKE_LOSS_AFTER_FAIL="1", DA_T_HOST_WATCH_S="600")
     assert r.rc == 5, r.log
     rec = json.loads((r.incoming / "session.json").read_text())
     assert rec["failed_step"] == "app_restart_run1" and rec["ended_by"] == "step app_restart_run1", rec["ended_by"]

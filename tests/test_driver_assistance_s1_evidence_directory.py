@@ -142,8 +142,12 @@ def test_the_readme_table_is_generated_from_the_verdicts():
 def test_the_readme_states_the_condition_of_record_retention_and_no_publication():
     readme = _readme()
     for phrase in ("Status: draft. Nothing in this directory or in the session tree is published.",
-                   "The results are not shown to the VisionPilot maintainers yet, and the owner approves any text "
-                   "before they are.",
+                   # the upstream comment decision of 2026-11-22: the README points to the record of the contact
+                   "Results of S1 went to the VisionPilot maintainers in a comment of 2026-11-22 (the upstream "
+                   "comment decision of 2026-11-22); [Upstream contact](../../../../textual-notation-of-model/"
+                   "packages/features/driving/upstream.md#upstream-contact) in the driving folder's upstream record "
+                   "states what it reports.",
+                   "Each further text goes out only on the owner's word.",
                    "S1 is the evidence of record on one condition (the evidence-of-record decision of 2026-11-21): "
                    "the bench files that ran on a host are byte-identical to those that #549 merges.",
                    "git diff --stat 508649ba <merged> -- implementation/driver-assistance-bench",
@@ -161,6 +165,7 @@ def test_the_readme_states_the_condition_of_record_retention_and_no_publication(
                    "python tools/refresh_driver_assistance_s1_evidence.py"):
         assert phrase in readme, phrase
     assert not re.search(r"(?i)\b(?:behaviour|instrument cluster|certified|compliant)\b", readme)
+    assert "not shown to the VisionPilot maintainers" not in readme
     disposition = " ".join((EVIDENCE / "VIDEO-EVIDENCE-DISPOSITION.md").read_text(encoding="utf-8").split())
     for phrase in ("No recording of the judged session S1 is in Git, and none is published.",
                    "No case reads a recording.", "No publication cut exists.",

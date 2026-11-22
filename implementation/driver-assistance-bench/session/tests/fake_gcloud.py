@@ -15,6 +15,14 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
                      0.10.0 prints a %3N without the fraction's leading zeros (".094" as ".940"), and so does CI's
                      ubuntu-26.04 image (its failing runs logged losses at ".510", ".940" and ".980"). The error stays
                      inside the second, so a failure one second on reads as after the loss there and on GNU date
+  FAKE_LOSS_AFTER_FAIL  1: the mirror of FAKE_FAIL_AFTER_LOSS, for a loss that comes after a failure. The ssh call
+                     that triggers FAKE_LOST_AFTER first waits until the clock has passed into a later whole second
+                     than the call's arrival; only then are the loss and its preemption's insertTime recorded. A
+                     trigger in abort's stop path (score_stop_on_failure, say) arrives after abort took the failure's
+                     time (t_fail), so the loss then reads as after the failure whatever `date` prints for their
+                     milliseconds. Without it a fast host lost the VM in the failure's second, and CI's date printed
+                     a t_fail of ".0xx" without its leading zero (".060" as ".600"): a loss logged at ".113" in that
+                     second then read as before the failure (rc 3 for 5, on main at 2a1817d4)
   FAKE_STEP_RC       "step:rc,..."  the exit status a detached step reports (status, tail) in place of 0
   FAKE_HANG_STEP     "step:seconds"  `host_step.sh run <step>` sleeps that long before answering; a detached
                      step (`start`) reads "running" for that long after its start
@@ -301,6 +309,11 @@ if words[:2] == ["compute", "ssh"]:
             st["ssh_down"].append(vm)
     lost = kv("FAKE_LOST_AFTER")
     if n in lost and lost[n] in c and n not in st.setdefault("lost", []):
+        if os.environ.get("FAKE_LOSS_AFTER_FAIL") == "1":
+            # the loss in a later whole second than this call's arrival (see the knob above)
+            arrived = time.time()
+            while int(time.time()) <= int(arrived):
+                time.sleep(int(arrived) + 1 - time.time() + 0.001)
         st["vm"][n] = os.environ.get("FAKE_LOST_STATUS", "TERMINATED")   # reclaimed after this call (it answers)
         st["lost"].append(n)
         st.setdefault("lost_at", {})[n] = now = time.time()   # FAKE_FAIL_AFTER_LOSS waits on it
