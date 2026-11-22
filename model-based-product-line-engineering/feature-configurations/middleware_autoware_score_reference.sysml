@@ -1,5 +1,5 @@
 /*
- * PLEML feature configuration of the Eclipse S-CORE reference configuration
+ * PLEML feature configuration of the S-CORE-integrated member configuration
  * of INC-MW-011, the configuration authority since the switch of ADR 0022.
  * It restates the Bill-of-Features example-linux-score-autoware.yaml, which
  * retired at step S7; INC-MW-011 phase 9 renamed it and gave it the guest

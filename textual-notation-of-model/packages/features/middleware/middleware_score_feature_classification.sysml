@@ -46,8 +46,8 @@ package DE4SDV_MiddlewareSCOREFeatureClassification {
     doc /*
      * Product-line engineers, system architects and open-source reviewers need
      * the new member-distinguishing characteristic identified as a feature
-     * candidate, with the gap and the scope decisions of 2026-11-13 that admit
-     * its counterpart.
+     * candidate, with the gap and the scope decisions of 2026-09-01 and
+     * 2026-11-13 that admit its counterpart.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;

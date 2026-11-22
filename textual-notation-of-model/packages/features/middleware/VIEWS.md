@@ -278,7 +278,7 @@ Shows the requirement set and its trace links to needs, behavior, or architectur
 
 ### `scoreTwoDomainClassificationView`
 
-Product-line engineers, system architects and open-source reviewers need the new member-distinguishing characteristic identified as a feature candidate, with the gap and the scope decisions of 2026-11-13 that admit its counterpart.
+Product-line engineers, system architects and open-source reviewers need the new member-distinguishing characteristic identified as a feature candidate, with the gap and the scope decisions of 2026-09-01 and 2026-11-13 that admit its counterpart.
 
 - **Source:** `middleware_score_feature_classification.sysml`
 - **Viewpoint:** `selectedProductLineClassificationViewpoint` (`ProductLineClassificationViewpoint`)

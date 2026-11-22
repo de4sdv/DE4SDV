@@ -228,6 +228,9 @@ def test_the_configured_product_specializes_the_s_core_integrated_member() -> No
                   "If the owner admits the member in phase 12", "It stays a phase-12 decision", "C007 to C010",
                   "Eclipse S-CORE reference configuration"):
         assert stale not in docs, stale
+    configuration = " ".join(re.sub(r"\n\s*\*?", " ", (ROOT / CONFIGURATION).read_text(encoding="utf-8")).split())
+    assert "Eclipse S-CORE reference configuration" not in configuration, CONFIGURATION
+    assert "PLEML feature configuration of the S-CORE-integrated member configuration of INC-MW-011" in configuration
 
 
 def test_cls_mw_004_has_both_integrated_alternatives_as_its_counterpart() -> None:
@@ -265,16 +268,23 @@ def test_cls_mw_004_has_both_integrated_alternatives_as_its_counterpart() -> Non
 
 def test_the_classification_concern_names_only_relations_the_model_has() -> None:
     """The concern framed by scoreTwoDomainClassificationView: no scope decision governs the candidate (a scope
-    decision record governs the scope), and the decisions of 2026-11-13 admit the alternatives that are its
-    counterpart. The concern text reaches VIEWS.md, which scripts/generate_view_index.py regenerates."""
+    decision record governs the scope), and two scope decisions admit the alternatives that are its counterpart:
+    the initial scope of 2026-09-01 (AAOS Integrated) and ADR 0023 of 2026-11-13 (S-CORE Integrated). The concern
+    text reaches VIEWS.md, which scripts/generate_view_index.py regenerates."""
     concern = _docs(CLASSIFICATION)
     assert ("Product-line engineers, system architects and open-source reviewers need the new member-distinguishing "
-            "characteristic identified as a feature candidate, with the gap and the scope decisions of 2026-11-13 "
-            "that admit its counterpart.") in concern
-    for stale in ("the scope decision it waits for", "the scope decision that governs it"):
+            "characteristic identified as a feature candidate, with the gap and the scope decisions of 2026-09-01 "
+            "and 2026-11-13 that admit its counterpart.") in concern
+    for stale in ("the scope decision it waits for", "the scope decision that governs it",
+                  "the scope decisions of 2026-11-13 that admit"):
         assert stale not in concern, stale
+    scope = SCOPE.read_text(encoding="utf-8")
+    for record, date in (("initialAEBSProductLineScopeDecision", "2026-09-01"),
+                         ("scoreIntegratedMemberScopeDecision", "2026-11-13")):
+        assert re.search(rf'part\s+{record}\s*:\s*ProductLineScopeDecisionRecord\s*\{{[^}}]*'
+                         rf'decisionDate\s*=\s*"{date}"', scope), record
     views = " ".join((MIDDLEWARE / "VIEWS.md").read_text(encoding="utf-8").split())
-    assert "with the gap and the scope decisions of 2026-11-13 that admit its counterpart." in views
+    assert "with the gap and the scope decisions of 2026-09-01 and 2026-11-13 that admit its counterpart." in views
 
 
 def test_mw_config_002_is_bound_to_the_exact_receipt() -> None:
