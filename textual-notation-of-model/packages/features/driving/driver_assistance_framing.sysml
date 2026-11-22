@@ -486,8 +486,9 @@ package DE4SDV_DriverAssistanceFraming {
      * 2026-11-22. The driving folder's upstream record (upstream.md, Upstream
      * contact) states what it reports, what it asks and what it leaves out. It
      * does not show the maintainers the draft of the warning output or the
-     * interface seam. No endorsement and no rights clearance exists, and the
-     * terms of the network weights and of their data are not read. Still
+     * interface seam. No endorsement and no rights clearance exists. Contrary
+     * to the baseline paragraph, the terms of the network weights and of their
+     * data were read on 2026-11-18, in a draft outside the repository. Still
      * deferred to a later increment.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;

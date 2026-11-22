@@ -788,8 +788,11 @@ GAP_AFTER_BASELINE = (
     "The driving folder's upstream record (upstream.md, Upstream contact) states what it reports, what it asks and "
     "what it leaves out.",
     "It does not show the maintainers the draft of the warning output or the interface seam.",
-    "No endorsement and no rights clearance exists, and the terms of the network weights and of their data are not "
-    "read.",
+    "No endorsement and no rights clearance exists.",
+    # the baseline paragraph says that the terms are not read: they were read in a draft of 2026-11-18 that the
+    # repository does not hold, and the paragraph after the baseline says so instead of repeating it
+    "Contrary to the baseline paragraph, the terms of the network weights and of their data were read on 2026-11-18, "
+    "in a draft outside the repository.",
     "Still deferred to a later increment.",
 )
 #: the record of the decision in the head of the framing file
@@ -835,6 +838,7 @@ def test_the_gap_records_the_comment_of_2026_11_22_after_its_baseline_paragraph(
     assert doc.index(GAPS["gapUpstreamContactAndRights"]) < doc.index(baseline[0]), "the framing text stays first"
     assert GAP_DISPOSITIONS["gapUpstreamContactAndRights"] == "deferred"
     assert COMMENT_URL not in doc and "issuecomment" not in doc, "the model points to the record, not to the thread"
+    assert "not read" not in doc[doc.index(GAP_AFTER_BASELINE[0]):], "after the baseline the terms are read"
 
 
 def test_the_head_records_the_upstream_comment_decision_under_one_name():

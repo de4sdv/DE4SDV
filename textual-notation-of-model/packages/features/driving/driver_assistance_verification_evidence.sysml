@@ -2566,13 +2566,13 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
 
   requirement counterClaimNoUpstreamEndorsementOrRights : DriverAssistanceCounterClaim {
     doc /*
-     * No upstream endorsement or rights clearance is asserted: the terms of
-     * the network weights and of the data they were trained on are not read,
-     * and a result about the project is shown to its maintainers before it is
-     * published (gapUpstreamContactAndRights). Since the upstream comment
-     * decision of 2026-11-22, the driving folder's upstream record
-     * (upstream.md, Upstream contact) states what DE4SDV sent to the
-     * VisionPilot maintainers.
+     * No upstream endorsement or rights clearance is asserted: the repository
+     * holds no reading of the terms of the network weights and of the data they
+     * were trained on, and a result about the project is shown to its
+     * maintainers before it is published (gapUpstreamContactAndRights). Since
+     * the upstream comment decision of 2026-11-22, the driving folder's
+     * upstream record (upstream.md, Upstream contact) states what DE4SDV sent
+     * to the VisionPilot maintainers.
      */
     subject bench : DriverAssistanceVerificationBench;
   }

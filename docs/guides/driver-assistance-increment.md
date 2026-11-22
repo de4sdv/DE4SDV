@@ -1199,10 +1199,9 @@ Each point is a gap of the model, in the model's own words.
   (`gapUpstreamContactAndRights`). After the baseline, on 2026-11-22: DE4SDV
   posted a comment on pull request 427 of VisionPilot, by the upstream comment
   decision of 2026-11-22. The driving folder's upstream record (upstream.md,
-  Upstream contact) states what it reports, what it asks and what it leaves
-  out. It does not show the maintainers the draft of the warning output or the
-  interface seam. No endorsement and no rights clearance exists, and the terms
-  of the network weights and of their data are not read.
+  Upstream contact) states what it reports, what it asks and what it leaves out.
+  It does not show the maintainers the draft of the warning output or the
+  interface seam. No endorsement and no rights clearance exists.
 - **The HMI display's place in the product line**
   (`gapDriverHmiInProductLine`). The feature model holds the HMI display as an
   optional feature that requires the AAOS SDV guest, and neither governed

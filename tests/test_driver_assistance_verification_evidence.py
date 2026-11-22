@@ -1090,10 +1090,15 @@ def test_each_counter_claim_restates_a_non_claim_of_the_framing_and_is_tied_to_i
     upstream = _flat(_body(raw, r"\brequirement counterClaimNoUpstreamEndorsementOrRights : "
                                 r"DriverAssistanceCounterClaim \{"))
     for phrase in ("No upstream endorsement or rights clearance is asserted:",
+                   # the terms were read in a draft of 2026-11-18 that the repository does not hold
+                   "the repository holds no reading of the terms of the network weights and of the data they were "
+                   "trained on, and a result about the project is shown to its maintainers before it is published "
+                   "(gapUpstreamContactAndRights).",
                    "Since the upstream comment decision of 2026-11-22, the driving folder's upstream record "
                    "(upstream.md, Upstream contact) states what DE4SDV sent to the VisionPilot maintainers."):
         assert upstream.count(phrase) == 1, phrase
     assert "No upstream contact" not in upstream
+    assert "not read" not in upstream, "the counter-claim states what the repository holds"
     framing = _docs(FRAMING)
     assert "tuning the candidate or a scenario until a case passes" in framing
     assert "Their results for the first application are not evidence for this one." in framing
