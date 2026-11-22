@@ -210,6 +210,12 @@ warning request to each mode divides (`gapHmiWarningPresentation`) are fixed
 with the requirements in Phase 5. No human-factors, timing, safety or
 compliance claim is made.
 
+Two corrections of Phase 2 come with Phase 4. On 2026-11-22 the owner decided
+that the story gains `SC-HMI-007`: the missing-request decision of 2026-11-22.
+On 2026-11-22 the owner decided that the scene carries its time, as the vehicle
+speed and the warning request carry theirs: the scene-time decision of
+2026-11-22.
+
 The context view frames `hmiDisplayContextConcern`. The story view frames
 `hmiDisplayStoryConcern` and the Phase 1 concern `hmiDriverSupervisionConcern`,
 which the story answers.
@@ -264,18 +270,19 @@ comes from. Each has one planned stakeholder review on the Phase 2 scenarios it
 covers, carried out by the roles that check the answer.
 
 - `NEED-HMI-001`: the display shows the driver the scene as the
-  driver-assistance system gives it from its own perception. Vehicle occupants.
-  Reviewed by `SC-HMI-008` on `SC-HMI-001` and `SC-HMI-002`.
+  driver-assistance system gives it from its own perception, with the
+  object that the system acts on marked. Vehicle occupants. Reviewed by
+  `SC-HMI-008` on `SC-HMI-001` and `SC-HMI-002`.
 - `NEED-HMI-002`: the display shows the driver the vehicle speed that the
   driver-assistance system is given. Vehicle occupants. Reviewed by
   `SC-HMI-009` on `SC-HMI-001` and `SC-HMI-002`.
 - `NEED-HMI-003`: the display gives the collision warning on the display and as
   a sound when the warning request asks for it, and none without a request.
   Vehicle occupants. Reviewed by `SC-HMI-010` on `SC-HMI-001` and `SC-HMI-002`.
-- `NEED-HMI-004`: the speed and the warning, or the fact that the warning is
-  unavailable, stay on the display while the app that draws the scene or
-  Android in the IVI VM is out. Vehicle occupants. Reviewed by `SC-HMI-011` on
-  `SC-HMI-003` to `SC-HMI-006`.
+- `NEED-HMI-004`: the speed and the warning, or, when the warning cannot be
+  given, the fact that it is unavailable, stay on the display while the app
+  that draws the scene or Android in the IVI VM is out. Vehicle occupants.
+  Reviewed by `SC-HMI-011` on `SC-HMI-003` to `SC-HMI-006`.
 - `NEED-HMI-005`: the display shows no element as current when it is not, and
   shows when the collision warning is unavailable. Vehicle occupants. Reviewed
   by `SC-HMI-012` on `SC-HMI-003` to `SC-HMI-007`.
@@ -283,6 +290,12 @@ covers, carried out by the roles that check the answer.
   display that ran. Verification engineers and product-line engineers, who use
   the run identity in their own work. Reviewed by `SC-HMI-013` on all seven
   scenarios.
+
+On 2026-11-22 the owner decided that the display shows what the
+driver-assistance system perceives, right or wrong, with the object that the
+system acts on marked, and not only what reaches the control of the vehicle:
+the display-rule decision of 2026-11-22. `NEED-HMI-001` and `SC-HMI-008` carry
+it.
 
 Seven concerns get no need of their own: the items that cross into the display,
 its common content, the warning's sequence, the outages of the scene's drawing,
@@ -298,13 +311,15 @@ No need states a number or names a drawing: Phase 5 derives the requirements
 and their limits, how the app in the IVI VM draws the scene is a choice of
 Phase 8, and no need asks for gear, set speed, speed limit or another telltale.
 Comments about `NEED-HMI-001` and `NEED-HMI-003` keep for Phase 5 what the
-driver-assistance system gives at the pinned revision: what its scene carries,
-and what its warning request asks for and carries.
+pinned driver-assistance system builds and what the driver-assistance increment
+realizes from it: what the scene of its visualization carries, and what the
+warning request asks for and carries.
 
 `SC-DRIVING-018` of the driver-assistance increment watches the collision
-warning on the same runs as `SC-HMI-010` for another subject: its need,
-`NEED-DRIVING-010`, asks the candidate to give the warning request, and
-`NEED-HMI-003` asks the display to give the warning from it.
+warning in `SC-DRIVING-012` and `SC-DRIVING-013`, which `SC-HMI-010` watches
+too, for another subject: its need, `NEED-DRIVING-010`, asks the candidate to
+give the warning request, and `NEED-HMI-003` asks the display to give the
+warning from it.
 
 `tests/test_hmi_display_needs_requirements.py` pins the needs, their holders
 and sources, the planned reviews and their scenarios, and the wording a need

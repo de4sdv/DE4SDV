@@ -8,28 +8,35 @@
  * covers, carried out by the roles that check the answer. Seven concerns are
  * reviewer questions: a need's source names them and its review checks them.
  *
- * Each of these seven concerns asks to see the answer that the view of a later
- * phase gives, and the HMI display gives its roles nothing that they use in
- * their own work: hmiDisplayInputsConcern, held by systems engineers and
- * safety experts, and hmiContentVarianceConcern, held by product-line
- * engineers, ask about the items that cross into the display and about its
- * common content, and NEED-HMI-001 names them; hmiWarningSequenceConcern, held
- * by safety experts and systems engineers, asks about the sequence of the
- * warning, and NEED-HMI-003 names it; hmiAndroidOutageConcern, held by safety
- * experts and systems engineers, hmiRendererAllocationConcern, held by
- * product-line engineers and safety experts, and hmiRendererPathConcern, held
- * by system architects and systems engineers, ask about the outages, the
- * renderers and their paths, and NEED-HMI-004 names them;
- * hmiContentCurrencyConcern, held by safety experts and verification
- * engineers, asks about the states of each element, and NEED-HMI-005 names it.
- * The stakeholder needs of the driver-assistance increment and of the E/E
- * architecture increment keep such concerns as reviewer questions in the same
- * way.
+ * Each of these seven concerns asks to see an answer that the model gives
+ * elsewhere, the view of a later phase or, for the common content, the
+ * classification of phase 3 and the lifecycle decision, and the HMI display
+ * gives its roles nothing that they use in their own work:
+ * hmiDisplayInputsConcern, held by systems engineers and safety experts, and
+ * hmiContentVarianceConcern, held by product-line engineers, ask about the
+ * items that cross into the display and about its common content, and
+ * NEED-HMI-001 names them; hmiWarningSequenceConcern, held by safety experts
+ * and systems engineers, asks about the sequence of the warning, and
+ * NEED-HMI-003 names it; hmiAndroidOutageConcern, held by safety experts and
+ * systems engineers, hmiRendererAllocationConcern, held by product-line
+ * engineers and safety experts, and hmiRendererPathConcern, held by system
+ * architects and systems engineers, ask about the outages, the renderers and
+ * their paths, and NEED-HMI-004 names them; hmiContentCurrencyConcern, held by
+ * safety experts and verification engineers, asks about the states of each
+ * element, and NEED-HMI-005 names it. The stakeholder needs of the
+ * driver-assistance increment and of the E/E architecture increment keep such
+ * concerns as reviewer questions in the same way.
  *
  * The needs name no drawing: how the app in the IVI VM draws the scene is a
  * choice of phase 8, and the visual design stays out of scope
  * (hmiHumanFactorsOutOfScope). No need asks for gear, set speed, speed limit
  * or another telltale (hmiFurtherContentOutOfScope).
+ *
+ * The owner decided on 2026-11-22 that the display shows what the
+ * driver-assistance system perceives, right or wrong, with the object that the
+ * system acts on marked, and not only what reaches the control of the vehicle:
+ * the display-rule decision of 2026-11-22. NEED-HMI-001 and its review carry
+ * it.
  *
  * Phase 5 adds to this package the requirements derived from these needs.
  *
@@ -50,9 +57,9 @@ package DE4SDV_HmiDisplayNeedsRequirements {
   requirement <'NEED-HMI-001'> needPerceivedSceneOnTheDisplay : StakeholderNeedCandidate {
     subject hmiDisplay :> DE4SDV_HmiDisplayFraming::hmiDisplaySystem;
     stakeholder occupant : VehicleOccupant;
-    require constraint statement { language "English" /* Vehicle occupants need the HMI display to show the driver the scene as the driver-assistance system gives it from its own perception: its lane, the path it fits to that lane, the objects it detects with their level relative to that path, and the closest object in its path with the distance and the speed that its fusion gives. */ }
+    require constraint statement { language "English" /* Vehicle occupants need the HMI display to show the driver the scene as the driver-assistance system gives it from its own perception: its lane, the path it fits to that lane, the objects it detects with their level relative to that path, and, marked apart from the other objects, the closest object in its path, which the system acts on, with the distance and the speed that its fusion gives. */ }
     attribute :>> source = "INC-HMI-001 hmiDriverSupervisionConcern, hmiDisplayInputsConcern, hmiContentVarianceConcern, scope item hmiSceneInScope, gaps gapHmiSceneOutput and gapHmiSceneContent, scenarios SC-HMI-001 and SC-HMI-002";
-    attribute :>> rationale = "The display shows the driver what the driver-assistance system perceives, right or wrong, so that the driver can supervise the system with it, and it shows the scene that the system gives and no other. At the inspected revision the system gives no such output (gapHmiSceneOutput), and what the scene carries bounds what the display can show of it (gapHmiSceneContent). The need states what the driver expects to see, not how a driver reads it, and carries no safety claim. Phase 5 derives its requirements. Phase 5 also derives from this need the requirements on the items that cross into the display, and states which requirements on the content of the display are core and which follow the driving application: its source names their concerns, and SC-HMI-008 asks their questions.";
+    attribute :>> rationale = "The display shows the driver what the driver-assistance system perceives, right or wrong, with the object that the system acts on marked, so that the driver can supervise the system with it, and it shows the scene that the system gives and no other (the display-rule decision of 2026-11-22). At the inspected revision the system gives no such output (gapHmiSceneOutput), and what the scene carries bounds what the display can show of it (gapHmiSceneContent). The need states what the driver expects to see, not how a driver reads it, and carries no safety claim. Phase 5 derives its requirements. Phase 5 also derives from this need the requirements on the items that cross into the display, and states which requirements on the content of the display are core and which follow the driving application: its source names their concerns, and SC-HMI-008 asks their questions.";
   }
 
   comment perceivedSceneContract about needPerceivedSceneOnTheDisplay
@@ -66,17 +73,25 @@ package DE4SDV_HmiDisplayNeedsRequirements {
      * to the path, and the validity and the distance of the closest object,
      * and it does not read the plan. The scene of the panel carries no speed
      * of the closest object and no time, and the inference result carries a
-     * frame identity and no capture time. The fusion gives the closest object
-     * a distance and a speed, and its comment reads a negative speed as
-     * approaching, so whether the speed that its fusion gives is the speed of
-     * the object or the speed at which it closes is open. The fusion reads the
-     * first level as the same lane and the second as the adjacent lane. Where
-     * AutoDrive flags an object in the path and AutoSpeed gives no box for it,
-     * the visualization draws a mark for the closest object with a distance
-     * that it derives from the network output itself; the planner does not use
-     * it, it is an estimate of the display's own, and NEED-HMI-001 leaves it
-     * out by its words. Phase 5 states as requirements what the display takes
-     * from the scene.
+     * frame identity and no capture time. The fusion reads the first level as
+     * the same lane and the second as the adjacent lane. It takes as the
+     * closest object the nearest detection of the first level, or of the
+     * second when that one is nearer, a cut-in, and fuses its distance with
+     * the distance that AutoDrive gives; where AutoSpeed gives neither and
+     * AutoDrive flags an object in the path, it takes the closest object from
+     * AutoDrive alone. The planner plans on that closest object, and the
+     * collision warnings of each plan follow from the acceleration that it
+     * plans. The scene names no detection as the closest object. The fusion
+     * gives the closest object a distance and a speed, and moves the distance
+     * by that speed over time; its comment reads a negative speed as
+     * approaching, and the planner takes the speed as that of the vehicle
+     * ahead, so which of the two the display shows is open. Where AutoDrive
+     * flags an object in the path and AutoSpeed gives no detection of the
+     * first or the second level, the visualization also draws a mark for the
+     * closest object at the distance that AutoDrive gives, the distance that
+     * the fusion then takes from AutoDrive; NEED-HMI-001 asks for the closest
+     * object of the fusion, not for that mark. Phase 5 states as requirements
+     * what the display takes from the scene.
      */
 
   requirement <'NEED-HMI-002'> needVehicleSpeedOnTheDisplay : StakeholderNeedCandidate {
@@ -109,9 +124,9 @@ package DE4SDV_HmiDisplayNeedsRequirements {
   requirement <'NEED-HMI-004'> needSpeedAndWarningThroughOutages : StakeholderNeedCandidate {
     subject hmiDisplay :> DE4SDV_HmiDisplayFraming::hmiDisplaySystem;
     stakeholder occupant : VehicleOccupant;
-    require constraint statement { language "English" /* Vehicle occupants need the HMI display to show the driver the vehicle speed and to give the collision warning when it is requested, or to show that the warning is unavailable, also while the app that draws the scene hangs or ends and while Android in the IVI VM hangs, boots or restarts. */ }
+    require constraint statement { language "English" /* Vehicle occupants need the HMI display to show the driver the vehicle speed and to give the collision warning when it is requested, or, when the warning cannot be given, to show that it is unavailable, also while the app that draws the scene hangs or ends and while Android in the IVI VM hangs, boots or restarts. */ }
     attribute :>> source = "INC-HMI-001 hmiDriverSupervisionConcern, hmiAndroidOutageConcern, hmiRendererAllocationConcern, hmiRendererPathConcern, scope items hmiAndroidOutageInScope and hmiRendererSplitInScope, gaps gapHmiRendererIntegration and gapHmiMemberGuestLayout, scenarios SC-HMI-003 to SC-HMI-006";
-    attribute :>> rationale = "The driver keeps driving while the drawing of the scene or Android in the IVI VM is out, and still needs the speed and the warning then, or to know that the warning cannot come. NEED-HMI-002 and NEED-HMI-003 state the speed and the warning; this need adds that they stay through each outage. It rests on N-AEBS-008, the need of the product line that the availability of the AEBS be apparent, and on the status indication of REQ-AEBS-013. Each outage is an event inside the boundary of the display, whose detection phases 6 to 8 decide. The need names no renderer and carries no safety claim. Phase 5 derives its requirements and their limits. Phase 5 also derives from this need the requirements on the sequence from each outage to what the display shows, on which renderer draws each element and on the paths of the inputs to the renderers: its source names their concerns, and SC-HMI-011 asks their questions.";
+    attribute :>> rationale = "While the drawing of the scene or Android in the IVI VM is out, the driver-assistance system goes on driving the vehicle, and the driver still needs the speed and the warning then, or to know that the warning cannot come. NEED-HMI-002 and NEED-HMI-003 state the speed and the warning; this need adds that they stay through each outage. It rests on N-AEBS-008, the need of the product line that the availability of the AEBS be apparent, and on the status indication of REQ-AEBS-013. Each outage is an event inside the boundary of the display, whose detection phases 6 to 8 decide. The need names no renderer and carries no safety claim. Phase 5 derives its requirements and their limits. Phase 5 also derives from this need the requirements on the sequence from each outage to what the display shows, on which renderer draws each element and on the paths of the inputs to the renderers: its source names their concerns, and SC-HMI-011 asks their questions.";
   }
 
   requirement <'NEED-HMI-005'> needNoElementShownAsCurrentWhenItIsNot : StakeholderNeedCandidate {
@@ -141,18 +156,19 @@ package DE4SDV_HmiDisplayNeedsRequirements {
      * verification engineers and systems engineers confirm whether the lane,
      * the path, the objects with their level and the closest object in the
      * path with its distance and its speed that the display shows are those
-     * that the driver-assistance system gave, and whether the display showed
-     * any object that the system did not give, from the simulator's record of
-     * the scene or from an estimate of the display's own? Can systems
-     * engineers and safety experts tell which items cross into the HMI display
-     * from outside its boundary, the lane of the driver-assistance system, the
-     * path it fits to that lane, the objects it detects with their level
-     * relative to its path, the closest object in its path with the distance
-     * and the speed that its fusion gives, the vehicle speed that the system
-     * is given and its warning request, and whether each reaches the display
-     * as its source gives it? And can product-line engineers tell which
-     * content of the HMI display is common to the member products and which
-     * derives from a member's driving application?
+     * that the driver-assistance system gave, whether the display marked the
+     * closest object in the path apart from the other objects, and whether the
+     * display showed any object that the system did not give, from the
+     * simulator's record of the scene or from an estimate of the display's
+     * own? Can systems engineers and safety experts tell which items cross
+     * into the HMI display from outside its boundary, the lane of the
+     * driver-assistance system, the path it fits to that lane, the objects it
+     * detects with their level relative to its path, the closest object in its
+     * path with the distance and the speed that its fusion gives, the vehicle
+     * speed that the system is given and its warning request, and whether each
+     * reaches the display as its source gives it? And can product-line
+     * engineers tell which content of the HMI display is common to the member
+     * products and which derives from a member's driving application?
      */
   }
   connection hmiSceneValidationPlanning : ValidationPlanningAssociation
@@ -216,24 +232,24 @@ package DE4SDV_HmiDisplayNeedsRequirements {
      * the scene is out and while Android in the IVI VM boots, hangs and
      * restarts (SC-HMI-003 to SC-HMI-006), can verification engineers and
      * safety experts confirm whether the driver saw the vehicle speed
-     * throughout and got the collision warning for each warning request, or
-     * saw that the warning was unavailable? Can safety experts and systems
-     * engineers follow the sequence from each outage of the drawing of the
-     * scene and of the environment that hosts it, the drawing hanging or
-     * ending and its host hanging, booting or restarting, to its detection and
-     * to what the display shows then, independent of the elements that realize
-     * it? Can product-line engineers and safety experts tell which renderer
-     * realizes the drawing of each element of the HMI display, and whether the
-     * split that the owner decided on 2026-11-17, the high availability
-     * renderer in an SDV Media VM for the speed, the collision warning and its
-     * sound and an app in the IVI VM for the scene, keeps what the driver sees
-     * while Android in the IVI VM hangs, boots or restarts? And can system
-     * architects and systems engineers tell which elements exchange each input
-     * of the HMI display on its way from the SDV Core VM to the high
-     * availability renderer in the SDV Media VM and to the app in the IVI VM
-     * that draws the scene, by which exchange that app tells the renderer that
-     * Android is alive, and by which boundary interface each input enters the
-     * display?
+     * throughout and got the collision warning for each warning request, or,
+     * where the warning could not be given, saw that it was unavailable? Can
+     * safety experts and systems engineers follow the sequence from each
+     * outage of the drawing of the scene and of the environment that hosts it,
+     * the drawing hanging or ending and its host hanging, booting or
+     * restarting, to its detection and to what the display shows then,
+     * independent of the elements that realize it? Can product-line engineers
+     * and safety experts tell which renderer realizes the drawing of each
+     * element of the HMI display, and whether the split that the owner decided
+     * on 2026-11-17, the high availability renderer in an SDV Media VM for the
+     * speed, the collision warning and its sound and an app in the IVI VM for
+     * the scene, keeps what the driver sees while Android in the IVI VM hangs,
+     * boots or restarts? And can system architects and systems engineers tell
+     * which elements exchange each input of the HMI display on its way from
+     * the SDV Core VM to the high availability renderer in the SDV Media VM
+     * and to the app in the IVI VM that draws the scene, by which exchange
+     * that app tells the renderer that Android is alive, and by which boundary
+     * interface each input enters the display?
      */
   }
   connection hmiOutageValidationPlanning : ValidationPlanningAssociation
@@ -357,7 +373,6 @@ package DE4SDV_HmiDisplayNeedsRequirements {
         attribute constraintType = CL::ConT::required;
         attribute constraintLanguage = "English";
       }
-      attribute :>> columnWidth = 360;
     }
     view Source :> columnViews {
       attribute :>> featureToRender = CT::attributeValue {
