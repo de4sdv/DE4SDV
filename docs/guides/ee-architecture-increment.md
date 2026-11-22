@@ -306,17 +306,21 @@ requirement that it shapes:
    sequence count is one more than the reference count, and its issue time is
    no more than 100 ms of simulation time old, measured at its arrival in
    place of the newest world time of that adapter.
-2. One lost or corrupted command costs two, so at one command each 100 ms it
-   leaves the actuation ECU 300 ms without a valid command and the stop
-   response follows, although REQ-DRIVING-028 takes two missed commands as the
-   sign of a path that gives no more commands. Accepting the command after a
-   gap would put the span at exactly 200 ms, where the outcome would depend on
-   the clock of the testbed. A delay that only just makes a command late would
-   put the span at exactly 200 ms under either rule, so the run set delays the
-   command by 300 ms, after which the stop response follows on every clock.
+2. One lost or corrupted command costs two, so at one command each 100 ms the
+   valid commands on either side of the gap are issued 300 ms apart and the
+   stop response follows, although REQ-DRIVING-028 takes two missed commands
+   as the sign of a path that gives no more commands; only when the first of
+   them takes the whole 100 ms to arrive and the second none is the span
+   exactly 200 ms, with no stop response. Accepting the command after a gap
+   would put the span at 200 ms when both commands take equally long to
+   arrive, where the outcome would depend on the clock of the testbed. A delay
+   that only just makes a command late would put the span at exactly 200 ms
+   under either rule, so the run set delays the command by 300 ms, after which
+   the stop response follows on every clock.
 3. The stop response starts once more than 200 ms of simulation time pass
    without a valid command, so a command that arrives exactly at 200 ms still
-   counts.
+   counts: a run without a fault can leave exactly 200 ms between two valid
+   commands.
 4. The vehicle network gets 50 ms of simulation time from the boundary
    interface to the actuation ECU, half of the delay limit; a run is judged
    only when the path to the boundary interface keeps the other half.

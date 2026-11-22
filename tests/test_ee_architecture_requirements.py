@@ -190,11 +190,11 @@ RATIONALES = {
         'The vehicle acts on a driving command only when the actuation ECU applies it, at the '
         'simulation time at which it arrives. After a repetition the actuation ECU applies the next '
         'valid driving command; a loss, a corruption, the delay of the run set or a link that goes '
-        'down leaves it more than 200 ms without one, so the stop response starts (REQ-EE-009) and no '
-        'later command is applied. A valid command that arrives more than 200 ms after the last one '
-        'comes when the stop response is due, so the criteria leave it out even while the start of the '
-        'response is within its tolerance. The stop response holds until the run ends, as the '
-        'standstill of REQ-DRIVING-022 does.'),
+        'down leaves it 200 ms or more without one, and once more than 200 ms pass, the stop response '
+        'starts (REQ-EE-009) and no later command is applied. A valid command that arrives more than '
+        '200 ms after the last one comes when the stop response is due, so the criteria leave it out '
+        'even while the start of the response is within its tolerance. The stop response holds until '
+        'the run ends, as the standstill of REQ-DRIVING-022 does.'),
     "reqPassDetectionPartsOnAsTaken": (
         'This is a design constraint on the exchange items of the vehicle network. REQ-DRIVING-039 '
         'makes the driving command detectable by its form: its issue time shows a delay, its sequence '
@@ -239,24 +239,29 @@ RATIONALES = {
         'whose rationale counts a command every 100 ms, so that two missed commands mean that the path '
         'has stopped; the source of this increment gives at most one each 100 ms. Set here: a command '
         'that reaches the actuation ECU exactly 200 ms after the last valid one still counts, and the '
-        'stop response starts only after that. Set here too: with the rules of the actuation adapter '
-        'of the driver-assistance increment kept, one lost or corrupted command costs two, so it '
-        'leaves the actuation ECU 300 ms without a valid command and starts the stop response, '
-        'although REQ-DRIVING-028 reads two missed commands as a stopped path. Set here too: a run '
-        'ends 100 ms of simulation time after the path gives its last driving command, more than the '
-        '50 ms share of the vehicle network, so that the last command can reach the actuation ECU '
-        'within the run, and less than the 200 ms after which the stop response starts, so that a run '
-        'without a fault ends without it. A repetition costs only its copy. A delay that only just '
-        'makes a command late would leave exactly 200 ms without a valid one, where the outcome would '
-        'depend on the clock of the testbed, so the run set delays the command by 300 ms; with the '
-        'commands that it holds behind it, that leaves more than 200 ms without a valid one on every '
-        'clock, and the stop response follows. The stop response gives the deceleration of '
-        'REQ-DRIVING-020 with the steering of REQ-DRIVING-021 until the run ends, which holds the '
-        'vehicle at standstill as REQ-DRIVING-022 does, so that it needs no vehicle speed at the '
-        'actuation ECU, whose inputs stay open (gapEEActuationEnd). With no valid command applied, '
-        'there is no steering angle to hold, so the stop response gives 0° of steering. The response '
-        'is shown on the virtual vehicle and carries no safety claim; its time limit counts on the '
-        'clock of the virtual vehicle and makes no timing claim for a vehicle network.'),
+        'stop response starts only after that, because a judged run without a fault can leave exactly '
+        '200 ms between two valid commands, and a start at 200 ms would make the verdict of such a run '
+        'depend on the step of the clock of the testbed. Set here too: with the rules of the actuation '
+        'adapter of the driver-assistance increment kept, one lost or corrupted command costs two, so '
+        'the valid commands on either side of the gap have issue times 300 ms apart, more than 200 ms '
+        'pass at the actuation ECU without a valid command and the stop response starts, although '
+        'REQ-DRIVING-028 reads two missed commands as a stopped path; when the first of them takes the '
+        'whole 100 ms to reach the actuation ECU and the second none, exactly 200 ms pass and no stop '
+        'response is due. Set here too: a run ends 100 ms of simulation time after the path gives its '
+        'last driving command, more than the 50 ms share of the vehicle network, so that the last '
+        'command can reach the actuation ECU within the run, and less than the 200 ms after which the '
+        'stop response starts, so that a run without a fault ends without it. A repetition costs only '
+        'its copy. A delay that only just makes a command late would leave exactly 200 ms without a '
+        'valid one, where the outcome would depend on the clock of the testbed, so the run set delays '
+        'the command by 300 ms; with the commands that it holds behind it, that leaves more than 200 '
+        'ms without a valid one on every clock, and the stop response follows. The stop response gives '
+        'the deceleration of REQ-DRIVING-020 with the steering of REQ-DRIVING-021 until the run ends, '
+        'which holds the vehicle at standstill as REQ-DRIVING-022 does, so that it needs no vehicle '
+        'speed at the actuation ECU, whose inputs stay open (gapEEActuationEnd). When the actuation '
+        'ECU has applied no valid command, there is no steering angle to hold, so the stop response '
+        'gives 0°, which steers the vehicle neither left nor right. The response is shown on the '
+        'virtual vehicle and carries no safety claim; its time limit counts on the clock of the '
+        'virtual vehicle and makes no timing claim for a vehicle network.'),
     "reqRecordNetworkIdentity": (
         'A verdict holds only for the route, the topology and the revision of the vehicle network that '
         'ran, and another engineer can rerun a run only from what it names. The commit names the '
@@ -379,11 +384,11 @@ TERM_DEFINITIONS = {
         'makes a driving command lost, held on the link so that it reaches the actuation ECU more than '
         '100 ms of simulation time after its issue time, repeated, or changed in a part, that is a '
         'loss, a delay, a repetition or a corruption, or that takes the link down for the rest of the '
-        'run. A fault affects the driving command that it loses, holds, repeats or changes, each '
-        'driving command on the link when the link goes down, and each one given to the link while it '
-        'is down; it affects no other command, so a command that a delay holds behind the held one is '
-        'unaffected, even when it arrives too late to be valid. A defect of an element is no fault; '
-        'the requirements hold with it in every run.'),
+        'run. A fault affects the driving command that it loses, repeats or changes, the one command '
+        'that a delay holds, each driving command on the link when the link goes down, and each one '
+        'given to the link while it is down; it affects no other command, so a command that waits '
+        'behind the held one is unaffected, even when it arrives too late to be valid. A defect of an '
+        'element is no fault; the requirements hold with it in every run.'),
     "Judged run": (
         'a run in which the path that carries the driving commands to the boundary interface gives '
         'each of them there no more than 50 ms of simulation time after its issue time.'),
@@ -605,16 +610,19 @@ GUIDE_DECISIONS = (
         'and its issue time is no more than 100 ms of simulation time old, measured at its arrival in '
         'place of the newest world time of that adapter.'),
     (
-        'One lost or corrupted command costs two, so at one command each 100 ms it leaves the '
-        'actuation ECU 300 ms without a valid command and the stop response follows, although '
-        'REQ-DRIVING-028 takes two missed commands as the sign of a path that gives no more commands. '
-        'Accepting the command after a gap would put the span at exactly 200 ms, where the outcome '
-        'would depend on the clock of the testbed. A delay that only just makes a command late would '
-        'put the span at exactly 200 ms under either rule, so the run set delays the command by 300 '
-        'ms, after which the stop response follows on every clock.'),
+        'One lost or corrupted command costs two, so at one command each 100 ms the valid commands on '
+        'either side of the gap are issued 300 ms apart and the stop response follows, although '
+        'REQ-DRIVING-028 takes two missed commands as the sign of a path that gives no more commands; '
+        'only when the first of them takes the whole 100 ms to arrive and the second none is the span '
+        'exactly 200 ms, with no stop response. Accepting the command after a gap would put the span '
+        'at 200 ms when both commands take equally long to arrive, where the outcome would depend on '
+        'the clock of the testbed. A delay that only just makes a command late would put the span at '
+        'exactly 200 ms under either rule, so the run set delays the command by 300 ms, after which '
+        'the stop response follows on every clock.'),
     (
         'The stop response starts once more than 200 ms of simulation time pass without a valid '
-        'command, so a command that arrives exactly at 200 ms still counts.'),
+        'command, so a command that arrives exactly at 200 ms still counts: a run without a fault can '
+        'leave exactly 200 ms between two valid commands.'),
     (
         'The vehicle network gets 50 ms of simulation time from the boundary interface to the '
         'actuation ECU, half of the delay limit; a run is judged only when the path to the boundary '
