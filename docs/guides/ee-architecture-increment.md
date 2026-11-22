@@ -309,14 +309,15 @@ requirement that it shapes:
 2. One lost or corrupted command costs two, so at one command each 100 ms the
    valid commands on either side of the gap are issued 300 ms apart and the
    stop response follows, although REQ-DRIVING-028 takes two missed commands
-   as the sign of a path that gives no more commands; only when the first of
-   them takes the whole 100 ms to arrive and the second none is the span
-   exactly 200 ms, with no stop response. Accepting the command after a gap
-   would put the span at 200 ms when both commands take equally long to
-   arrive, where the outcome would depend on the clock of the testbed. A delay
-   that only just makes a command late would put the span at exactly 200 ms
-   under either rule, so the run set delays the command by 300 ms, after which
-   the stop response follows on every clock.
+   as the sign of a path that gives no more commands; only when the valid
+   command before the gap takes the whole 100 ms to arrive and the one after
+   it none is the span exactly 200 ms, with no stop response. Accepting the
+   command after a gap would put the span at 200 ms plus the difference of the
+   times that the two commands take to arrive, so that whether the stop
+   response follows would depend on that difference and on the step of the
+   clock of the testbed. A delay that only just makes a command late would put
+   the span at exactly 200 ms under either rule, so the run set delays the
+   command by 300 ms, after which the stop response follows on every clock.
 3. The stop response starts once more than 200 ms of simulation time pass
    without a valid command, so a command that arrives exactly at 200 ms still
    counts: a run without a fault can leave exactly 200 ms between two valid
