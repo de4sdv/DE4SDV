@@ -75,8 +75,8 @@ HEADER_REASONS = (
     "Showing no element as current when it is not gets none: it is behavior, which phase 5 states as requirements "
     "and phase 6 as states ({currency}).",
     "Which renderer draws what gets none: it is a realization that phase 8 maps ({allocation}), which the owner "
-    "decided on 2026-11-17 for this configuration; a renderer needs the AAOS SDV guest, which follows the "
-    "integration mode.",
+    "decided on 2026-11-17 for this configuration; either renderer of this configuration needs the AAOS SDV guest, "
+    "which follows the integration mode.",
     "The third VM of the guest gets none: the VM layout of a guest is realization content (ADR 0026, after ADR "
     "0025), and the gap leaves it to a decision outside this increment ({layout}).",
     "The outages of Android in the IVI VM get none: they are events inside the black box of the operational context, "
@@ -133,10 +133,12 @@ GUIDE_PARTS = (
     "Behavior, realization and evidence:** late content and the outages of Android are behavior for Phases 5 and "
     "6; which renderer draws what, the VMs of the guest and the displays of the members are realization; the "
     "verdicts are System 2. None of them is a feature.",
-    "Scope decisions** (`gapHmiDisplayInProductLine`): whether the scene of each member's driving application, the "
-    "speed, the warning with the indication that it is unavailable, and the sound become common content of the "
-    "display, and whether the high availability renderer or an app in the IVI VM draws it where a member has an "
-    "AAOS SDV guest, are open for the lifecycle decision. This increment admits nothing. The one blocking check of "
+    "Scope decisions** (`gapHmiDisplayInProductLine`): whether the scene of each member's driving application and "
+    "the speed become common content of the display; whether the warning and the indication that it is unavailable "
+    "become content of the display of every member, a question that belongs to the AEBS requirements and "
+    "architecture; whether the acoustic warning becomes common content of the driver warning; and whether the high "
+    "availability renderer or an app in the IVI VM draws the common content where a member has an AAOS SDV guest, "
+    "are open for the lifecycle decision. This increment admits nothing. The one blocking check of "
     "Phase 3 evaluates the characteristics recorded, and this phase records none, so the Method Check reports Phase "
     "3 as having nothing to evaluate. Review judges the classification.",
 )

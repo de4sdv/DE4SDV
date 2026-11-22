@@ -97,11 +97,11 @@ package DE4SDV_HmiDisplayFraming {
      * enabling system: the candidate application, which perceives, plans and
      * requests the warning, and the Eclipse S-CORE path that carries its
      * outputs to the SDV Core VM. Which part of System 1 brings the vehicle
-     * speed to the SDV Core VM is for Phases 2 and 3 to place. Phases 6 to 8
-     * decide the realization. The display belongs to a configuration that is
-     * not a member product: this increment admits no member to the governed
-     * product-line scope. Phases 2 and 3 add the actors, the interfaces and
-     * the product-line classification.
+     * speed to the SDV Core VM is for the architecture phases to place.
+     * Phases 6 to 8 decide the realization. The display belongs to a
+     * configuration that is not a member product: this increment admits no
+     * member to the governed product-line scope. Phases 2 and 3 add the
+     * actors, the interfaces and the product-line classification.
      */
   }
   part hmiDisplaySystem : HmiDisplaySystem;
@@ -521,9 +521,9 @@ package DE4SDV_HmiDisplayFraming {
      * against the governed scope as its revision leaves it
      * (gapHmiDisplayInProductLine). The framing view frames it. Phase 3 gives
      * each content item its reason in its classification and records no
-     * characteristic, since no content tells the member products apart, so
-     * phase 3 has no view; which content becomes common is for the lifecycle
-     * decision.
+     * characteristic, since the increment adds none that tells the member
+     * products apart, so phase 3 has no view; which content becomes common is
+     * for the lifecycle decision.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;

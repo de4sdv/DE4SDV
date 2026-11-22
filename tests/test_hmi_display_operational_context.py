@@ -622,10 +622,8 @@ def test_dependencies_trace_the_story_and_the_context_to_phase_zero():
                       ("guestAcrossBoundaryComment", f"{FRAMING_PACKAGE}::gapHmiMemberGuestLayout")]
     speed = _comment(raw, "vehicleSpeedSourceComment")
     for phrase in ("Phase 2 places the source of the vehicle speed: the vehicle gives the display the speed that "
-                   "it gives the candidate.",
-                   "Phase 0 leaves its carrier to phases 2 and 3; phase 3 places no element, so the carrier, a "
-                   "platform element of System 1 that brings the speed to the SDV Core VM, goes to the "
-                   "architecture phases.",
+                   "it gives the candidate; phase 3 places no element, so the carrier, a platform element of System 1 "
+                   "that brings the speed to the SDV Core VM, goes to the architecture phases.",
                    "this context draws no path for the speed."):
         assert phrase in speed, phrase
     scene = _comment(raw, "sceneOutputComment")

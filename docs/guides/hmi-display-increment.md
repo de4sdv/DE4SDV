@@ -113,9 +113,9 @@ nine, and a view of a later phase that answers a concern frames it as well.
   member's driving application. The scenes of the other driving applications
   are out of scope. Product-line capability classification; product-line
   engineers. The framing view frames it. Phase 3 gives each content item its
-  reason in its classification and records no characteristic, since no
-  content tells the member products apart, so Phase 3 has no view; which
-  content becomes common is for the lifecycle decision.
+  reason in its classification and records no characteristic, since the
+  increment adds none that tells the member products apart, so Phase 3 has
+  no view; which content becomes common is for the lifecycle decision.
 - **The warning's sequence:** `hmiWarningSequenceConcern`. The sequence from
   the warning request to the warning on the display and to its sound, and the
   time of each step within the time that the driver-assistance increment
@@ -235,11 +235,14 @@ by default and get no record.
   of the guest and the displays of the members are realization; the verdicts
   are System 2. None of them is a feature.
 - **Scope decisions** (`gapHmiDisplayInProductLine`): whether the scene of
-  each member's driving application, the speed, the warning with the
-  indication that it is unavailable, and the sound become common content of
-  the display, and whether the high availability renderer or an app in the IVI
-  VM draws it where a member has an AAOS SDV guest, are open for the lifecycle
-  decision. This increment admits nothing.
+  each member's driving application and the speed become common content of
+  the display; whether the warning and the indication that it is unavailable
+  become content of the display of every member, a question that belongs to
+  the AEBS requirements and architecture; whether the acoustic warning
+  becomes common content of the driver warning; and whether the high
+  availability renderer or an app in the IVI VM draws the common content
+  where a member has an AAOS SDV guest, are open for the lifecycle decision.
+  This increment admits nothing.
 
 The one blocking check of Phase 3 evaluates the characteristics recorded, and
 this phase records none, so the Method Check reports Phase 3 as having nothing
@@ -326,10 +329,11 @@ both. Two parts of **System 1** are outside its boundary, and neither is an
 enabler: the candidate application, which perceives, plans and requests the
 warning, and the Eclipse S-CORE path that carries its outputs to the SDV Core
 VM. Which part of System 1 brings the vehicle speed to the SDV Core VM is for
-Phases 2 and 3 to place. CARLA, the cloud hosts, the scenario runner, the
-means that make Android in the IVI VM hang, end and restart, the record of
-what the candidate gives, the capture of the display and of the sound, the
-evaluators and the recordings are **System 2** enablers, not vehicle features.
+the architecture phases to place. CARLA, the cloud hosts, the scenario
+runner, the means that make Android in the IVI VM hang, end and restart, the
+record of what the candidate gives, the capture of the display and of the
+sound, the evaluators and the recordings are **System 2** enablers, not vehicle
+features.
 The capture observes the AAOS SDV and is no part of it.
 
 The renderer's drawing of the speed and the warning is examined as behavior on

@@ -414,12 +414,11 @@ package DE4SDV_HmiDisplayOperationalContext {
   comment vehicleSpeedSourceComment about DE4SDV_HmiDisplayFraming::hmiSpeedInScope
   /*
    * Phase 2 places the source of the vehicle speed: the vehicle gives the
-   * display the speed that it gives the candidate. Phase 0 leaves its carrier
-   * to phases 2 and 3; phase 3 places no element, so the carrier, a platform
-   * element of System 1 that brings the speed to the SDV Core VM, goes to the
-   * architecture phases. The Eclipse S-CORE path of the driver-assistance
-   * increment carries the driving command and the warning request, so this
-   * context draws no path for the speed.
+   * display the speed that it gives the candidate; phase 3 places no element,
+   * so the carrier, a platform element of System 1 that brings the speed to
+   * the SDV Core VM, goes to the architecture phases. The Eclipse S-CORE path
+   * of the driver-assistance increment carries the driving command and the
+   * warning request, so this context draws no path for the speed.
    */
 
   comment sceneOutputComment about DE4SDV_HmiDisplayFraming::gapHmiSceneOutput

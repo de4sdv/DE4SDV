@@ -149,9 +149,9 @@ OPEN_POINTS = {
 #: views per phase). The concern states the fact instead, in the model's words, and names no later view.
 CONTENT_VARIANCE_FACT = (
     "The framing view frames it.",
-    "Phase 3 gives each content item its reason in its classification and records no characteristic, since no "
-    "content tells the member products apart, so phase 3 has no view; which content becomes common is for the "
-    "lifecycle decision.")
+    "Phase 3 gives each content item its reason in its classification and records no characteristic, since the "
+    "increment adds none that tells the member products apart, so phase 3 has no view; which content becomes common "
+    "is for the lifecycle decision.")
 #: the one concern that no view of a later phase answers, and why: its phase records no characteristic
 NO_LATER_VIEW = {"hmiContentVarianceConcern": CONTENT_VARIANCE_FACT[1]}
 #: Phase 1: concern -> (its concern definition, the in-scope items its doc names first, the part of them it asks
@@ -273,8 +273,9 @@ GUIDE_CONCERNS = {
                                   ("The scenes of the other driving applications are out of scope.",
                                    "The framing view frames it.",
                                    "Phase 3 gives each content item its reason in its classification and records no "
-                                   "characteristic, since no content tells the member products apart, so Phase 3 has "
-                                   "no view; which content becomes common is for the lifecycle decision.")),
+                                   "characteristic, since the increment adds none that tells the member products "
+                                   "apart, so Phase 3 has no view; which content becomes common is for the lifecycle "
+                                   "decision.")),
     "hmiWarningSequenceConcern": ("The warning's sequence",
                                   ("The warning request is taken as the driver-assistance increment defines it.",)),
     "hmiContentCurrencyConcern": ("Late and missing content",
@@ -461,7 +462,8 @@ def test_the_question_the_decision_and_the_boundary_say_what_was_agreed():
                    "Two parts of System 1 are outside this boundary, and neither is an enabling system: the candidate "
                    "application, which perceives, plans and requests the warning, and the Eclipse S-CORE path that "
                    "carries its outputs to the SDV Core VM.",
-                   "Which part of System 1 brings the vehicle speed to the SDV Core VM is for Phases 2 and 3 to place.",
+                   "Which part of System 1 brings the vehicle speed to the SDV Core VM is for the architecture phases "
+                   "to place.",
                    "The display belongs to a configuration that is not a member product: this increment admits no "
                    "member to the governed product-line scope."):
         assert phrase in system, phrase
@@ -803,6 +805,8 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "Two parts of **System 1** are outside its boundary, and neither is an enabler: the candidate "
                    "application, which perceives, plans and requests the warning, and the Eclipse S-CORE path that "
                    "carries its outputs to the SDV Core VM.",
+                   "Which part of System 1 brings the vehicle speed to the SDV Core VM is for the architecture phases "
+                   "to place.",
                    "are **System 2** enablers, not vehicle features.",
                    "The capture observes the AAOS SDV and is no part of it.",
                    "It is no safety claim"):

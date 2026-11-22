@@ -38,24 +38,24 @@
  * gets none: it is behavior, which phase 5 states as requirements and phase
  * 6 as states (hmiContentCurrencyConcern). Which renderer draws what gets
  * none: it is a realization that phase 8 maps (hmiRendererAllocationConcern),
- * which the owner decided on 2026-11-17 for this configuration; a renderer
- * needs the AAOS SDV guest, which follows the integration mode. The third VM
- * of the guest gets none: the VM layout of a guest is realization content
- * (ADR 0026, after ADR 0025), and the gap leaves it to a decision outside
- * this increment (gapHmiMemberGuestLayout). The outages of Android in the IVI
- * VM get none: they are events inside the black box of the operational
- * context, whose detection phases 6 to 8 decide (guestAcrossBoundaryComment).
- * The verdicts and the verification environment get none: they are System
- * 2, which the governed scope keeps out of product variability
- * (excludedSystem2ConcernSet). The candidate application and the Eclipse
- * S-CORE path, outside the boundary, get none: VisionPilot and Eclipse
- * S-CORE are features of the feature model (visionPilot, eclipseSCORE), and
- * this increment changes no feature. Adaptive cruise control and lane-keep
- * assist of the candidate get none: the feature model holds them as
- * adaptiveCruiseControl and laneKeepAssist, which the governed scope does
- * not hold, and this increment does not judge them. The Linux-side display
- * of the standalone member gets none: its place derives from the standalone
- * integration mode, this increment leaves it out of its scope
+ * which the owner decided on 2026-11-17 for this configuration; either
+ * renderer of this configuration needs the AAOS SDV guest, which follows the
+ * integration mode. The third VM of the guest gets none: the VM layout of a
+ * guest is realization content (ADR 0026, after ADR 0025), and the gap leaves
+ * it to a decision outside this increment (gapHmiMemberGuestLayout). The
+ * outages of Android in the IVI VM get none: they are events inside the black
+ * box of the operational context, whose detection phases 6 to 8 decide
+ * (guestAcrossBoundaryComment). The verdicts and the verification environment
+ * get none: they are System 2, which the governed scope keeps out of product
+ * variability (excludedSystem2ConcernSet). The candidate application and the
+ * Eclipse S-CORE path, outside the boundary, get none: VisionPilot and
+ * Eclipse S-CORE are features of the feature model (visionPilot,
+ * eclipseSCORE), and this increment changes no feature. Adaptive cruise
+ * control and lane-keep assist of the candidate get none: the feature model
+ * holds them as adaptiveCruiseControl and laneKeepAssist, which the governed
+ * scope does not hold, and this increment does not judge them. The Linux-side
+ * display of the standalone member gets none: its place derives from the
+ * standalone integration mode, this increment leaves it out of its scope
  * (hmiStandaloneDisplayOutOfScope), and its design is open
  * (gapHmiStandaloneLinuxDisplay). The display in the headless guest of the
  * AAOS-integrated member gets none: which VM of the guest holds it is
