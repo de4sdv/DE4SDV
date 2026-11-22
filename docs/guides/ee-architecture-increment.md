@@ -12,9 +12,10 @@ asks whether the path of a driving command keeps, across that network, the
 properties that the model asks of the command paths of earlier increments. It
 judges two routes: through a zone controller, and over a direct link.
 
-**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and
-Phase 3 capability classification, proposal.** No implementation, run, result,
-product-line admission or compliance is claimed.
+**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
+Phase 3 capability classification and Phase 4 stakeholder needs, proposal.**
+No implementation, run, result, product-line admission or compliance is
+claimed.
 
 ## Authoritative frame
 
@@ -34,14 +35,15 @@ Orkun Yilmaz owns the increment. One identity covers phases 0 to 11.
 Verification on a virtual vehicle belongs to Phase 10 of this increment. A
 readiness probe comes before the architecture rests on what it tests.
 
-The increment builds on the
-[driver-assistance increment](driver-assistance-increment.md): its driving
-command, whose form and cadence that increment fixes at its baseline. It takes
-the driving command as that increment fixes it and changes none of its
-criteria or verdicts. The stop response on lost commands comes from the
-[closed-loop driving increment](closed-loop-driving-increment.md), and the
-safety path from the
-[middleware requirements](../../textual-notation-of-model/packages/features/middleware/middleware_requirements.sysml).
+The increment builds on the [driver-assistance
+increment](driver-assistance-increment.md): its driving command, whose form
+that increment fixes at its baseline; that increment states no cadence of the
+command as such. It takes the driving command as that increment fixes it and
+changes none of its criteria or verdicts. The stop response on lost commands
+comes from the [closed-loop driving
+increment](closed-loop-driving-increment.md), and the safety path from the
+[middleware
+requirements](../../textual-notation-of-model/packages/features/middleware/middleware_requirements.sysml).
 None of them asks these properties of a vehicle network; Phase 5 of this
 increment derives its own requirements from them.
 
@@ -162,9 +164,10 @@ the evaluators stay in `eeVerificationEnvironment`.
 
 It imports two names of the operational context of the driver-assistance
 increment, `DrivingCommand` and `SCORECommandAndWarningPath`: names, not the
-form of the command. The form and the cadence of the command are those that
-the driver-assistance increment fixes at its baseline
-(`asmEECommandFromDrivingBaseline`).
+form of the command. The form of the command is the one that the
+driver-assistance increment fixes at its baseline
+(`asmEECommandFromDrivingBaseline`); that baseline states no cadence of the
+command as such.
 
 The story holds four scenarios. `SC-EE-001` carries the command through a zone
 controller, `SC-EE-002` over the direct link, `SC-EE-003` covers a command
@@ -217,6 +220,48 @@ by default and get no record.
 The one blocking check of Phase 3 evaluates the characteristics recorded, and
 this phase records none, so the Method Check reports Phase 3 as having nothing
 to evaluate. Review judges the classification.
+
+## Stakeholder needs (Phase 4)
+
+The [stakeholder
+needs](../../textual-notation-of-model/packages/features/ee/ee_architecture_needs_requirements.sysml)
+say what the parties of the Phase 1 concerns expect of the vehicle network.
+Each need is held by the parties it serves and leads its source with the
+concern it comes from. Each has one planned stakeholder review on the Phase 2
+scenarios it covers, carried out by the roles that check the answer.
+
+- `NEED-EE-001`: the network carries the driving command of the central
+  computer to the actuation ECU on each route of the command. Vehicle
+  occupants and road users. Reviewed by `SC-EE-005` on `SC-EE-001` and
+  `SC-EE-002`.
+- `NEED-EE-002`: the network applies to the vehicle no driving command that a
+  fault of the network made invalid on its way. Vehicle occupants and road
+  users. Reviewed by `SC-EE-006` on `SC-EE-003` and `SC-EE-004`, which also
+  asks whether a response followed when no valid command reached the actuation
+  ECU, and which.
+- `NEED-EE-003`: each run identifies the route that carried the command and
+  the topology and the revision of the network that ran. Verification
+  engineers and product-line engineers, who use the run identity in their own
+  work. Reviewed by `SC-EE-007` on all four scenarios.
+
+Four concerns get no need of their own: the topology, the elements that
+exchange the command on each route, the exchange items that carry it, and the
+sequence from a fault to its response. Their roles check the answer rather
+than use it, as in the stakeholder needs of the driver-assistance increment,
+so each is a question for a planned review: `NEED-EE-001` names the first two
+in its source and `SC-EE-005` asks them, and `NEED-EE-002` names the other two
+and `SC-EE-006` asks them. No need states a number: Phase 5 derives the
+requirements, their limits and the share of the network in the response when
+no valid command arrives, after REQ-DRIVING-028 of INC-DRIVING-001. The form
+of the command comes from the baseline of the driver-assistance increment,
+which states no cadence of the command as such; a comment about `NEED-EE-001`
+keeps that input contract for Phase 5.
+
+`tests/test_ee_architecture_needs_requirements.py` pins the needs, their
+holders and sources, the planned reviews and their scenarios, and the wording
+a need may not use. The Phase 4 gates check that each need has a statement, a
+stakeholder, a source, a rationale and a planned review. Review judges whether
+the needs are the right ones.
 
 ## What the framing already records as open
 
@@ -326,10 +371,10 @@ classification, records no feature-model delta, and review judges it: its one
 blocking check has nothing to evaluate, so the Method Check lists Phase 3 as
 vacuous, with a prompt for review. The owner decided on 2026-11-18 to carry
 out Phases 1 to 3 of this increment before the baseline of the
-driver-assistance increment, whose driving command it carries. The next model
-obligation is **Phase 4**, the needs. Phase 4 onward and the testbed with its
-readiness probe wait for that baseline and for a further decision of the
-owner.
+driver-assistance increment, whose driving command it carries. After that
+baseline, the owner decided on 2026-11-21 to start Phase 4. The next model
+obligation is **Phase 5**, the requirements. The testbed with its readiness
+probe waits for a further decision of the owner.
 
 The testbed is chosen after a readiness probe. Before a paid cloud run,
 refresh the regional price, the capacity and the available credit, obtain the
@@ -339,11 +384,12 @@ authorizes no spend.
 
 ## Check the framing change
 
-Run `sysand sync`, `python scripts/check_repo.py`,
-`python scripts/smoke_test.py` and
-`python -m pytest tests/test_ee_architecture_framing.py -q`. These are
-repository and lexical checks, not SysML semantic validation and not runtime
-verification. Use `python scripts/validate_sysml.py` where a licensed
-validator is available, or request the maintainer-run **Privileged Syside
-Validation** on the reviewed head. The framing view and its published diagram
-come from that Syside run.
+Run `sysand sync`, `python scripts/check_repo.py`, `python
+scripts/smoke_test.py` and `python -m pytest
+tests/test_ee_architecture_framing.py
+tests/test_ee_architecture_needs_requirements.py -q`. These are repository and
+lexical checks, not SysML semantic validation and not runtime verification.
+Use `python scripts/validate_sysml.py` where a licensed validator is
+available, or request the maintainer-run **Privileged Syside Validation** on
+the reviewed head. The framing view and its published diagram come from that
+Syside run.
