@@ -21,7 +21,7 @@ product-line admission or compliance is claimed.
   `INC-HMI-001`, its engineering question, charter, scope, assumptions,
   open gaps and Phase 1 concerns.
 - [SysML operational context](../../textual-notation-of-model/packages/features/hmi/hmi_display_operational_context.sysml):
-  the Phase 2 context of the HMI display and its story of six scenarios.
+  the Phase 2 context of the HMI display and its story of seven scenarios.
 - [SysML capability classification](../../textual-notation-of-model/packages/features/hmi/hmi_display_capability_classification.sysml):
   the Phase 3 classification of the display's content, which records no
   feature-model delta.
@@ -184,7 +184,7 @@ places the source of the vehicle speed at the vehicle; which element of
 System 1 carries it to the SDV Core VM, and on which path the scene leaves the
 candidate's process (`gapHmiSceneOutput`), stay open.
 
-The story holds six scenarios. Two are the scenarios of the driver-assistance
+The story holds seven scenarios. Two are the scenarios of the driver-assistance
 increment as the driver sees them on the display, each tied to them by a
 dependency and none restating them: `SC-HMI-001` the warning scenarios
 `SC-DRIVING-012` and `SC-DRIVING-013`, with the scene, the speed and the
@@ -193,16 +193,20 @@ no-reaction scenarios `SC-DRIVING-014` and `SC-DRIVING-015`, with the scene and
 the speed and no warning. Four add an outage in the IVI VM to them:
 `SC-HMI-003` the app that draws the scene ends or hangs, `SC-HMI-004` Android
 in the IVI VM boots, `SC-HMI-005` it hangs with its last frame on the display,
-and `SC-HMI-006` it restarts. In each the driver sees the speed and the
-warning, or the fact that the warning is unavailable, and the display shows no
-element as current when it is not. The display shows what the candidate
-perceives, never the simulator's record of the scene. The story states the aim
-of the engineering question; whether the display achieves it is the verdict of
-Phase 10. The criteria, the age from which an element counts as late and how
-the time that the driver-assistance increment allots from the warning request
-to each mode divides (`gapHmiWarningPresentation`) are fixed with the
-requirements in Phase 5. No human-factors, timing, safety or compliance claim
-is made.
+and `SC-HMI-006` it restarts. One adds a missing input: in `SC-HMI-007` the
+warning request stops reaching the display during the further run of
+`SC-DRIVING-012` that stops the Eclipse S-CORE path, which the stop-run
+decision of 2026-11-18 of the driver-assistance increment names, and the
+display shows that the warning is unavailable. In each the driver sees the
+speed and the warning, or the fact that the warning is unavailable, and the
+display shows no element as current when it is not. The display shows what the
+candidate perceives, never the simulator's record of the scene. The story
+states the aim of the engineering question; whether the display achieves it is
+the verdict of Phase 10. The criteria, the age from which an element counts as
+late and how the time that the driver-assistance increment allots from the
+warning request to each mode divides (`gapHmiWarningPresentation`) are fixed
+with the requirements in Phase 5. No human-factors, timing, safety or
+compliance claim is made.
 
 The context view frames `hmiDisplayContextConcern`. The story view frames
 `hmiDisplayStoryConcern` and the Phase 1 concern `hmiDriverSupervisionConcern`,
