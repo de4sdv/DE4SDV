@@ -95,11 +95,11 @@ def test_the_receipt_sha256_is_that_of_the_committed_receipt_the_configuration_n
     assert c["configuration_receipt_sha256"] == hashlib.sha256((REPO / RECEIPT).read_bytes()).hexdigest()
     rec = c["configuration_receipt"]
     assert rec["path"] == RECEIPT and rec["commit"] == COMMIT
-    assert rec["model_bound_sha256"] == "848262167497d033b87d4ae90c6f54d3b0edd4c851f80480cd07d8cd860a34a1"
+    assert rec["model_bound_sha256"] == "50cab825ea8ad7ade74173a7b4c1e7db47d68adf0b25867b8441c1387a63f357"
     assert rec["equal_to_model"] is (rec["model_bound_sha256"] == c["configuration_receipt_sha256"])
     # each value names its source, file and line, at the commit
-    assert f"{CONFIG_SYSML}:107" in rec["sources"]["configuration_identity"]
-    assert f"{CONFIG_SYSML}:138" in rec["sources"]["model_bound_sha256"]
+    assert f"{CONFIG_SYSML}:106" in rec["sources"]["configuration_identity"]
+    assert f"{CONFIG_SYSML}:137" in rec["sources"]["model_bound_sha256"]
     binds, _ = _sentence_lines(_text(EVIDENCE_SYSML), "It binds DRIVING-CONFIG-002 as its configurationIdentity")
     assert rec["sources"]["evidence_binding"] == f"{EVIDENCE_SYSML}:{binds} at {COMMIT}"
 
