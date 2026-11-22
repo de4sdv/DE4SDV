@@ -51,6 +51,7 @@ SCENARIOS = {
     "showSpeedAndWarningWhileAndroidBoots": ("SC-HMI-004", ALL_ACTORS),
     "keepSpeedAndWarningWhileAndroidHangs": ("SC-HMI-005", ALL_ACTORS),
     "keepSpeedAndWarningThroughAndroidRestart": ("SC-HMI-006", ALL_ACTORS),
+    "showWarningUnavailableWhenTheRequestStops": ("SC-HMI-007", ALL_ACTORS),
 }
 #: The scenarios of the driver-assistance increment that each HMI scenario shows, by reference.
 DRIVING_SCENARIOS = {
@@ -59,6 +60,9 @@ DRIVING_SCENARIOS = {
     "showNoWarningInTheNoReactionScenarios": {
         "SC-DRIVING-014": "noReactionToStationaryVehicleBeyondTheCurve",
         "SC-DRIVING-015": "noReactionToVehicleAheadTurningOff"},
+    # the further run of SC-DRIVING-012 in which the Eclipse S-CORE path is stopped (the stop-run decision of
+    # 2026-11-18 of the driver-assistance increment), named by reference
+    "showWarningUnavailableWhenTheRequestStops": {"SC-DRIVING-012": "warnAndBrakeForStationaryVehicle"},
 }
 
 #: The operation: every action with its parameters, in order, and every flow between them.
@@ -113,7 +117,8 @@ USE_CASE_DEF_MOTIVATION = (
 USE_CASE_DEF_TRIGGER = (
     "The vehicle drives with the candidate active in a scenario of the driver-assistance increment: the candidate "
     "gives its scene and, when it decides on a warning, its warning request, and the vehicle gives its speed; at "
-    "times the app that draws the scene ends or hangs, or Android in the IVI VM boots, hangs or restarts.")
+    "times the app that draws the scene ends or hangs, Android in the IVI VM boots, hangs or restarts, or the warning "
+    "request stops reaching the display.")
 USE_CASE_DEF_RESULT = (
     "The display shows the scene as the candidate gives it and the speed, gives the collision warning on the display "
     "and as a sound when the warning request arrives, shows no element as current when it is not, and keeps the "
@@ -172,7 +177,19 @@ SCENARIO_DOCS = {
         "current, and the driver sees the vehicle speed and the collision warning when the candidate requests it, "
         "or the fact that the warning is unavailable; then the scene appears again. No human-factors or safety "
         "claim is made."),
+    "showWarningUnavailableWhenTheRequestStops": (
+        "SC-HMI-007 (the warning request stops reaching the display): SC-DRIVING-012 is played once more with the "
+        "Eclipse S-CORE path stopped, so the warning request stops reaching the display. The display shows that the "
+        "warning is unavailable and shows no element as current when it is not (hmiStaleContentInScope), and the "
+        "driver still sees the vehicle speed. Whether the display learns that the warning is unavailable from the age "
+        "of its inputs or from a signal of its own is open (gapHmiWarningAvailability). No human-factors or safety "
+        "claim is made."),
 }
+#: The header's sentence that names the further run of SC-DRIVING-012 and the decision that sets it apart, by
+#: reference: the use case itself names neither a run nor the decision.
+STOP_RUN_REFERENCE = (
+    "The last is the further run of SC-DRIVING-012 in which the Eclipse S-CORE path is stopped, which the stop-run "
+    "decision of 2026-11-18 of the driver-assistance increment names.")
 #: The guide's sentence on what Phase 5 fixes, and the wording it replaces, which hands Phase 5 a time that the
 #: driver-assistance increment allots.
 WARNING_TIME_SENTENCE = (
@@ -230,7 +247,7 @@ GUIDE_PHASE_TWO = (
     "shows (`HmiDisplayContent`).",
     "Phase 2 places the source of the vehicle speed at the vehicle; which element of System 1 carries it to the "
     "SDV Core VM, and on which path the scene leaves the candidate's process (`gapHmiSceneOutput`), stay open.",
-    "The story holds six scenarios.",
+    "The story holds seven scenarios.",
     "Two are the scenarios of the driver-assistance increment as the driver sees them on the display, each tied to "
     "them by a dependency and none restating them: `SC-HMI-001` the warning scenarios `SC-DRIVING-012` and "
     "`SC-DRIVING-013`, with the scene, the speed and the collision warning on the display and as a sound, and "
@@ -239,6 +256,9 @@ GUIDE_PHASE_TWO = (
     "Four add an outage in the IVI VM to them: `SC-HMI-003` the app that draws the scene ends or hangs, "
     "`SC-HMI-004` Android in the IVI VM boots, `SC-HMI-005` it hangs with its last frame on the display, and "
     "`SC-HMI-006` it restarts.",
+    "One adds a missing input: in `SC-HMI-007` the warning request stops reaching the display during the further run "
+    "of `SC-DRIVING-012` that stops the Eclipse S-CORE path, which the stop-run decision of 2026-11-18 of the "
+    "driver-assistance increment names, and the display shows that the warning is unavailable.",
     "In each the driver sees the speed and the warning, or the fact that the warning is unavailable, and the "
     "display shows no element as current when it is not.",
     "The display shows what the candidate perceives, never the simulator's record of the scene.",
@@ -467,7 +487,7 @@ def test_every_use_case_binds_its_subject_and_actors_to_the_context():
     assert _objective(raw, f"use case {STORY} :") == STORY_OBJECTIVE
 
 
-def test_the_story_holds_the_six_scenarios():
+def test_the_story_holds_the_seven_scenarios():
     raw = _raw()
     code = _code()
     story = braced_body(code, f"use case {STORY} : {USE_CASE_DEF}")
@@ -477,7 +497,14 @@ def test_the_story_holds_the_six_scenarios():
         # the objective whole: its identity, what the driver sees, the alternative of every outage and the nonclaim
         assert _doc(raw, f"use case {name}") == SCENARIO_DOCS[name], f"{name} ({scenario_id}): the whole objective"
     ids = re.findall(r"SC-HMI-\d{3}", raw)
-    assert sorted(set(ids)) == sorted(s[0] for s in SCENARIOS.values()), "only the six new scenario identities"
+    assert sorted(set(ids)) == sorted(s[0] for s in SCENARIOS.values()), "only the seven new scenario identities"
+    # the further run of SC-DRIVING-012 is named in the header, by reference, never restated
+    header = _prose(raw.split("\npackage ", 1)[0])
+    assert STOP_RUN_REFERENCE in header
+    assert "with the outages in the IVI VM and a warning request that stops reaching the display added to them; it " \
+        "names those scenarios and restates none of them." in header
+    frame = GUIDE.read_text(encoding="utf-8").split("## Authoritative frame", 1)[1].split("\n## ", 1)[0]
+    assert "its story of seven scenarios." in _flat(frame), "the guide's frame counts the scenarios"
     da_ids = set(re.findall(r"SC-DRIVING-\d{3}", raw))
     assert da_ids == {i for refs in DRIVING_SCENARIOS.values() for i in refs}, "the four reused scenarios only"
 
@@ -504,7 +531,8 @@ def test_the_driving_scenarios_are_reused_by_reference_never_restated():
     own = _prose(FRAMING.read_text(encoding="utf-8")).lower()
     prose = _prose(raw).lower()
     da_def = f"use case def {DA_USE_CASE_DEF} :> SYSMODSystemUseCaseBase"
-    da_texts = [_doc(da, f"use case {u}") for refs in DRIVING_SCENARIOS.values() for u in refs.values()]
+    reused = sorted({u for refs in DRIVING_SCENARIOS.values() for u in refs.values()})
+    da_texts = [_doc(da, f"use case {u}") for u in reused]
     da_texts.append(_doc(da, da_def))
     for slot in ("ucMotivation", "ucTrigger", "ucResult"):
         da_texts.append(re.search(rf'\b{slot}\s*=\s*"([^"]+)"', braced_body(da, da_def)).group(1))
@@ -612,7 +640,7 @@ def test_dependencies_trace_the_story_and_the_context_to_phase_zero():
          f"{FRAMING_PACKAGE}::gapHmiWarningAvailability"),
     }
     driving = [d for d in deps if d[2].startswith(DA_PACKAGE + "::")]
-    assert len(deps) == len(phase_zero) + len(driving) == 7 + 5, "seven phase 0 traces and five scenario references"
+    assert len(deps) == len(phase_zero) + len(driving) == 7 + 6, "seven phase 0 traces and six scenario references"
     framing = strip_comments(FRAMING.read_text(encoding="utf-8"))
     for _, _, supplier in phase_zero:
         name = supplier.split("::")[-1]
