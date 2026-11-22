@@ -429,7 +429,8 @@ package DE4SDV_HmiDisplayFraming {
     );
     attribute :>> expectedArtifacts = (
       "DE4SDV_HmiDisplayFraming",
-      "DE4SDV_HmiDisplayOperationalContext"
+      "DE4SDV_HmiDisplayOperationalContext",
+      "DE4SDV_HmiDisplayCapabilityClassification"
     );
     attribute :>> expectedReviewEvidence = (
       "owner confirmation of the engineering question and the scope",
@@ -464,9 +465,10 @@ package DE4SDV_HmiDisplayFraming {
    * parties whose interest it states, not only by the roles that check the
    * answer. Each is typed by the SAF concern that asks its question, the
    * product-line question by the method's classification concern, and names
-   * the view of a later phase that answers it; that is the viewpoint
-   * selection of this phase. The framing viewpoint frames all of them, and a
-   * view of a later phase that answers a concern frames it as well. */
+   * the view of a later phase that answers it, save the product-line
+   * question, for which phase 3 has no view; that is the viewpoint selection
+   * of this phase. The framing viewpoint frames all of them, and a view of a
+   * later phase that answers a concern frames it as well. */
   concern hmiDriverSupervisionConcern : OperationalCapabilityConcern {
     doc /*
      * hmiSceneInScope, hmiSpeedInScope, hmiCollisionWarningInScope and
@@ -517,8 +519,11 @@ package DE4SDV_HmiDisplayFraming {
      * of the product line are out of scope
      * (hmiOtherDrivingApplicationsOutOfScope). The classification is made
      * against the governed scope as its revision leaves it
-     * (gapHmiDisplayInProductLine). Answered by the product-line
-     * classification view of phase 3.
+     * (gapHmiDisplayInProductLine). The framing view frames it. Phase 3 gives
+     * each content item its reason in its classification and records no
+     * characteristic, since no content tells the member products apart, so
+     * phase 3 has no view; which content becomes common is for the lifecycle
+     * decision.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;
