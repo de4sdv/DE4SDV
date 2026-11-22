@@ -144,6 +144,16 @@ OPEN_POINTS = {
     "gapHmiDisplayInProductLine": "The HMI display's place in the product line",
     "gapHmiUpstreamContact": "No upstream contact",
 }
+#: The correction of the answer of hmiContentVarianceConcern in Phase 3: Phase 1 named a classification view of
+#: Phase 3 as its answer, and a Phase 3 that records no characteristic publishes no view (increment-workflow,
+#: views per phase). The concern states the fact instead, in the model's words, and names no later view.
+CONTENT_VARIANCE_FACT = (
+    "The framing view frames it.",
+    "Phase 3 gives each content item its reason in its classification and records no characteristic, since no "
+    "content tells the member products apart, so phase 3 has no view; which content becomes common is for the "
+    "lifecycle decision.")
+#: the one concern that no view of a later phase answers, and why: its phase records no characteristic
+NO_LATER_VIEW = {"hmiContentVarianceConcern": CONTENT_VARIANCE_FACT[1]}
 #: Phase 1: concern -> (its concern definition, the in-scope items its doc names first, the part of them it asks
 #: about or None, its native stakeholders in order, the sentences that state its question, and the views that answer
 #: it as (phase, viewpoint definition) pairs, read from the doc's answer). One concern per question; a concern is held
@@ -183,8 +193,9 @@ PHASE1_CONCERNS = {
          "The scene is what one driving application perceives, and the scenes of the other driving applications of "
          "the product line are out of scope (hmiOtherDrivingApplicationsOutOfScope).",
          "The classification is made against the governed scope as its revision leaves it "
-         "(gapHmiDisplayInProductLine)."),
-        ((3, "ProductLineClassificationViewpoint"),)),
+         "(gapHmiDisplayInProductLine).",
+         *CONTENT_VARIANCE_FACT),
+        ()),
     "hmiWarningSequenceConcern": (
         "SystemProcessConcern", ("hmiCollisionWarningInScope",), None,
         [("safetyExpert", "SafetyExpert"), ("systemsEngineer", "SystemsEngineer")],
@@ -259,7 +270,11 @@ GUIDE_CONCERNS = {
                                 ("The display takes no object that the candidate does not give: neither the "
                                  "simulator's own record of the scene nor an estimate of its own.",)),
     "hmiContentVarianceConcern": ("Common or derived content",
-                                  ("The scenes of the other driving applications are out of scope.",)),
+                                  ("The scenes of the other driving applications are out of scope.",
+                                   "The framing view frames it.",
+                                   "Phase 3 gives each content item its reason in its classification and records no "
+                                   "characteristic, since no content tells the member products apart, so Phase 3 has "
+                                   "no view; which content becomes common is for the lifecycle decision.")),
     "hmiWarningSequenceConcern": ("The warning's sequence",
                                   ("The warning request is taken as the driver-assistance increment defines it.",)),
     "hmiContentCurrencyConcern": ("Late and missing content",
@@ -382,7 +397,8 @@ def test_increment_declares_the_phase_zero_shape():
     ]
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
     assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [
-        PACKAGE, "DE4SDV_HmiDisplayOperationalContext"], "the charter names only the packages that hold content"
+        PACKAGE, "DE4SDV_HmiDisplayOperationalContext", "DE4SDV_HmiDisplayCapabilityClassification"], \
+        "the charter names only the packages that hold content"
     evidence = re.search(r"expectedReviewEvidence\s*=\s*\((.*?)\);", charter, re.S)
     assert evidence and re.findall(r'"([^"]+)"', evidence.group(1)) == [
         "owner confirmation of the engineering question and the scope",
@@ -740,7 +756,8 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert "**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context, proposal.**" in _flat(guide)
+    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and Phase 3 "
+            "capability classification, proposal.**") in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part hmiDisplayQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -767,7 +784,9 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "A fail is a result to record.",
                    "Starting this increment launches no compute and authorizes no spend.",
                    "open gaps and Phase 1 concerns.",
-                   "The next model obligation is **Phase 3**, the capability classification, which review judges:",
+                   "Phase 3, the capability classification, records no feature-model delta, and review judges it: "
+                   "its one blocking check has nothing to evaluate",
+                   "The next model obligation is **Phase 4**, the stakeholder needs.",
                    "On 2026-11-21 the owner decided that the increment goes on without waiting for Phase 10 of the "
                    "driver-assistance increment.",
                    "Phase 3 and later phases waited for the revision of the governed scope, which the model now "
@@ -776,7 +795,8 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "with its cost put to him first."):
         assert phrase in flat, phrase
     for stale in ("The framing's boundary concern does not open Phase 1.", "**Phase 1 concern framing**",
-                  "that Phase 1 starts after Phase 10 of the driver-assistance increment", STILL_WAITS):
+                  "that Phase 1 starts after Phase 10 of the driver-assistance increment", STILL_WAITS,
+                  "The next model obligation is **Phase 3**"):
         assert stale not in flat, f"Phase 1 is framed and goes on now: {stale}"
     boundaries = _flat(guide.split("## Boundaries", 1)[1].split("\n## ", 1)[0])
     for phrase in ("The HMI display of the VisionPilot configuration is a proposed **System 1** subject",
@@ -1067,6 +1087,8 @@ def test_the_guide_lists_the_phase_one_concerns_with_their_holders():
     assert not re.search(r"(?i)\bcrash\w*\b|\bmust\b", flat)
     for phrase in ("held by the parties whose interest it states.",
                    "The driver, a vehicle occupant, holds the operational concern beside the engineering roles.",
+                   "its text names the view of a later phase that answers it, save the product-line question: Phase 3 "
+                   "records no characteristic and has no view.",
                    "The framing viewpoint frames all nine, and a view of a later phase that answers a concern "
                    "frames it as well.",
                    "They do not judge whether the stakeholder, risk and viewpoint coverage is adequate; review does."):
@@ -1079,7 +1101,21 @@ def test_each_phase_one_concern_is_answered_by_a_view_of_its_phase_in_its_domain
     # concern and its view are the method's own, outside the SAF grid.
     listed = _canonical_list()
     domains = _domains(SAF_FILE.read_text(encoding="utf-8"))
+    assert {name for name, spec in PHASE1_CONCERNS.items() if not spec[5]} == set(NO_LATER_VIEW), \
+        "only the product-line concern names no view of a later phase"
+    for name, fact in NO_LATER_VIEW.items():
+        kind = PHASE1_CONCERNS[name][0]
+        assert fact in _concern_doc(name, kind), f"{name} states why no view of a later phase answers it"
+        assert not ANSWER_SENTENCE.search(_concern_doc(name, kind)), f"{name} claims an answering view"
+        assert re.search(rf"\bframe\s+{name}\s*;", braced_body(_code(), "view hmiDisplayFramingView")), \
+            f"{name}: the framing view frames it"
+    # the Phase 1 note of the model says the same
+    assert ("names the view of a later phase that answers it, save the product-line question, for which phase 3 "
+            "has no view;") in _prose(_raw())
+    assert "classification view of phase 3" not in _prose(_raw()).lower()
     for name, (kind, _items, _part, _holders, _sentences, answers) in PHASE1_CONCERNS.items():
+        if name in NO_LATER_VIEW:
+            continue
         assert answers, f"{name} names no view that answers it"
         for phase, viewpoint in answers:
             assert viewpoint in listed[phase], f"{name}: {viewpoint} is not a view the method lists for phase {phase}"
