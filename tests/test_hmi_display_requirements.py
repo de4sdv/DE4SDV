@@ -1159,13 +1159,13 @@ def test_no_feature_link_before_phase_9():
     # the method declares no satisfy link in phase 5
     assert not re.search(r"\bsatisfy\b", _code()), "phase 5 declares no satisfy link"
     # a link may also be declared in another file: no dependency of any model file has the HMI display or one of
-    # the ten among its clients, by its plain or its qualified name
-    subject = (r"(?:DE4SDV_HmiDisplayFraming::)?hmiDisplaySystem|"
-               rf"(?:DE4SDV_HmiDisplayNeedsRequirements::)?(?:{names})")
+    # the ten among its clients, by its plain, its qualified or its short name, quoted or not
+    subject = (r"(?:DE4SDV_HmiDisplayFraming::)?'?hmiDisplaySystem'?|"
+               rf"(?:DE4SDV_HmiDisplayNeedsRequirements::)?(?:'?(?:{names})'?|'(?:{shorts})')")
     for path in sorted(p for root in MODEL_ROOTS for p in root.rglob("*.sysml")):
         for dependency in re.findall(r"\bdependency\b[^;{]*", strip_comments(path.read_text(encoding="utf-8"))):
             clients = re.search(r"\bfrom\b(.*?)\bto\b", dependency, re.S)
-            assert not (clients and re.search(rf"(?<![\w:])(?:{subject})(?!\w)", clients.group(1))), \
+            assert not (clients and re.search(rf"(?<![\w:])(?:{subject})(?![\w'])", clients.group(1))), \
                 (path.name, "a link of the HMI display or a requirement before phase 9", dependency)
 
 
@@ -1202,7 +1202,10 @@ def test_one_table_defines_each_requirement_with_its_verification_and_frames_the
     assert f"attribute :>> maxRowHeight = {MAX_ROW_HEIGHT};" in body
     assert len(re.findall(r"\battribute\s+:>>", body)) == 2 + len(COLUMNS), "no attribute beyond the columns"
     assert "columnWidth" not in body, "the renderer reads no column width"
-    assert not re.search(r"\bdoc\s*/\*", braced_body(_raw(), f"view {VIEW} : TVD::TableView")), "the table has no doc"
+    # a doc or a comment in the table, named or not, with or without its keyword
+    table = braced_body(_raw(), f"view {VIEW} : TVD::TableView")
+    assert "/*" not in table, "the table has no comment"
+    assert not re.search(r"\b(?:doc|comment)\b", strip_comments(table)), "the table has no doc"
     assert _columns(body) == [column for column, _render in COLUMNS]
     for column, render in COLUMNS:
         text = _column(body, column)
