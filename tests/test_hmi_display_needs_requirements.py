@@ -270,9 +270,14 @@ PHASE_FIVE_TRUTH_SENTENCES = (
         "The limit counts in wall-clock time while the simulation runs no faster than wall-clock time, which is the "
         "obligation of System 2, and makes no timing claim for a vehicle."),
     (
-        "Every input of the display shares one period of 0.1 s of simulation time in the realization of the "
+        "The scene and the warning request share one period of 0.1 s of simulation time in the realization of the "
         "driver-assistance increment: one camera image, one result pass, one plan and one event of the warning "
-        "request each 0.1 s, and the system reads the vehicle speed once in each result pass."),
+        "request each 0.1 s; the vehicle speed comes with each world snapshot at the input of the system, every step "
+        "of 0.05 s."),
+    (
+        "The vehicle speed brings the newest time to the display with each world snapshot, so the limit in simulation "
+        "time also counts the time from the capture of a frame to the arrival of its scene and its event at the "
+        "display, and the time that the display takes to show the scene."),
     (
         "The limit in simulation time counts against the newest time that has reached the display, so it catches a "
         "delay before the display, which an age taken from the arrival would hide, and a value whose time the display "
@@ -304,6 +309,10 @@ PHASE_FIVE_TRUTH_SENTENCES = (
         "every change of what the display shows takes as its presentation time; the limits of 0.2 s of simulation "
         "time and of 0.2 s of wall-clock time beyond which an element is outdated; the warning unavailable while the "
         "warning request is outdated; and the split of the renderers, by the owner's decision of 2026-11-17."),
+    (
+        "Whether the time from the capture of a frame to the arrival of its scene and its event at the HMI display, "
+        "with the time to show the scene, stays within one period of 0.1 s, as the limit in simulation time of the "
+        "term current needs, is open until a readiness probe measures it; a longer time revises that limit."),
     "The bench runs the simulation no faster than wall-clock time.",
     (
         "The records hold each value of each input as its source gives it, with its simulation time, and where it "
@@ -342,6 +351,11 @@ PHASE_FIVE_CURRENCY_SENTENCES = (
         "system on what it perceives now (NEED-HMI-005)."),
     "The limits of the term current take two periods, so that one late value is tolerated.",
     (
+        "While those times stay within one period together, a scene stays current until the next one is shown, and "
+        "the warning request until its next event; with longer times an element can turn outdated before its next "
+        "value comes, and the limit is revisited once a readiness probe measures them "
+        "(warningPresentationFixedInPhase5)."),
+    (
         "Late and missing values give one state, outdated, and phase 8 states how an outdated element looks; the "
         "visual design stays out of scope (hmiHumanFactorsOutOfScope)."),
     (
@@ -376,9 +390,9 @@ PHASE_FIVE_CURRENCY_SENTENCES = (
         "warning while the warning request asks for it, and show that the warning is unavailable while the warning "
         "request is outdated."),
     (
-        "No time from the start of an outage to what the display shows, and none from a restart to the scene, is set "
-        "here: the speed and the warning hold throughout, the scene returns under REQ-HMI-001 once the app gives "
-        "frames again, and until then REQ-HMI-006 shows it as outdated."),
+        "The speed and the warning hold throughout, the scene returns under REQ-HMI-001 once the app gives frames "
+        "again, and until then REQ-HMI-006 shows it as outdated, within the limits of the term current and the "
+        "presentation time from the last scene that the app has shown."),
     (
         "- Ask: the warning request asks while its newest event that has reached the HMI display is current and "
         "requests the collision warning."),
@@ -401,6 +415,10 @@ PHASE_FIVE_CURRENCY_SENTENCES = (
         "every change of what the display shows takes as its presentation time; the limits of 0.2 s of simulation "
         "time and of 0.2 s of wall-clock time beyond which an element is outdated; the warning unavailable while the "
         "warning request is outdated; and the split of the renderers, by the owner's decision of 2026-11-17."),
+    (
+        "Whether the time from the capture of a frame to the arrival of its scene and its event at the HMI display, "
+        "with the time to show the scene, stays within one period of 0.1 s, as the limit in simulation time of the "
+        "term current needs, is open until a readiness probe measures it; a longer time revises that limit."),
     (
         "Fixed: the HMI display learns that the collision warning is unavailable from the age of the events of the "
         "warning request, with no signal of its own: the warning is unavailable while the warning request is "
@@ -558,7 +576,7 @@ PLAN_DOCS = {
 REMOVED_CONTRACTS = ("perceivedSceneContract", "warningRequestContract")
 #: the named comments of the package: the terms of the requirements and the three comments on the gaps
 PHASE_FIVE_COMMENTS = ["termsHmiDisplayRequirements", "warningPresentationFixedInPhase5",
-                       "warningAvailabilityFixedInPhase5", "testbedObligationsOfPhase5"]
+                       "warningAvailabilityFixedInPhase5", "hmiTestbedObligationsOfPhase5"]
 #: the count sentence of the header
 HEADER_COUNT = (
     "Seven concerns are reviewer questions: a need's source names them and its review checks them.")
@@ -608,7 +626,7 @@ HEADER_PHASE_FIVE = "Phase 5 adds to this package the requirements derived from 
 #: the two header paragraphs of phase 5, pinned whole: the requirement set and its values, and their variability
 HEADER_PHASE_FIVE_SET = (
     "Phase 5: the requirements derived from these needs, each with one subject, the HMI display, one verification "
-    "method and its success criteria. They derive from the needs and from REQ-AEBS-002 and REQ-AEBS-013, and the "
+    "method and its success criteria. They derive from the needs and rest on REQ-AEBS-002 and REQ-AEBS-013, and the "
     "scope of the increment caps them at ten. From the driver-assistance increment the terms take the form of the "
     "warning request and the start of each mode; from the files of VisionPilot at 014e0e7a they take the levels, the "
     "fixed distance of 150 m and the sign that the fusion declares for the speed of the closest object. The "

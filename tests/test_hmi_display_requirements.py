@@ -1,8 +1,8 @@
 """Content pins for the HMI display requirements (INC-HMI-001, phase 5), not semantic validation.
 
 Phase 5 derives the requirements of the HMI display, the system of interest the charter declares, from the six
-needs of phase 4 and from REQ-AEBS-002 and REQ-AEBS-013. The SpecifyRequirements rules of the increment workflow are
-checked by Method Check; these pins hold what review settled on top of them:
+needs of phase 4; they rest on REQ-AEBS-002 and REQ-AEBS-013. The SpecifyRequirements rules of the increment workflow
+are checked by Method Check; these pins hold what review settled on top of them:
 
 - the requirement set itself, each with its need, its kind and its verification method, within the charter's scope
   cap of at most ten requirements, each derived from its need by a DerivesFromNeed connection;
@@ -17,8 +17,8 @@ checked by Method Check; these pins hold what review settled on top of them:
 - one requirement definition table, the one view the method names for phase 5, framing the requirement trace concern;
 - the guide's phase 5 section, its bullets, its decisions and the next obligation, phase 6;
 - the upstream record's permalink for each line range that a rationale cites;
-- no claim the charter excludes, the word patterns of the tests that read the same files, and no feature link before
-  phase 9.
+- no claim the charter excludes, the word patterns of the tests that read the same files, no satisfy link, and no
+  feature link of the HMI display or of a requirement in any model file before phase 9.
 
 The tests read the model text; they do not parse SysML. They state their own constants.
 """
@@ -90,9 +90,9 @@ STATEMENTS = {
         "The HMI display shall show, within the presentation time, each scene that reaches it outside an outage in "
         "the IVI VM, or a newer scene, as the driver-assistance system gives it."),
     "reqMarkTheObjectTheSystemActsOn": (
-        "With each scene that it shows, the HMI display shall show the object that the system acts on, and no other "
-        "object, as an element of its own apart from the objects of the scene, with its distance to the whole metre "
-        "and the speed of the closest object to the whole km/h."),
+        "With each scene that it shows, the HMI display shall show the object that the system acts on, when the scene "
+        "has one, and no other object, as an element of its own apart from the objects of the scene, with its "
+        "distance to the whole metre and the speed of the closest object to the whole km/h."),
     "reqShowTheVehicleSpeed": (
         "The HMI display shall show, within the presentation time, each vehicle speed that reaches it, or a newer "
         "one, to the whole km/h."),
@@ -160,7 +160,7 @@ RATIONALES = {
         "of AutoSteer placed on the road through the homography that the system loads, the path that the lateral "
         "fusion fits, the offset and the heading of the vehicle in its lane, the detections of AutoSpeed as boxes "
         "with a score and a class, and the validity and the distance of the closest object, and it does not read the "
-        "plan (occupancy_bridge.cpp:32-77). That scene carries no speed of the closest object and no time, and the "
+        "plan (occupancy_bridge.cpp:20-77). That scene carries no speed of the closest object and no time, and the "
         "inference result carries a frame identity and no capture time (occupancy_view.hpp:23-48; "
         "inference.hpp:38-52). So the scene that the display takes is an output that the system does not give yet "
         "(gapHmiSceneOutput), and what it carries bounds what the display can show of it (gapHmiSceneContent). The "
@@ -177,7 +177,7 @@ RATIONALES = {
         "distance with the distance that AutoDrive gives where AutoDrive flags an object in the path. Where AutoSpeed "
         "gives no detection of the first level and AutoDrive flags no object in the path, the fusion still gives a "
         "valid closest object at a fixed distance of 150 m (longitudinal_fusion.cpp:56, 63-73), and the system plans "
-        "on the closest object only when it is valid and nearer than 150 m (vision_pilot.cpp:149-150). So the object "
+        "on the closest object only when it is valid and nearer than 150 m (vision_pilot.cpp:147-150). So the object "
         "that the system acts on is that one, and no object is marked at the fixed distance. The value of 150 m is "
         "compared when the pin moves, and a change revises the term. The scene names no detection as the closest "
         "object, so the display shows that object as an element of its own and marks no detection as it: choosing a "
@@ -193,30 +193,30 @@ RATIONALES = {
         "The driver supervises the driver-assistance system with the same speed that the system acts on "
         "(NEED-HMI-002). In the realization of the driver-assistance increment the vehicle speed enters the system "
         "with its sample time in simulation time, typed by COVESA VSS in km/h (VehicleSpeedSamplePayload and "
-        "MAP-DRIVING-DA-VEHICLE-SPEED), and the system reads it once in each result pass. The display takes the "
-        "samples that the vehicle gives at the input of the system, not the copy that the system reads in each result "
-        "pass: the signal is the same, and the samples go on when the system gives no result. The vehicle gives the "
-        "speed, and which element brings it to the display is for the architecture phases "
-        "(vehicleSpeedSourceComment). The display may skip a sample only for a newer one, and the presentation time "
-        "bounds the delay. Before the first vehicle speed of a run reaches the display there is no speed to show, and "
-        "REQ-HMI-006 shows the element as outdated. In the runs of SC-HMI-003 to SC-HMI-006, REQ-HMI-008 judges this "
-        "obligation through each outage."),
+        "MAP-DRIVING-DA-VEHICLE-SPEED), and the system reads it once in each result pass. The display takes the speed "
+        "of each world snapshot that reaches the input of the system, not the copy that the system reads in each "
+        "result pass (MAP-DRIVING-DA-VEHICLE-SPEED): the signal is the same, and the snapshots go on when the system "
+        "gives no result. The vehicle gives the speed, and which element brings it to the display is for the "
+        "architecture phases (vehicleSpeedSourceComment). The display may skip a sample only for a newer one, and the "
+        "presentation time bounds the delay. Before the first vehicle speed of a run reaches the display there is no "
+        "speed to show, and REQ-HMI-006 shows the element as outdated. In the runs of SC-HMI-003 to SC-HMI-006, "
+        "REQ-HMI-008 judges this obligation through each outage."),
     "reqCollisionWarningWhileRequested": (
         "The display gives the warning so that the driver can act on an imminent collision, and none without a "
         "request (NEED-HMI-003). The warning request is the output that the driver-assistance increment realizes from "
         "the warnings of each plan: one event for each plan, which asks for the collision warning when the plan holds "
         "the forward-collision warning or the emergency braking and carries the capture time in simulation time of "
         "the frame that the plan came from, with no value changed on its path (CollisionWarningRequestOutput and "
-        "MAP-DRIVING-DA-WARNING-REQUEST). One plan holds at most one of the two, and the request does not tell them "
-        "apart, so the display gives one collision warning for both. The request carries no end, so the warning lasts "
-        "while the request asks: a continuing request continues the warning, and the warning ends once the request "
-        "asks for none or is outdated, when REQ-HMI-007 shows that it is unavailable. Each mode follows each change "
-        "within the presentation time that REQ-HMI-005 sets, at the start and at the end alike. The term takes only "
-        "the form of the request, so the requirement names no variant. It rests on REQ-AEBS-002, the collision "
-        "warning that the product line asks for; whether a warning is due is the decision of the driver-assistance "
-        "system, which that increment judges. The vehicle data of the renderer holds no collision warning yet "
-        "(gapHmiRendererCollisionWarning). In the runs of SC-HMI-003 to SC-HMI-006, REQ-HMI-008 judges this "
-        "obligation through each outage. No safety claim is made."),
+        "MAP-DRIVING-DA-WARNING-REQUEST). The request does not tell the two apart, so the display gives one collision "
+        "warning for both. The request carries no end, so the warning lasts while the request asks: a continuing "
+        "request continues the warning, and the warning ends once the request asks for none or is outdated, when "
+        "REQ-HMI-007 shows that it is unavailable. Each mode follows each change within the presentation time that "
+        "REQ-HMI-005 sets, at the start and at the end alike. The term takes only the form of the request, so the "
+        "requirement names no variant. It rests on REQ-AEBS-002, the collision warning that the product line asks "
+        "for; whether a warning is due is the decision of the driver-assistance system, which that increment judges. "
+        "The vehicle data of the renderer holds no collision warning yet (gapHmiRendererCollisionWarning). In the "
+        "runs of SC-HMI-003 to SC-HMI-006, REQ-HMI-008 judges this obligation through each outage. No safety claim is "
+        "made."),
     "reqStartEachWarningModeWithinLimit": (
         "This is a performance requirement on the share of the HMI display in the time that the driver-assistance "
         "increment allots from the warning request to each mode. REQ-DRIVING-042 allots 0.2 s of wall-clock time to "
@@ -225,18 +225,26 @@ RATIONALES = {
         "to the first frame with the warning and to the start of the sound (MAP-DRIVING-DA-WARNING-REQUEST). The "
         "boundary of the HMI display lies at the SDV Core VM, with the Eclipse S-CORE path outside it and the paths "
         "from the SDV Core VM inside it, so the share of the display starts when the start of a request reaches it. "
-        "The 0.1 s is chosen here by analogy with that division and leaves the other 0.1 s to the part before the "
-        "boundary. It is unmeasured for the high availability renderer and for the sound, and it is revisited when a "
-        "readiness probe measures them (gapHmiWarningPresentation). Within is strict, so a mode that starts exactly "
-        "at the limit is late. A mode starts at its start of a mode; a recording or an overlay in place of a mode is "
-        "no start. The limit counts in wall-clock time while the simulation runs no faster than wall-clock time, "
-        "which is the obligation of System 2, and makes no timing claim for a vehicle."),
+        "Unlike that division, whose path share runs to the receipt on the IVI VM, the share of the display also "
+        "holds the paths from the SDV Core VM to the renderer and to the app. The 0.1 s is chosen here by analogy "
+        "with that division and leaves the other 0.1 s to the part before the boundary. It is unmeasured for the high "
+        "availability renderer and for the sound, and it is revisited when a readiness probe measures them "
+        "(gapHmiWarningPresentation). Within is strict, so a mode that starts exactly at the limit is late. A mode "
+        "starts at its start of a mode; a recording or an overlay in place of a mode is no start. The limit counts in "
+        "wall-clock time while the simulation runs no faster than wall-clock time, which is the obligation of System "
+        "2, and makes no timing claim for a vehicle."),
     "reqShowOutdatedElementsAsOutdated": (
         "The display shows no element as current when it is not, so that the driver supervises the driver-assistance "
-        "system on what it perceives now (NEED-HMI-005). Every input of the display shares one period of 0.1 s of "
-        "simulation time in the realization of the driver-assistance increment: one camera image, one result pass, "
-        "one plan and one event of the warning request each 0.1 s, and the system reads the vehicle speed once in "
-        "each result pass. The limits of the term current take two periods, so that one late value is tolerated. The "
+        "system on what it perceives now (NEED-HMI-005). The scene and the warning request share one period of 0.1 s "
+        "of simulation time in the realization of the driver-assistance increment: one camera image, one result pass, "
+        "one plan and one event of the warning request each 0.1 s; the vehicle speed comes with each world snapshot "
+        "at the input of the system, every step of 0.05 s. The limits of the term current take two periods, so that "
+        "one late value is tolerated. The vehicle speed brings the newest time to the display with each world "
+        "snapshot, so the limit in simulation time also counts the time from the capture of a frame to the arrival of "
+        "its scene and its event at the display, and the time that the display takes to show the scene. While those "
+        "times stay within one period together, a scene stays current until the next one is shown, and the warning "
+        "request until its next event; with longer times an element can turn outdated before its next value comes, "
+        "and the limit is revisited once a readiness probe measures them (warningPresentationFixedInPhase5). The "
         "limit in simulation time counts against the newest time that has reached the display, so it catches a delay "
         "before the display, which an age taken from the arrival would hide, and a value whose time the display "
         "changes. The limit in wall-clock time counts from the arrival of the newest value of the input, so it "
@@ -267,10 +275,12 @@ RATIONALES = {
         "REQ-HMI-004, REQ-HMI-005 and REQ-HMI-007 state the speed and the warning in every run; this requirement "
         "carries them through each outage, and its criteria judge them there. It rests on N-AEBS-008 and on the "
         "status indication of REQ-AEBS-013. Each outage is an event inside the boundary of the display, whose "
-        "detection phases 6 to 8 decide (guestAcrossBoundaryComment). No time from the start of an outage to what the "
-        "display shows, and none from a restart to the scene, is set here: the speed and the warning hold throughout, "
-        "the scene returns under REQ-HMI-001 once the app gives frames again, and until then REQ-HMI-006 shows it as "
-        "outdated. Those limits stay open with the owner until a probe measures them. No safety claim is made."),
+        "detection phases 6 to 8 decide (guestAcrossBoundaryComment). The speed and the warning hold throughout, the "
+        "scene returns under REQ-HMI-001 once the app gives frames again, and until then REQ-HMI-006 shows it as "
+        "outdated, within the limits of the term current and the presentation time from the last scene that the app "
+        "has shown. No time from a restart to the scene is set here; that limit, and whether the HMI display meets "
+        "those of REQ-HMI-006 through a hang of the app or of Android in the IVI VM, stay open with the owner until a "
+        "probe measures them. No safety claim is made."),
     "reqRendererSplitAndInputPaths": (
         "This is a design constraint on the realization of the HMI display, from the owner's decision of 2026-11-17: "
         "the high availability renderer in an SDV Media VM draws the speed and the collision warning and gives its "
@@ -515,8 +525,11 @@ GAP_COMMENTS = {
             "request to each mode, and each change of what it shows takes the same 0.1 s (the term presentation "
             "time). Open: the 0.1 s is chosen by analogy with the division on the path to the app of the "
             "driver-assistance increment and is unmeasured for the high availability renderer, for the app that draws "
-            "the scene and for the sound; the owner revisits it when a readiness probe measures them. Which part of "
-            "System 1 holds the other 0.1 s, before the boundary of the display on the Eclipse S-CORE path, is for "
+            "the scene and for the sound; the owner revisits it when a readiness probe measures them. Whether the "
+            "time from the capture of a frame to the arrival of its scene and its event at the HMI display, with the "
+            "time to show the scene, stays within one period of 0.1 s, as the limit in simulation time of the term "
+            "current needs, is open until a readiness probe measures it; a longer time revises that limit. Which part "
+            "of System 1 holds the other 0.1 s, before the boundary of the display on the Eclipse S-CORE path, is for "
             "the architecture phases of both increments. Whether a build of this display replaces the app of the "
             "driver-assistance increment stays open; the realization and the verdicts of that increment stay as they "
             "are.")),
@@ -531,7 +544,7 @@ GAP_COMMENTS = {
             "the warning unavailable as well, and no requirement of this increment states what the display shows "
             "then. A signal of the driver-assistance system of its own stays a change of that system, out of scope "
             "here.")),
-    "testbedObligationsOfPhase5": (
+    "hmiTestbedObligationsOfPhase5": (
         ("DE4SDV_HmiDisplayFraming::gapHmiRendererIntegration",),
         (
             "What the criteria of phase 5 ask of System 2: each is an obligation of the verification environment and "
@@ -555,7 +568,7 @@ REMOVED_COMMENTS = ("perceivedSceneContract", "warningRequestContract")
 #: the two header paragraphs of phase 5, pinned whole
 HEADER_PHASE_FIVE_SET = (
     "Phase 5: the requirements derived from these needs, each with one subject, the HMI display, one verification "
-    "method and its success criteria. They derive from the needs and from REQ-AEBS-002 and REQ-AEBS-013, and the "
+    "method and its success criteria. They derive from the needs and rest on REQ-AEBS-002 and REQ-AEBS-013, and the "
     "scope of the increment caps them at ten. From the driver-assistance increment the terms take the form of the "
     "warning request and the start of each mode; from the files of VisionPilot at 014e0e7a they take the levels, the "
     "fixed distance of 150 m and the sign that the fusion declares for the speed of the closest object. The "
@@ -635,8 +648,8 @@ GUIDE_BLOCKS = (
     (
         "The [requirements](" + GUIDE_LINK + ") state what the HMI display shall do and how each is verified. There "
         "are ten, the cap of the scope. Each has one subject, the HMI display, derives from one need, and has one "
-        "verification method and its success criteria. They derive from the Phase 4 needs and from `REQ-AEBS-002` and "
-        "`REQ-AEBS-013`. Eight are functional; Phase 6 allocates each of those to a function."),
+        "verification method and its success criteria. They derive from the Phase 4 needs and rest on `REQ-AEBS-002` "
+        "and `REQ-AEBS-013`. Eight are functional; Phase 6 allocates each of those to a function."),
     "BULLETS",
     (
         "A comment of terms defines each word that a statement uses, among them the scene, the object that the system "
@@ -665,8 +678,8 @@ GUIDE_BULLETS = {
         "in the IVI VM."),
     "REQ-HMI-002": (
         "`reqMarkTheObjectTheSystemActsOn`, from `NEED-HMI-001`, functional, test: shows the object that the system "
-        "acts on, and no other, apart from the objects it detects, with its distance to the whole metre and its speed "
-        "to the whole km/h."),
+        "acts on, and no other, apart from the objects of the scene, with its distance to the whole metre and its "
+        "speed to the whole km/h."),
     "REQ-HMI-003": (
         "`reqShowTheVehicleSpeed`, from `NEED-HMI-002`, functional, test: shows each vehicle speed, or a newer one, "
         "within the presentation time, to the whole km/h."),
@@ -704,8 +717,8 @@ GUIDE_DECISIONS = (
         "The object that the system acts on is the closest object that the fusion gives as valid below 150 m; at the "
         "fixed distance of 150 m none is marked. The value is compared when the pin moves."),
     (
-        "The display shows that object as an element of its own and marks none of the objects it detects as it, since "
-        "the scene names none."),
+        "The display shows that object as an element of its own and marks none of the objects of the scene as it, "
+        "since the scene names none."),
     (
         "Distances are shown to the whole metre and speeds to the whole km/h; the rest of the scene is shown as the "
         "system gives it."),
@@ -718,8 +731,8 @@ GUIDE_DECISIONS = (
     (
         "The share of the display in the time that the driver-assistance increment allots from the warning request to "
         "each mode is 0.1 s of wall-clock time from the boundary of the display, chosen by analogy with the division "
-        "on the path to the app of that increment and unmeasured for the renderer and the sound. Every change of what "
-        "the display shows takes the same 0.1 s as its presentation time."),
+        "on the path to the app of that increment and unmeasured for the renderer, for the app that draws the scene "
+        "and for the sound. Every change of what the display shows takes the same 0.1 s as its presentation time."),
     (
         "An element is outdated once its time is more than 0.2 s of simulation time older than the newest time at the "
         "display, or once 0.2 s of wall-clock time pass with no new value of its input: two periods of 0.1 s. Late "
@@ -728,8 +741,10 @@ GUIDE_DECISIONS = (
         "The warning is unavailable while the warning request is outdated and available again once it is current. A "
         "renderer that cannot give the warning is left for a later increment."),
     (
-        "The speed and the warning hold throughout each outage in the IVI VM. No limit on the detection of an outage "
-        "or on the return of the scene is set before a probe measures them."),
+        "The speed and the warning hold throughout each outage in the IVI VM. While the app that draws the scene "
+        "gives no frame, the scene is shown as outdated within the limits of the term current and the presentation "
+        "time, which no probe has measured for an outage; no limit on the return of the scene is set before a probe "
+        "measures it."),
     (
         "The speed, the warning and its sound go to the high availability renderer in an SDV Media VM and the scene "
         "to an app in the IVI VM, by the owner's decision of 2026-11-17."),
@@ -748,12 +763,12 @@ VISIONPILOT_BLOB = f"https://github.com/autowarefoundation/vision_pilot/blob/{VI
 UPSTREAM_LEAD = "What the requirements of Phase 5 cite, at the same commit:"
 #: one permalink per line range that a rationale cites: (path at the pin, anchor, what the lines hold)
 UPSTREAM_LINKS = [
-    ("VisionPilot/app/vision_pilot.cpp", "L149-L150",
+    ("VisionPilot/app/vision_pilot.cpp", "L147-L150",
      "the system plans on the closest object only when the fusion gives it as valid and nearer than 150 m."),
     ("VisionPilot/app/vision_pilot.cpp", "L177",
      "the system hands its results to the visualization only when the setting `visualization_on` is on."),
     ("VisionPilot/modules/models/include/models/inference.hpp", "L38-L52",
-     "the inference result carries a frame identity and times of the host, and no capture time."),
+     "the inference result carries a frame identity and durations measured on the host, and no capture time."),
     ("VisionPilot/modules/safety_guardian/fusion/include/fusion/longitudinal_fusion.hpp", "L17-L18",
      (
          "the fused distance in metres and the fused speed in metres per second, which the file's comment gives as "
@@ -766,7 +781,7 @@ UPSTREAM_LINKS = [
      "the levels 1 and 2, and the cut-in."),
     ("VisionPilot/modules/visualization/include/visualization/occupancy_view.hpp", "L23-L48",
      "the scene of the panel, with no speed of the closest object and no time."),
-    ("VisionPilot/modules/visualization/src/occupancy_bridge.cpp", "L32-L84",
+    ("VisionPilot/modules/visualization/src/occupancy_bridge.cpp", "L20-L84",
      "how the bridge fills that scene, and the mark from AutoDrive alone."),
     ("VisionPilot/modules/visualization/src/visual_interface.cpp", "L304-L323",
      "the label of the distance in whole metres."),
@@ -1019,7 +1034,7 @@ def test_the_presentation_time_bounds_each_change_of_what_the_display_shows():
 
 
 def test_each_criteria_states_its_count_of_runs_first():
-    # C10: a criteria over a filtered set of runs passes when the filter leaves nothing, so each states first how
+    # a criteria over a filtered set of runs passes when the filter leaves nothing, so each states first how
     # many runs it judges, and the outage runs whose ends the subject controls end their outage within the run.
     assert sorted(NON_VACUITY) == sorted(REQUIREMENTS)
     for name, clause in NON_VACUITY.items():
@@ -1121,10 +1136,10 @@ def test_the_phase_4_contract_comments_are_now_stated_in_the_rationales():
         assert name not in raw, name
     assert not re.findall(r"\bcomment\s+\w+\s+about\s+(?:need\w+|DE4SDV_HmiDisplayNeedsRequirements::\w+)\b", raw)
     assert ("the system plans on the closest object only when it is valid and nearer than 150 m "
-            "(vision_pilot.cpp:149-150)") in RATIONALES["reqMarkTheObjectTheSystemActsOn"]
-    assert "and it does not read the plan (occupancy_bridge.cpp:32-77)" in RATIONALES["reqShowTheSceneAsGiven"]
-    assert "One plan holds at most one of the two, and the request does not tell them apart" in \
-        RATIONALES["reqCollisionWarningWhileRequested"]
+            "(vision_pilot.cpp:147-150)") in RATIONALES["reqMarkTheObjectTheSystemActsOn"]
+    assert "and it does not read the plan (occupancy_bridge.cpp:20-77)" in RATIONALES["reqShowTheSceneAsGiven"]
+    assert "The request does not tell the two apart" in RATIONALES["reqCollisionWarningWhileRequested"]
+    assert "One plan holds" not in RATIONALES["reqCollisionWarningWhileRequested"], "a fact with no source of record"
 
 
 def test_no_feature_link_before_phase_9():
@@ -1141,6 +1156,17 @@ def test_no_feature_link_before_phase_9():
     for dependency in re.findall(r"\bdependency\b[^;{]*", _code()):
         clients = re.search(r"\bfrom\b(.*?)\bto\b", dependency, re.S)
         assert not (clients and client.search(clients.group(1))), f"a requirement has a dependency: {dependency}"
+    # the method declares no satisfy link in phase 5
+    assert not re.search(r"\bsatisfy\b", _code()), "phase 5 declares no satisfy link"
+    # a link may also be declared in another file: no dependency of any model file has the HMI display or one of
+    # the ten among its clients, by its plain or its qualified name
+    subject = (r"(?:DE4SDV_HmiDisplayFraming::)?hmiDisplaySystem|"
+               rf"(?:DE4SDV_HmiDisplayNeedsRequirements::)?(?:{names})")
+    for path in sorted(p for root in MODEL_ROOTS for p in root.rglob("*.sysml")):
+        for dependency in re.findall(r"\bdependency\b[^;{]*", strip_comments(path.read_text(encoding="utf-8"))):
+            clients = re.search(r"\bfrom\b(.*?)\bto\b", dependency, re.S)
+            assert not (clients and re.search(rf"(?<![\w:])(?:{subject})(?!\w)", clients.group(1))), \
+                (path.name, "a link of the HMI display or a requirement before phase 9", dependency)
 
 
 def _columns(body: str) -> list[str]:
@@ -1176,6 +1202,7 @@ def test_one_table_defines_each_requirement_with_its_verification_and_frames_the
     assert f"attribute :>> maxRowHeight = {MAX_ROW_HEIGHT};" in body
     assert len(re.findall(r"\battribute\s+:>>", body)) == 2 + len(COLUMNS), "no attribute beyond the columns"
     assert "columnWidth" not in body, "the renderer reads no column width"
+    assert not re.search(r"\bdoc\s*/\*", braced_body(_raw(), f"view {VIEW} : TVD::TableView")), "the table has no doc"
     assert _columns(body) == [column for column, _render in COLUMNS]
     for column, render in COLUMNS:
         text = _column(body, column)
@@ -1306,7 +1333,7 @@ def test_the_phase_5_texts_pass_the_word_patterns_of_the_files_they_land_in():
 
 
 def test_no_text_of_the_increment_carries_the_excluded_word():
-    for path in (MODEL, GUIDE, RECORD, Path(__file__)):
+    for path in (MODEL, GUIDE, RECORD, HMI / "VIEWS.md", *sorted((ROOT / "tests").glob("test_hmi_display_*.py"))):
         words = set(re.findall(r"[a-z0-9]+", path.read_text(encoding="utf-8").lower()))
         assert len(words) >= 100, path.name
         digests = {hashlib.sha256(word.encode()).hexdigest() for word in words}
