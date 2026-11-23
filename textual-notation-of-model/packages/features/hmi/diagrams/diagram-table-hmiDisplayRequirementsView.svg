@@ -1,0 +1,856 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2022" height="7414" viewBox="0 0 2022 7414" role="img" aria-labelledby="title description">
+  <title id="title">table-hmiDisplayRequirementsView</title>
+  <desc id="description">table-hmiDisplayRequirementsView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="2022" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-hmiDisplayRequirementsView</text>
+  <rect x="0" y="54" width="112" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">ID</tspan>
+  </text>
+  <rect x="112" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">Requirement</tspan>
+  </text>
+  <rect x="472" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">Statement</tspan>
+  </text>
+  <rect x="832" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">Source</tspan>
+  </text>
+  <rect x="1192" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1204" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="1204" dy="0">Rationale</tspan>
+  </text>
+  <rect x="1552" y="54" width="110" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1564" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="1564" dy="0">Method</tspan>
+  </text>
+  <rect x="1662" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1674" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="1674" dy="0">Criteria</tspan>
+  </text>
+  <rect x="0" y="94" width="112" height="920" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-HMI-001</tspan>
+  </text>
+  <rect x="112" y="94" width="360" height="920" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">reqShowTheSceneAsGiven</tspan>
+  </text>
+  <rect x="472" y="94" width="360" height="920" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">The HMI display shall show, within the</tspan>
+    <tspan x="484" dy="20">presentation time, each scene that reaches</tspan>
+    <tspan x="484" dy="20">it outside an outage in the IVI VM, or a</tspan>
+    <tspan x="484" dy="20">newer scene, as the driver-assistance</tspan>
+    <tspan x="484" dy="20">system gives it.</tspan>
+  </text>
+  <rect x="832" y="94" width="360" height="920" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">NEED-HMI-001; hmiDisplayInputsConcern;</tspan>
+    <tspan x="844" dy="20">hmiContentVarianceConcern; scope item</tspan>
+    <tspan x="844" dy="20">hmiSceneInScope; gaps gapHmiSceneOutput</tspan>
+    <tspan x="844" dy="20">and gapHmiSceneContent; scenarios SC-</tspan>
+    <tspan x="844" dy="20">HMI-001 to SC-HMI-007</tspan>
+  </text>
+  <rect x="1192" y="94" width="360" height="920" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1204" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1204" dy="0">The driver supervises the driver-</tspan>
+    <tspan x="1204" dy="20">assistance system with what it perceives,</tspan>
+    <tspan x="1204" dy="20">right or wrong, so the display shows the</tspan>
+    <tspan x="1204" dy="20">scene that the system gives and no other.</tspan>
+    <tspan x="1204" dy="20">At 014e0e7a the system builds a scene only</tspan>
+    <tspan x="1204" dy="20">inside its own visualization, in a build</tspan>
+    <tspan x="1204" dy="20">with the option ENABLE_OCCUPANCY and with</tspan>
+    <tspan x="1204" dy="20">the visualization switched on</tspan>
+    <tspan x="1204" dy="20">(visual_interface.cpp:645-648;</tspan>
+    <tspan x="1204" dy="20">vision_pilot.cpp:177). The bridge of its</tspan>
+    <tspan x="1204" dy="20">panel builds it from the lane points of</tspan>
+    <tspan x="1204" dy="20">AutoSteer placed on the road through the</tspan>
+    <tspan x="1204" dy="20">homography that the system loads, the path</tspan>
+    <tspan x="1204" dy="20">that the lateral fusion fits, the offset</tspan>
+    <tspan x="1204" dy="20">and the heading of the vehicle in its</tspan>
+    <tspan x="1204" dy="20">lane, the detections of AutoSpeed as boxes</tspan>
+    <tspan x="1204" dy="20">with a score and a class, and the validity</tspan>
+    <tspan x="1204" dy="20">and the distance of the closest object,</tspan>
+    <tspan x="1204" dy="20">and it does not read the plan</tspan>
+    <tspan x="1204" dy="20">(occupancy_bridge.cpp:20-77). That scene</tspan>
+    <tspan x="1204" dy="20">carries no speed of the closest object and</tspan>
+    <tspan x="1204" dy="20">no time, and the inference result carries</tspan>
+    <tspan x="1204" dy="20">a frame identity and no capture time</tspan>
+    <tspan x="1204" dy="20">(occupancy_view.hpp:23-48;</tspan>
+    <tspan x="1204" dy="20">inference.hpp:38-52). So the scene that</tspan>
+    <tspan x="1204" dy="20">the display takes is an output that the</tspan>
+    <tspan x="1204" dy="20">system does not give yet</tspan>
+    <tspan x="1204" dy="20">(gapHmiSceneOutput), and what it carries</tspan>
+    <tspan x="1204" dy="20">bounds what the display can show of it</tspan>
+    <tspan x="1204" dy="20">(gapHmiSceneContent). The scene is the one</tspan>
+    <tspan x="1204" dy="20">input whose form follows the driving</tspan>
+    <tspan x="1204" dy="20">application, so this requirement and REQ-</tspan>
+    <tspan x="1204" dy="20">HMI-002 follow it. The display may skip a</tspan>
+    <tspan x="1204" dy="20">scene only for a newer one. The</tspan>
+    <tspan x="1204" dy="20">presentation time bounds the delay, so</tspan>
+    <tspan x="1204" dy="20">that a display that shows each scene late</tspan>
+    <tspan x="1204" dy="20">cannot hide behind REQ-HMI-006. During an</tspan>
+    <tspan x="1204" dy="20">outage in the IVI VM the app that draws</tspan>
+    <tspan x="1204" dy="20">the scene cannot show it; REQ-HMI-006 then</tspan>
+    <tspan x="1204" dy="20">shows the scene as outdated, and once the</tspan>
+    <tspan x="1204" dy="20">app gives its first frame again this</tspan>
+    <tspan x="1204" dy="20">requirement holds again. A display that</tspan>
+    <tspan x="1204" dy="20">shows the simulator's record of the scene</tspan>
+    <tspan x="1204" dy="20">or an estimate of its own shows another</tspan>
+    <tspan x="1204" dy="20">scene (hmiSimulatorTruthOutOfScope).</tspan>
+  </text>
+  <rect x="1552" y="94" width="110" height="920" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1564" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1564" dy="0">test</tspan>
+  </text>
+  <rect x="1662" y="94" width="360" height="920" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1674" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1674" dy="0">Met when each of SC-HMI-001 to SC-HMI-007</tspan>
+    <tspan x="1674" dy="20">has at least one run, each run of SC-</tspan>
+    <tspan x="1674" dy="20">HMI-004 and SC-HMI-006 has the end of its</tspan>
+    <tspan x="1674" dy="20">outage in the IVI VM before its own end,</tspan>
+    <tspan x="1674" dy="20">and in each run every scene that reaches</tspan>
+    <tspan x="1674" dy="20">the HMI display outside an outage in the</tspan>
+    <tspan x="1674" dy="20">IVI VM, or a newer scene, is on the</tspan>
+    <tspan x="1674" dy="20">display less than 0.1 s of wall-clock time</tspan>
+    <tspan x="1674" dy="20">after it arrives, with its lane points,</tspan>
+    <tspan x="1674" dy="20">its path and each of its objects with its</tspan>
+    <tspan x="1674" dy="20">level, as many objects as the scene gives</tspan>
+    <tspan x="1674" dy="20">and at the positions that it gives, read</tspan>
+    <tspan x="1674" dy="20">within the drawing tolerance that phase 8</tspan>
+    <tspan x="1674" dy="20">states; and when no frame on the display</tspan>
+    <tspan x="1674" dy="20">shows a lane, a path or an object that no</tspan>
+    <tspan x="1674" dy="20">scene of the run gives, from the</tspan>
+    <tspan x="1674" dy="20">simulator's record of the scene or from an</tspan>
+    <tspan x="1674" dy="20">estimate of the display's own.</tspan>
+  </text>
+  <rect x="0" y="1014" width="112" height="940" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-HMI-002</tspan>
+  </text>
+  <rect x="112" y="1014" width="360" height="940" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">reqMarkTheObjectTheSystemActsOn</tspan>
+  </text>
+  <rect x="472" y="1014" width="360" height="940" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">With each scene that it shows, the HMI</tspan>
+    <tspan x="484" dy="20">display shall show the object that the</tspan>
+    <tspan x="484" dy="20">system acts on, when the scene has one,</tspan>
+    <tspan x="484" dy="20">and no other object, as an element of its</tspan>
+    <tspan x="484" dy="20">own apart from the objects of the scene,</tspan>
+    <tspan x="484" dy="20">with its distance to the whole metre and</tspan>
+    <tspan x="484" dy="20">the speed of the closest object to the</tspan>
+    <tspan x="484" dy="20">whole km/h.</tspan>
+  </text>
+  <rect x="832" y="1014" width="360" height="940" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">NEED-HMI-001; scope item hmiSceneInScope;</tspan>
+    <tspan x="844" dy="20">gap gapHmiSceneContent; scenarios SC-</tspan>
+    <tspan x="844" dy="20">HMI-001 and SC-HMI-002</tspan>
+  </text>
+  <rect x="1192" y="1014" width="360" height="940" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1204" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1204" dy="0">NEED-HMI-001 asks for the closest object</tspan>
+    <tspan x="1204" dy="20">in the path, which the system acts on,</tspan>
+    <tspan x="1204" dy="20">marked apart from the other objects. At</tspan>
+    <tspan x="1204" dy="20">014e0e7a the fusion takes as the closest</tspan>
+    <tspan x="1204" dy="20">object the nearest detection of the first</tspan>
+    <tspan x="1204" dy="20">level, or of the second when that one is</tspan>
+    <tspan x="1204" dy="20">nearer, a cut-in</tspan>
+    <tspan x="1204" dy="20">(longitudinal_fusion.cpp:181-182,</tspan>
+    <tspan x="1204" dy="20">207-210), and fuses its distance with the</tspan>
+    <tspan x="1204" dy="20">distance that AutoDrive gives where</tspan>
+    <tspan x="1204" dy="20">AutoDrive flags an object in the path.</tspan>
+    <tspan x="1204" dy="20">Where AutoSpeed gives no detection of the</tspan>
+    <tspan x="1204" dy="20">first level and AutoDrive flags no object</tspan>
+    <tspan x="1204" dy="20">in the path, the fusion still gives a</tspan>
+    <tspan x="1204" dy="20">valid closest object at a fixed distance</tspan>
+    <tspan x="1204" dy="20">of 150 m (longitudinal_fusion.cpp:56,</tspan>
+    <tspan x="1204" dy="20">63-73), and the system plans on the</tspan>
+    <tspan x="1204" dy="20">closest object only when it is valid and</tspan>
+    <tspan x="1204" dy="20">nearer than 150 m</tspan>
+    <tspan x="1204" dy="20">(vision_pilot.cpp:147-150). So the object</tspan>
+    <tspan x="1204" dy="20">that the system acts on is that one, and</tspan>
+    <tspan x="1204" dy="20">no object is marked at the fixed distance.</tspan>
+    <tspan x="1204" dy="20">The value of 150 m is compared when the</tspan>
+    <tspan x="1204" dy="20">pin moves, and a change revises the term.</tspan>
+    <tspan x="1204" dy="20">The scene names no detection as the</tspan>
+    <tspan x="1204" dy="20">closest object, so the display shows that</tspan>
+    <tspan x="1204" dy="20">object as an element of its own and marks</tspan>
+    <tspan x="1204" dy="20">no detection as it: choosing a box would</tspan>
+    <tspan x="1204" dy="20">be an estimate of the display's own. The</tspan>
+    <tspan x="1204" dy="20">fusion gives the distance in m and the</tspan>
+    <tspan x="1204" dy="20">speed in m/s, negative when the object</tspan>
+    <tspan x="1204" dy="20">approaches, as its own declaration states</tspan>
+    <tspan x="1204" dy="20">(longitudinal_fusion.hpp:17-18); the</tspan>
+    <tspan x="1204" dy="20">display shows that speed with its sign, in</tspan>
+    <tspan x="1204" dy="20">km/h. The whole metre is the resolution of</tspan>
+    <tspan x="1204" dy="20">the system's own label of the distance</tspan>
+    <tspan x="1204" dy="20">(visual_interface.cpp:304-323), and the</tspan>
+    <tspan x="1204" dy="20">whole km/h is set here for each speed on</tspan>
+    <tspan x="1204" dy="20">the display. The scene of the panel gives</tspan>
+    <tspan x="1204" dy="20">no speed of the closest object, so the</tspan>
+    <tspan x="1204" dy="20">scene that the display takes carries it</tspan>
+    <tspan x="1204" dy="20">(REQ-HMI-001). The mark that the</tspan>
+    <tspan x="1204" dy="20">visualization draws from AutoDrive alone</tspan>
+    <tspan x="1204" dy="20">(occupancy_bridge.cpp:79-84) is no closest</tspan>
+    <tspan x="1204" dy="20">object of the fusion, and the display</tspan>
+    <tspan x="1204" dy="20">shows no such mark as that object.</tspan>
+  </text>
+  <rect x="1552" y="1014" width="110" height="940" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1564" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1564" dy="0">test</tspan>
+  </text>
+  <rect x="1662" y="1014" width="360" height="940" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1674" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1674" dy="0">Met when each of SC-HMI-001 and SC-HMI-002</tspan>
+    <tspan x="1674" dy="20">has at least one run whose scenes give an</tspan>
+    <tspan x="1674" dy="20">object that the system acts on, and in</tspan>
+    <tspan x="1674" dy="20">each run of SC-HMI-001 to SC-HMI-007 each</tspan>
+    <tspan x="1674" dy="20">frame on the display that shows a scene</tspan>
+    <tspan x="1674" dy="20">shows, as an element of its own, the</tspan>
+    <tspan x="1674" dy="20">object that the system acts on of that</tspan>
+    <tspan x="1674" dy="20">scene when it has one and no such element</tspan>
+    <tspan x="1674" dy="20">when it has none, the fixed distance of</tspan>
+    <tspan x="1674" dy="20">150 m included; marks no box of the</tspan>
+    <tspan x="1674" dy="20">objects and no mark of AutoDrive alone as</tspan>
+    <tspan x="1674" dy="20">that object; and shows its distance as the</tspan>
+    <tspan x="1674" dy="20">distance of the scene rounded to the whole</tspan>
+    <tspan x="1674" dy="20">metre and its speed as the speed of the</tspan>
+    <tspan x="1674" dy="20">closest object of the scene times 3.6,</tspan>
+    <tspan x="1674" dy="20">rounded to the whole km/h, with its sign.</tspan>
+  </text>
+  <rect x="0" y="1954" width="112" height="580" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-HMI-003</tspan>
+  </text>
+  <rect x="112" y="1954" width="360" height="580" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">reqShowTheVehicleSpeed</tspan>
+  </text>
+  <rect x="472" y="1954" width="360" height="580" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">The HMI display shall show, within the</tspan>
+    <tspan x="484" dy="20">presentation time, each vehicle speed that</tspan>
+    <tspan x="484" dy="20">reaches it, or a newer one, to the whole</tspan>
+    <tspan x="484" dy="20">km/h.</tspan>
+  </text>
+  <rect x="832" y="1954" width="360" height="580" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">NEED-HMI-002; scope item hmiSpeedInScope;</tspan>
+    <tspan x="844" dy="20">scenarios SC-HMI-001, SC-HMI-002 and SC-</tspan>
+    <tspan x="844" dy="20">HMI-007</tspan>
+  </text>
+  <rect x="1192" y="1954" width="360" height="580" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1204" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1204" dy="0">The driver supervises the driver-</tspan>
+    <tspan x="1204" dy="20">assistance system with the same speed that</tspan>
+    <tspan x="1204" dy="20">the system acts on (NEED-HMI-002). In the</tspan>
+    <tspan x="1204" dy="20">realization of the driver-assistance</tspan>
+    <tspan x="1204" dy="20">increment the vehicle speed enters the</tspan>
+    <tspan x="1204" dy="20">system with its sample time in simulation</tspan>
+    <tspan x="1204" dy="20">time, typed by COVESA VSS in km/h</tspan>
+    <tspan x="1204" dy="20">(VehicleSpeedSamplePayload and MAP-</tspan>
+    <tspan x="1204" dy="20">DRIVING-DA-VEHICLE-SPEED), and the system</tspan>
+    <tspan x="1204" dy="20">reads it once in each result pass. The</tspan>
+    <tspan x="1204" dy="20">display takes the speed of each world</tspan>
+    <tspan x="1204" dy="20">snapshot that reaches the input of the</tspan>
+    <tspan x="1204" dy="20">system, not the copy that the system reads</tspan>
+    <tspan x="1204" dy="20">in each result pass (MAP-DRIVING-DA-</tspan>
+    <tspan x="1204" dy="20">VEHICLE-SPEED): the signal is the same,</tspan>
+    <tspan x="1204" dy="20">and the snapshots go on when the system</tspan>
+    <tspan x="1204" dy="20">gives no result. The vehicle gives the</tspan>
+    <tspan x="1204" dy="20">speed, and which element brings it to the</tspan>
+    <tspan x="1204" dy="20">display is for the architecture phases</tspan>
+    <tspan x="1204" dy="20">(vehicleSpeedSourceComment). The display</tspan>
+    <tspan x="1204" dy="20">may skip a sample only for a newer one,</tspan>
+    <tspan x="1204" dy="20">and the presentation time bounds the</tspan>
+    <tspan x="1204" dy="20">delay. Before the first vehicle speed of a</tspan>
+    <tspan x="1204" dy="20">run reaches the display there is no speed</tspan>
+    <tspan x="1204" dy="20">to show, and REQ-HMI-006 shows the element</tspan>
+    <tspan x="1204" dy="20">as outdated. In the runs of SC-HMI-003 to</tspan>
+    <tspan x="1204" dy="20">SC-HMI-006, REQ-HMI-008 judges this</tspan>
+    <tspan x="1204" dy="20">obligation through each outage.</tspan>
+  </text>
+  <rect x="1552" y="1954" width="110" height="580" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1564" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1564" dy="0">test</tspan>
+  </text>
+  <rect x="1662" y="1954" width="360" height="580" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1674" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1674" dy="0">Met when each of SC-HMI-001, SC-HMI-002</tspan>
+    <tspan x="1674" dy="20">and SC-HMI-007 has at least one run, and</tspan>
+    <tspan x="1674" dy="20">in each of their runs each speed on a</tspan>
+    <tspan x="1674" dy="20">frame on the display is the value of a</tspan>
+    <tspan x="1674" dy="20">vehicle speed of the run that has reached</tspan>
+    <tspan x="1674" dy="20">the HMI display, rounded to the whole</tspan>
+    <tspan x="1674" dy="20">km/h; each vehicle speed that reaches the</tspan>
+    <tspan x="1674" dy="20">HMI display, or a newer one, is on the</tspan>
+    <tspan x="1674" dy="20">display less than 0.1 s of wall-clock time</tspan>
+    <tspan x="1674" dy="20">after it arrives; and no frame shows a</tspan>
+    <tspan x="1674" dy="20">speed from another source, a fixed value</tspan>
+    <tspan x="1674" dy="20">of the display's own, or a speed before</tspan>
+    <tspan x="1674" dy="20">the first vehicle speed of the run reaches</tspan>
+    <tspan x="1674" dy="20">the HMI display.</tspan>
+  </text>
+  <rect x="0" y="2534" width="112" height="760" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-HMI-004</tspan>
+  </text>
+  <rect x="112" y="2534" width="360" height="760" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="2558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">reqCollisionWarningWhileRequested</tspan>
+  </text>
+  <rect x="472" y="2534" width="360" height="760" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="2558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">The HMI display shall give the collision</tspan>
+    <tspan x="484" dy="20">warning on the display and as a sound</tspan>
+    <tspan x="484" dy="20">while, and only while, the warning request</tspan>
+    <tspan x="484" dy="20">asks for it, each mode following each</tspan>
+    <tspan x="484" dy="20">change of the asking within the</tspan>
+    <tspan x="484" dy="20">presentation time.</tspan>
+  </text>
+  <rect x="832" y="2534" width="360" height="760" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="2558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">NEED-HMI-003; REQ-AEBS-002;</tspan>
+    <tspan x="844" dy="20">hmiWarningSequenceConcern; scope item</tspan>
+    <tspan x="844" dy="20">hmiCollisionWarningInScope; gap</tspan>
+    <tspan x="844" dy="20">gapHmiRendererCollisionWarning; scenarios</tspan>
+    <tspan x="844" dy="20">SC-HMI-001, SC-HMI-002 and SC-HMI-007</tspan>
+  </text>
+  <rect x="1192" y="2534" width="360" height="760" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1204" y="2558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1204" dy="0">The display gives the warning so that the</tspan>
+    <tspan x="1204" dy="20">driver can act on an imminent collision,</tspan>
+    <tspan x="1204" dy="20">and none without a request (NEED-HMI-003).</tspan>
+    <tspan x="1204" dy="20">The warning request is the output that the</tspan>
+    <tspan x="1204" dy="20">driver-assistance increment realizes from</tspan>
+    <tspan x="1204" dy="20">the warnings of each plan: one event for</tspan>
+    <tspan x="1204" dy="20">each plan, which asks for the collision</tspan>
+    <tspan x="1204" dy="20">warning when the plan holds the forward-</tspan>
+    <tspan x="1204" dy="20">collision warning or the emergency braking</tspan>
+    <tspan x="1204" dy="20">and carries the capture time in simulation</tspan>
+    <tspan x="1204" dy="20">time of the frame that the plan came from,</tspan>
+    <tspan x="1204" dy="20">with no value changed on its path</tspan>
+    <tspan x="1204" dy="20">(CollisionWarningRequestOutput and MAP-</tspan>
+    <tspan x="1204" dy="20">DRIVING-DA-WARNING-REQUEST). The request</tspan>
+    <tspan x="1204" dy="20">does not tell the two apart, so the</tspan>
+    <tspan x="1204" dy="20">display gives one collision warning for</tspan>
+    <tspan x="1204" dy="20">both. The request carries no end, so the</tspan>
+    <tspan x="1204" dy="20">warning lasts while the request asks: a</tspan>
+    <tspan x="1204" dy="20">continuing request continues the warning,</tspan>
+    <tspan x="1204" dy="20">and the warning ends once the request asks</tspan>
+    <tspan x="1204" dy="20">for none or is outdated, when REQ-HMI-007</tspan>
+    <tspan x="1204" dy="20">shows that it is unavailable. Each mode</tspan>
+    <tspan x="1204" dy="20">follows each change within the</tspan>
+    <tspan x="1204" dy="20">presentation time that REQ-HMI-005 sets,</tspan>
+    <tspan x="1204" dy="20">at the start and at the end alike. The</tspan>
+    <tspan x="1204" dy="20">term takes only the form of the request,</tspan>
+    <tspan x="1204" dy="20">so the requirement names no variant. It</tspan>
+    <tspan x="1204" dy="20">rests on REQ-AEBS-002, the collision</tspan>
+    <tspan x="1204" dy="20">warning that the product line asks for;</tspan>
+    <tspan x="1204" dy="20">whether a warning is due is the decision</tspan>
+    <tspan x="1204" dy="20">of the driver-assistance system, which</tspan>
+    <tspan x="1204" dy="20">that increment judges. The vehicle data of</tspan>
+    <tspan x="1204" dy="20">the renderer holds no collision warning</tspan>
+    <tspan x="1204" dy="20">yet (gapHmiRendererCollisionWarning). In</tspan>
+    <tspan x="1204" dy="20">the runs of SC-HMI-003 to SC-HMI-006, REQ-</tspan>
+    <tspan x="1204" dy="20">HMI-008 judges this obligation through</tspan>
+    <tspan x="1204" dy="20">each outage. No safety claim is made.</tspan>
+  </text>
+  <rect x="1552" y="2534" width="110" height="760" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1564" y="2558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1564" dy="0">test</tspan>
+  </text>
+  <rect x="1662" y="2534" width="360" height="760" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1674" y="2558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1674" dy="0">Met when each run of SC-HMI-001 has at</tspan>
+    <tspan x="1674" dy="20">least one start of a request that reaches</tspan>
+    <tspan x="1674" dy="20">the HMI display, and in each run of SC-</tspan>
+    <tspan x="1674" dy="20">HMI-001, SC-HMI-002 and SC-HMI-007 each</tspan>
+    <tspan x="1674" dy="20">mode of the collision warning is on from</tspan>
+    <tspan x="1674" dy="20">less than 0.1 s of wall-clock time after</tspan>
+    <tspan x="1674" dy="20">each start of a request reaches the HMI</tspan>
+    <tspan x="1674" dy="20">display until less than 0.1 s of wall-</tspan>
+    <tspan x="1674" dy="20">clock time after the warning request ends</tspan>
+    <tspan x="1674" dy="20">its asking, and at no other time, with no</tspan>
+    <tspan x="1674" dy="20">recording or overlay in place of either</tspan>
+    <tspan x="1674" dy="20">mode.</tspan>
+  </text>
+  <rect x="0" y="3294" width="112" height="780" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-HMI-005</tspan>
+  </text>
+  <rect x="112" y="3294" width="360" height="780" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="3318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">reqStartEachWarningModeWithinLimit</tspan>
+  </text>
+  <rect x="472" y="3294" width="360" height="780" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="3318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">When the start of a request reaches the</tspan>
+    <tspan x="484" dy="20">HMI display, the HMI display shall start</tspan>
+    <tspan x="484" dy="20">each mode of the collision warning within</tspan>
+    <tspan x="484" dy="20">0.1 s of wall-clock time.</tspan>
+  </text>
+  <rect x="832" y="3294" width="360" height="780" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="3318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">NEED-HMI-003; REQ-AEBS-002;</tspan>
+    <tspan x="844" dy="20">hmiWarningSequenceConcern; gap</tspan>
+    <tspan x="844" dy="20">gapHmiWarningPresentation; scenarios SC-</tspan>
+    <tspan x="844" dy="20">HMI-001 and SC-HMI-002</tspan>
+  </text>
+  <rect x="1192" y="3294" width="360" height="780" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1204" y="3318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1204" dy="0">This is a performance requirement on the</tspan>
+    <tspan x="1204" dy="20">share of the HMI display in the time that</tspan>
+    <tspan x="1204" dy="20">the driver-assistance increment allots</tspan>
+    <tspan x="1204" dy="20">from the warning request to each mode.</tspan>
+    <tspan x="1204" dy="20">REQ-DRIVING-042 allots 0.2 s of wall-clock</tspan>
+    <tspan x="1204" dy="20">time to the Eclipse S-CORE path and the</tspan>
+    <tspan x="1204" dy="20">AAOS SDV together, and the realization of</tspan>
+    <tspan x="1204" dy="20">that increment divides it, on its path to</tspan>
+    <tspan x="1204" dy="20">its own app on the IVI VM, into 0.1 s for</tspan>
+    <tspan x="1204" dy="20">the path and 0.1 s for the presentation,</tspan>
+    <tspan x="1204" dy="20">from the receipt to the first frame with</tspan>
+    <tspan x="1204" dy="20">the warning and to the start of the sound</tspan>
+    <tspan x="1204" dy="20">(MAP-DRIVING-DA-WARNING-REQUEST). The</tspan>
+    <tspan x="1204" dy="20">boundary of the HMI display lies at the</tspan>
+    <tspan x="1204" dy="20">SDV Core VM, with the Eclipse S-CORE path</tspan>
+    <tspan x="1204" dy="20">outside it and the paths from the SDV Core</tspan>
+    <tspan x="1204" dy="20">VM inside it, so the share of the display</tspan>
+    <tspan x="1204" dy="20">starts when the start of a request reaches</tspan>
+    <tspan x="1204" dy="20">it. Unlike that division, whose path share</tspan>
+    <tspan x="1204" dy="20">runs to the receipt on the IVI VM, the</tspan>
+    <tspan x="1204" dy="20">share of the display also holds the paths</tspan>
+    <tspan x="1204" dy="20">from the SDV Core VM to the renderer and</tspan>
+    <tspan x="1204" dy="20">to the app. The 0.1 s is chosen here by</tspan>
+    <tspan x="1204" dy="20">analogy with that division and leaves the</tspan>
+    <tspan x="1204" dy="20">other 0.1 s to the part before the</tspan>
+    <tspan x="1204" dy="20">boundary. It is unmeasured for the high</tspan>
+    <tspan x="1204" dy="20">availability renderer and for the sound,</tspan>
+    <tspan x="1204" dy="20">and it is revisited when a readiness probe</tspan>
+    <tspan x="1204" dy="20">measures them (gapHmiWarningPresentation).</tspan>
+    <tspan x="1204" dy="20">Within is strict, so a mode that starts</tspan>
+    <tspan x="1204" dy="20">exactly at the limit is late. A mode</tspan>
+    <tspan x="1204" dy="20">starts at its start of a mode; a recording</tspan>
+    <tspan x="1204" dy="20">or an overlay in place of a mode is no</tspan>
+    <tspan x="1204" dy="20">start. The limit counts in wall-clock time</tspan>
+    <tspan x="1204" dy="20">while the simulation runs no faster than</tspan>
+    <tspan x="1204" dy="20">wall-clock time, which is the obligation</tspan>
+    <tspan x="1204" dy="20">of System 2, and makes no timing claim for</tspan>
+    <tspan x="1204" dy="20">a vehicle.</tspan>
+  </text>
+  <rect x="1552" y="3294" width="110" height="780" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1564" y="3318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1564" dy="0">test</tspan>
+  </text>
+  <rect x="1662" y="3294" width="360" height="780" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1674" y="3318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1674" dy="0">Met when each run of SC-HMI-001 has at</tspan>
+    <tspan x="1674" dy="20">least one start of a request that reaches</tspan>
+    <tspan x="1674" dy="20">the HMI display, and for each start of a</tspan>
+    <tspan x="1674" dy="20">request that reaches the HMI display in a</tspan>
+    <tspan x="1674" dy="20">run of SC-HMI-001 or SC-HMI-002, the first</tspan>
+    <tspan x="1674" dy="20">frame on the display with the warning and</tspan>
+    <tspan x="1674" dy="20">the start of the sound each come less than</tspan>
+    <tspan x="1674" dy="20">0.1 s of wall-clock time after it arrives,</tspan>
+    <tspan x="1674" dy="20">with no recording or overlay in place of</tspan>
+    <tspan x="1674" dy="20">either mode.</tspan>
+  </text>
+  <rect x="0" y="4074" width="112" height="1040" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="4098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-HMI-006</tspan>
+  </text>
+  <rect x="112" y="4074" width="360" height="1040" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="4098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">reqShowOutdatedElementsAsOutdated</tspan>
+  </text>
+  <rect x="472" y="4074" width="360" height="1040" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="4098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">The HMI display shall show each element as</tspan>
+    <tspan x="484" dy="20">outdated while, and only while, the</tspan>
+    <tspan x="484" dy="20">element is outdated, following each change</tspan>
+    <tspan x="484" dy="20">of its state within the presentation time.</tspan>
+  </text>
+  <rect x="832" y="4074" width="360" height="1040" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="4098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">NEED-HMI-005; hmiContentCurrencyConcern;</tspan>
+    <tspan x="844" dy="20">scope item hmiStaleContentInScope;</tspan>
+    <tspan x="844" dy="20">scenarios SC-HMI-001 to SC-HMI-007</tspan>
+  </text>
+  <rect x="1192" y="4074" width="360" height="1040" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1204" y="4098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1204" dy="0">The display shows no element as current</tspan>
+    <tspan x="1204" dy="20">when it is not, so that the driver</tspan>
+    <tspan x="1204" dy="20">supervises the driver-assistance system on</tspan>
+    <tspan x="1204" dy="20">what it perceives now (NEED-HMI-005). The</tspan>
+    <tspan x="1204" dy="20">scene and the warning request share one</tspan>
+    <tspan x="1204" dy="20">period of 0.1 s of simulation time in the</tspan>
+    <tspan x="1204" dy="20">realization of the driver-assistance</tspan>
+    <tspan x="1204" dy="20">increment: one camera image, one result</tspan>
+    <tspan x="1204" dy="20">pass, one plan and one event of the</tspan>
+    <tspan x="1204" dy="20">warning request each 0.1 s; the vehicle</tspan>
+    <tspan x="1204" dy="20">speed comes with each world snapshot at</tspan>
+    <tspan x="1204" dy="20">the input of the system, every step of</tspan>
+    <tspan x="1204" dy="20">0.05 s. The limits of the term current</tspan>
+    <tspan x="1204" dy="20">take two periods, so that one late value</tspan>
+    <tspan x="1204" dy="20">is tolerated. The vehicle speed brings the</tspan>
+    <tspan x="1204" dy="20">newest time to the display with each world</tspan>
+    <tspan x="1204" dy="20">snapshot, so the limit in simulation time</tspan>
+    <tspan x="1204" dy="20">also counts the time from the capture of a</tspan>
+    <tspan x="1204" dy="20">frame to the arrival of its scene and its</tspan>
+    <tspan x="1204" dy="20">event at the display, and the time that</tspan>
+    <tspan x="1204" dy="20">the display takes to show the scene. While</tspan>
+    <tspan x="1204" dy="20">those times stay within one period</tspan>
+    <tspan x="1204" dy="20">together, a scene stays current until the</tspan>
+    <tspan x="1204" dy="20">next one is shown, and the warning request</tspan>
+    <tspan x="1204" dy="20">until its next event; with longer times an</tspan>
+    <tspan x="1204" dy="20">element can turn outdated before its next</tspan>
+    <tspan x="1204" dy="20">value comes, and the limit is revisited</tspan>
+    <tspan x="1204" dy="20">once a readiness probe measures them</tspan>
+    <tspan x="1204" dy="20">(warningPresentationFixedInPhase5). The</tspan>
+    <tspan x="1204" dy="20">limit in simulation time counts against</tspan>
+    <tspan x="1204" dy="20">the newest time that has reached the</tspan>
+    <tspan x="1204" dy="20">display, so it catches a delay before the</tspan>
+    <tspan x="1204" dy="20">display, which an age taken from the</tspan>
+    <tspan x="1204" dy="20">arrival would hide, and a value whose time</tspan>
+    <tspan x="1204" dy="20">the display changes. The limit in wall-</tspan>
+    <tspan x="1204" dy="20">clock time counts from the arrival of the</tspan>
+    <tspan x="1204" dy="20">newest value of the input, so it catches</tspan>
+    <tspan x="1204" dy="20">every input stopping, when the newest time</tspan>
+    <tspan x="1204" dy="20">stops as well. Late and missing values</tspan>
+    <tspan x="1204" dy="20">give one state, outdated, and phase 8</tspan>
+    <tspan x="1204" dy="20">states how an outdated element looks; the</tspan>
+    <tspan x="1204" dy="20">visual design stays out of scope</tspan>
+    <tspan x="1204" dy="20">(hmiHumanFactorsOutOfScope). An element is</tspan>
+    <tspan x="1204" dy="20">shown as current again once it is current,</tspan>
+    <tspan x="1204" dy="20">which is the validity rule of the display;</tspan>
+    <tspan x="1204" dy="20">the converse, current while it is current,</tspan>
+    <tspan x="1204" dy="20">keeps a display from showing everything as</tspan>
+    <tspan x="1204" dy="20">outdated. The state of each element counts</tspan>
+    <tspan x="1204" dy="20">on its own, so a late scene leaves the</tspan>
+    <tspan x="1204" dy="20">vehicle speed current. No safety claim is</tspan>
+    <tspan x="1204" dy="20">made.</tspan>
+  </text>
+  <rect x="1552" y="4074" width="110" height="1040" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1564" y="4098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1564" dy="0">test</tspan>
+  </text>
+  <rect x="1662" y="4074" width="360" height="1040" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1674" y="4098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1674" dy="0">Met when each of SC-HMI-001 to SC-HMI-007</tspan>
+    <tspan x="1674" dy="20">has at least one run, each run of SC-</tspan>
+    <tspan x="1674" dy="20">HMI-003 to SC-HMI-006 has its outage in</tspan>
+    <tspan x="1674" dy="20">the IVI VM and each run of SC-HMI-007 the</tspan>
+    <tspan x="1674" dy="20">stop of the Eclipse S-CORE path, and in</tspan>
+    <tspan x="1674" dy="20">each run each frame on the display shows</tspan>
+    <tspan x="1674" dy="20">each element as outdated, in the form that</tspan>
+    <tspan x="1674" dy="20">phase 8 states for it, from less than 0.1</tspan>
+    <tspan x="1674" dy="20">s of wall-clock time after the element</tspan>
+    <tspan x="1674" dy="20">turns outdated until less than 0.1 s of</tspan>
+    <tspan x="1674" dy="20">wall-clock time after it turns current</tspan>
+    <tspan x="1674" dy="20">again, and as current at every other time;</tspan>
+    <tspan x="1674" dy="20">an element is outdated from the start of</tspan>
+    <tspan x="1674" dy="20">the run until a first current value of its</tspan>
+    <tspan x="1674" dy="20">input reaches the HMI display.</tspan>
+  </text>
+  <rect x="0" y="5114" width="112" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="5138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-HMI-007</tspan>
+  </text>
+  <rect x="112" y="5114" width="360" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="5138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">reqShowWarningUnavailableWhileRequestOutdated</tspan>
+  </text>
+  <rect x="472" y="5114" width="360" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="5138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">The HMI display shall show that the</tspan>
+    <tspan x="484" dy="20">collision warning is unavailable while,</tspan>
+    <tspan x="484" dy="20">and only while, the warning request is</tspan>
+    <tspan x="484" dy="20">outdated, following each change of the</tspan>
+    <tspan x="484" dy="20">state of the warning request within the</tspan>
+    <tspan x="484" dy="20">presentation time.</tspan>
+  </text>
+  <rect x="832" y="5114" width="360" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="5138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">NEED-HMI-005; REQ-AEBS-013;</tspan>
+    <tspan x="844" dy="20">hmiContentCurrencyConcern; gap</tspan>
+    <tspan x="844" dy="20">gapHmiWarningAvailability; scenarios SC-</tspan>
+    <tspan x="844" dy="20">HMI-001 to SC-HMI-007</tspan>
+  </text>
+  <rect x="1192" y="5114" width="360" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1204" y="5138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1204" dy="0">The display shows when the warning is</tspan>
+    <tspan x="1204" dy="20">unavailable, so that the driver can tell a</tspan>
+    <tspan x="1204" dy="20">warning that cannot come from one that is</tspan>
+    <tspan x="1204" dy="20">not due (NEED-HMI-005); it rests on</tspan>
+    <tspan x="1204" dy="20">N-AEBS-008, that the availability of the</tspan>
+    <tspan x="1204" dy="20">AEBS be apparent, and on the status</tspan>
+    <tspan x="1204" dy="20">indication of REQ-AEBS-013. This is the</tspan>
+    <tspan x="1204" dy="20">one degraded response of the set. The</tspan>
+    <tspan x="1204" dy="20">warning request carries no indication of</tspan>
+    <tspan x="1204" dy="20">its own availability</tspan>
+    <tspan x="1204" dy="20">(gapHmiWarningAvailability), and one of</tspan>
+    <tspan x="1204" dy="20">its events comes for each plan, telling</tspan>
+    <tspan x="1204" dy="20">whether it asks, so the display learns</tspan>
+    <tspan x="1204" dy="20">from their age that the warning cannot</tspan>
+    <tspan x="1204" dy="20">come: the warning is unavailable while the</tspan>
+    <tspan x="1204" dy="20">warning request is outdated. A signal of</tspan>
+    <tspan x="1204" dy="20">its own would need a change of the driver-</tspan>
+    <tspan x="1204" dy="20">assistance system</tspan>
+    <tspan x="1204" dy="20">(hmiCandidateChangeOutOfScope). The</tspan>
+    <tspan x="1204" dy="20">warning shows as available again once the</tspan>
+    <tspan x="1204" dy="20">warning request is current, which is the</tspan>
+    <tspan x="1204" dy="20">validity rule; the converse keeps a</tspan>
+    <tspan x="1204" dy="20">display from showing the warning as</tspan>
+    <tspan x="1204" dy="20">unavailable at all times. In SC-HMI-007</tspan>
+    <tspan x="1204" dy="20">the Eclipse S-CORE path ends carrying the</tspan>
+    <tspan x="1204" dy="20">request, and the display shows the warning</tspan>
+    <tspan x="1204" dy="20">as unavailable while the driver still sees</tspan>
+    <tspan x="1204" dy="20">the vehicle speed. A renderer that cannot</tspan>
+    <tspan x="1204" dy="20">give the warning, such as a sound output</tspan>
+    <tspan x="1204" dy="20">that is out, is left for a later increment</tspan>
+    <tspan x="1204" dy="20">(warningAvailabilityFixedInPhase5). No</tspan>
+    <tspan x="1204" dy="20">safety claim is made.</tspan>
+  </text>
+  <rect x="1552" y="5114" width="110" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1564" y="5138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1564" dy="0">test</tspan>
+  </text>
+  <rect x="1662" y="5114" width="360" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1674" y="5138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1674" dy="0">Met when each of SC-HMI-001 to SC-HMI-007</tspan>
+    <tspan x="1674" dy="20">has at least one run, each run of SC-</tspan>
+    <tspan x="1674" dy="20">HMI-007 has the stop of the Eclipse S-CORE</tspan>
+    <tspan x="1674" dy="20">path at least 0.3 s of wall-clock time</tspan>
+    <tspan x="1674" dy="20">before its end, and in each run the</tspan>
+    <tspan x="1674" dy="20">display shows that the collision warning</tspan>
+    <tspan x="1674" dy="20">is unavailable from less than 0.1 s of</tspan>
+    <tspan x="1674" dy="20">wall-clock time after the warning request</tspan>
+    <tspan x="1674" dy="20">turns outdated until less than 0.1 s of</tspan>
+    <tspan x="1674" dy="20">wall-clock time after it turns current</tspan>
+    <tspan x="1674" dy="20">again, and at no other time, so that the</tspan>
+    <tspan x="1674" dy="20">warning shows as available again only once</tspan>
+    <tspan x="1674" dy="20">an event of the warning request is</tspan>
+    <tspan x="1674" dy="20">current.</tspan>
+  </text>
+  <rect x="0" y="5774" width="112" height="680" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="5798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-HMI-008</tspan>
+  </text>
+  <rect x="112" y="5774" width="360" height="680" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="5798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">reqSpeedAndWarningThroughOutages</tspan>
+  </text>
+  <rect x="472" y="5774" width="360" height="680" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="5798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">Throughout each outage in the IVI VM, the</tspan>
+    <tspan x="484" dy="20">HMI display shall show the vehicle speed,</tspan>
+    <tspan x="484" dy="20">give the collision warning while the</tspan>
+    <tspan x="484" dy="20">warning request asks for it, and show that</tspan>
+    <tspan x="484" dy="20">the warning is unavailable while the</tspan>
+    <tspan x="484" dy="20">warning request is outdated.</tspan>
+  </text>
+  <rect x="832" y="5774" width="360" height="680" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="5798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">NEED-HMI-004; REQ-AEBS-013;</tspan>
+    <tspan x="844" dy="20">hmiAndroidOutageConcern; scope item</tspan>
+    <tspan x="844" dy="20">hmiAndroidOutageInScope; scenarios SC-</tspan>
+    <tspan x="844" dy="20">HMI-003 to SC-HMI-006</tspan>
+  </text>
+  <rect x="1192" y="5774" width="360" height="680" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1204" y="5798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1204" dy="0">While the drawing of the scene or Android</tspan>
+    <tspan x="1204" dy="20">in the IVI VM is out, the driver-</tspan>
+    <tspan x="1204" dy="20">assistance system goes on driving the</tspan>
+    <tspan x="1204" dy="20">vehicle, and the driver still needs the</tspan>
+    <tspan x="1204" dy="20">speed and the warning, or to know that the</tspan>
+    <tspan x="1204" dy="20">warning cannot come (NEED-HMI-004). The</tspan>
+    <tspan x="1204" dy="20">outages are those of the story: the app</tspan>
+    <tspan x="1204" dy="20">that draws the scene ends or hangs (SC-</tspan>
+    <tspan x="1204" dy="20">HMI-003), and Android in the IVI VM boots</tspan>
+    <tspan x="1204" dy="20">(SC-HMI-004), hangs (SC-HMI-005) or</tspan>
+    <tspan x="1204" dy="20">restarts (SC-HMI-006). REQ-HMI-003, REQ-</tspan>
+    <tspan x="1204" dy="20">HMI-004, REQ-HMI-005 and REQ-HMI-007 state</tspan>
+    <tspan x="1204" dy="20">the speed and the warning in every run;</tspan>
+    <tspan x="1204" dy="20">this requirement carries them through each</tspan>
+    <tspan x="1204" dy="20">outage, and its criteria judge them there.</tspan>
+    <tspan x="1204" dy="20">It rests on N-AEBS-008 and on the status</tspan>
+    <tspan x="1204" dy="20">indication of REQ-AEBS-013. Each outage is</tspan>
+    <tspan x="1204" dy="20">an event inside the boundary of the</tspan>
+    <tspan x="1204" dy="20">display, whose detection phases 6 to 8</tspan>
+    <tspan x="1204" dy="20">decide (guestAcrossBoundaryComment). The</tspan>
+    <tspan x="1204" dy="20">speed and the warning hold throughout, the</tspan>
+    <tspan x="1204" dy="20">scene returns under REQ-HMI-001 once the</tspan>
+    <tspan x="1204" dy="20">app gives frames again, and until then</tspan>
+    <tspan x="1204" dy="20">REQ-HMI-006 shows it as outdated, within</tspan>
+    <tspan x="1204" dy="20">the limits of the term current and the</tspan>
+    <tspan x="1204" dy="20">presentation time from the last scene that</tspan>
+    <tspan x="1204" dy="20">the app has shown. No time from a restart</tspan>
+    <tspan x="1204" dy="20">to the scene is set here; that limit, and</tspan>
+    <tspan x="1204" dy="20">whether the HMI display meets those of</tspan>
+    <tspan x="1204" dy="20">REQ-HMI-006 through a hang of the app or</tspan>
+    <tspan x="1204" dy="20">of Android in the IVI VM, stay open with</tspan>
+    <tspan x="1204" dy="20">the owner until a probe measures them. No</tspan>
+    <tspan x="1204" dy="20">safety claim is made.</tspan>
+  </text>
+  <rect x="1552" y="5774" width="110" height="680" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1564" y="5798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1564" dy="0">test</tspan>
+  </text>
+  <rect x="1662" y="5774" width="360" height="680" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1674" y="5798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1674" dy="0">Met when each of SC-HMI-003 to SC-HMI-006</tspan>
+    <tspan x="1674" dy="20">has at least one run, each run has its</tspan>
+    <tspan x="1674" dy="20">outage in the IVI VM with at least one</tspan>
+    <tspan x="1674" dy="20">start of a request reaching the HMI</tspan>
+    <tspan x="1674" dy="20">display during it, and throughout the</tspan>
+    <tspan x="1674" dy="20">outage of each run each frame on the</tspan>
+    <tspan x="1674" dy="20">display and each mode of the collision</tspan>
+    <tspan x="1674" dy="20">warning meet what the criteria of REQ-</tspan>
+    <tspan x="1674" dy="20">HMI-003, REQ-HMI-004, REQ-HMI-005 and REQ-</tspan>
+    <tspan x="1674" dy="20">HMI-007 ask of them.</tspan>
+  </text>
+  <rect x="0" y="6454" width="112" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="6478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-HMI-009</tspan>
+  </text>
+  <rect x="112" y="6454" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="6478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">reqRendererSplitAndInputPaths</tspan>
+  </text>
+  <rect x="472" y="6454" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="6478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">The HMI display shall draw the vehicle</tspan>
+    <tspan x="484" dy="20">speed and the collision warning and give</tspan>
+    <tspan x="484" dy="20">its sound by the high availability</tspan>
+    <tspan x="484" dy="20">renderer in an SDV Media VM, and draw the</tspan>
+    <tspan x="484" dy="20">scene by an app in the IVI VM, each taking</tspan>
+    <tspan x="484" dy="20">its inputs from the SDV Core VM over paths</tspan>
+    <tspan x="484" dy="20">inside the boundary of the HMI display.</tspan>
+  </text>
+  <rect x="832" y="6454" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="6478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">NEED-HMI-004;</tspan>
+    <tspan x="844" dy="20">hmiRendererAllocationConcern;</tspan>
+    <tspan x="844" dy="20">hmiRendererPathConcern; scope item</tspan>
+    <tspan x="844" dy="20">hmiRendererSplitInScope; gaps</tspan>
+    <tspan x="844" dy="20">gapHmiRendererIntegration and</tspan>
+    <tspan x="844" dy="20">gapHmiMemberGuestLayout</tspan>
+  </text>
+  <rect x="1192" y="6454" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1204" y="6478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1204" dy="0">This is a design constraint on the</tspan>
+    <tspan x="1204" dy="20">realization of the HMI display, from the</tspan>
+    <tspan x="1204" dy="20">owner's decision of 2026-11-17: the high</tspan>
+    <tspan x="1204" dy="20">availability renderer in an SDV Media VM</tspan>
+    <tspan x="1204" dy="20">draws the speed and the collision warning</tspan>
+    <tspan x="1204" dy="20">and gives its sound, and an app in the IVI</tspan>
+    <tspan x="1204" dy="20">VM draws the scene, so that the speed and</tspan>
+    <tspan x="1204" dy="20">the warning do not depend on Android in</tspan>
+    <tspan x="1204" dy="20">the IVI VM (hmiRendererSplitInScope). The</tspan>
+    <tspan x="1204" dy="20">boundary puts the paths from the SDV Core</tspan>
+    <tspan x="1204" dy="20">VM inside the display and the Eclipse</tspan>
+    <tspan x="1204" dy="20">S-CORE path outside it. How a collision</tspan>
+    <tspan x="1204" dy="20">warning and its sound reach the renderer</tspan>
+    <tspan x="1204" dy="20">is open (gapHmiRendererCollisionWarning),</tspan>
+    <tspan x="1204" dy="20">and so is how the renderer and the guest</tspan>
+    <tspan x="1204" dy="20">fit a bench (gapHmiRendererIntegration).</tspan>
+    <tspan x="1204" dy="20">Phases 6 to 8 decide the elements on each</tspan>
+    <tspan x="1204" dy="20">path and how the app tells the renderer</tspan>
+    <tspan x="1204" dy="20">that Android is alive; this requirement</tspan>
+    <tspan x="1204" dy="20">fixes only the split and that the paths</tspan>
+    <tspan x="1204" dy="20">stay inside the boundary. It names the</tspan>
+    <tspan x="1204" dy="20">AAOS SDV guest, and phase 9 links it.</tspan>
+  </text>
+  <rect x="1552" y="6454" width="110" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1564" y="6478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1564" dy="0">inspect</tspan>
+  </text>
+  <rect x="1662" y="6454" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1674" y="6478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1674" dy="0">Met when the inspection of the realization</tspan>
+    <tspan x="1674" dy="20">that phase 8 records shows the vehicle</tspan>
+    <tspan x="1674" dy="20">speed, the collision warning on the</tspan>
+    <tspan x="1674" dy="20">display and its sound in the high</tspan>
+    <tspan x="1674" dy="20">availability renderer in an SDV Media VM,</tspan>
+    <tspan x="1674" dy="20">the scene in an app in the IVI VM, and for</tspan>
+    <tspan x="1674" dy="20">each input the elements that carry it from</tspan>
+    <tspan x="1674" dy="20">the SDV Core VM to the renderer or to the</tspan>
+    <tspan x="1674" dy="20">app, all inside the boundary of the HMI</tspan>
+    <tspan x="1674" dy="20">display, with no other element drawing the</tspan>
+    <tspan x="1674" dy="20">vehicle speed or the collision warning.</tspan>
+  </text>
+  <rect x="0" y="6914" width="112" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="6938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-HMI-010</tspan>
+  </text>
+  <rect x="112" y="6914" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="6938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">reqRecordDisplayIdentity</tspan>
+  </text>
+  <rect x="472" y="6914" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="6938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">The HMI display shall record its display</tspan>
+    <tspan x="484" dy="20">identity before its first frame on the</tspan>
+    <tspan x="484" dy="20">display in each run.</tspan>
+  </text>
+  <rect x="832" y="6914" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="6938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">NEED-HMI-006; hmiDisplayVerdictConcern;</tspan>
+    <tspan x="844" dy="20">scope item hmiVerdictEvidenceInScope;</tspan>
+    <tspan x="844" dy="20">assumption asmHmiSimulationStandsIn;</tspan>
+    <tspan x="844" dy="20">scenarios SC-HMI-001 to SC-HMI-007</tspan>
+  </text>
+  <rect x="1192" y="6914" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1204" y="6938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1204" dy="0">A verdict holds only for the display that</tspan>
+    <tspan x="1204" dy="20">ran, and the configuration of the display</tspan>
+    <tspan x="1204" dy="20">is every setting that it reads at its</tspan>
+    <tspan x="1204" dy="20">start (NEED-HMI-006). The parts of the</tspan>
+    <tspan x="1204" dy="20">identity are pinned each on its own,</tspan>
+    <tspan x="1204" dy="20">because none of them fixes the others: the</tspan>
+    <tspan x="1204" dy="20">build of each of the two drawing elements,</tspan>
+    <tspan x="1204" dy="20">the image of each guest VM, the sound of</tspan>
+    <tspan x="1204" dy="20">the warning, the files of the</tspan>
+    <tspan x="1204" dy="20">configuration and the settings of the</tspan>
+    <tspan x="1204" dy="20">start. Each part is the SHA-256 of named</tspan>
+    <tspan x="1204" dy="20">files or a setting written out, so that</tspan>
+    <tspan x="1204" dy="20">another engineer can check it. The</tspan>
+    <tspan x="1204" dy="20">candidate revision is bound by the run of</tspan>
+    <tspan x="1204" dy="20">the driver-assistance system (NEED-</tspan>
+    <tspan x="1204" dy="20">DRIVING-011 and REQ-DRIVING-044), and the</tspan>
+    <tspan x="1204" dy="20">record of what that system gives, the</tspan>
+    <tspan x="1204" dy="20">captures and the evaluators belong to</tspan>
+    <tspan x="1204" dy="20">System 2 and are bound there. Like REQ-</tspan>
+    <tspan x="1204" dy="20">DRIVING-044, the record is a behaviour of</tspan>
+    <tspan x="1204" dy="20">the display in each run, which phase 6</tspan>
+    <tspan x="1204" dy="20">allocates to a function. A verdict holds</tspan>
+    <tspan x="1204" dy="20">for the simulated configuration only</tspan>
+    <tspan x="1204" dy="20">(asmHmiSimulationStandsIn).</tspan>
+  </text>
+  <rect x="1552" y="6914" width="110" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1564" y="6938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1564" dy="0">test</tspan>
+  </text>
+  <rect x="1662" y="6914" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1674" y="6938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1674" dy="0">Met when every run of SC-HMI-001 to SC-</tspan>
+    <tspan x="1674" dy="20">HMI-007 has the record of its display</tspan>
+    <tspan x="1674" dy="20">identity before its first frame on the</tspan>
+    <tspan x="1674" dy="20">display; when another engineer who hashes</tspan>
+    <tspan x="1674" dy="20">the named files obtains the recorded</tspan>
+    <tspan x="1674" dy="20">values; and when a display with one</tspan>
+    <tspan x="1674" dy="20">changed build, image, sound file,</tspan>
+    <tspan x="1674" dy="20">configuration file or start setting</tspan>
+    <tspan x="1674" dy="20">records a different display identity.</tspan>
+  </text>
+</svg>
