@@ -336,7 +336,7 @@ The
 state what the HMI display shall do and how each is verified. There are ten,
 the cap of the scope. Each has one subject, the HMI display, derives from one
 need, and has one verification method and its success criteria. They derive
-from the Phase 4 needs and from `REQ-AEBS-002` and `REQ-AEBS-013`. Eight are
+from the Phase 4 needs and rest on `REQ-AEBS-002` and `REQ-AEBS-013`. Eight are
 functional; Phase 6 allocates each of those to a function.
 
 - `REQ-HMI-001` `reqShowTheSceneAsGiven`, from `NEED-HMI-001`, functional,
@@ -345,7 +345,7 @@ functional; Phase 6 allocates each of those to a function.
   the outages in the IVI VM.
 - `REQ-HMI-002` `reqMarkTheObjectTheSystemActsOn`, from `NEED-HMI-001`,
   functional, test: shows the object that the system acts on, and no other,
-  apart from the objects it detects, with its distance to the whole metre and
+  apart from the objects of the scene, with its distance to the whole metre and
   its speed to the whole km/h.
 - `REQ-HMI-003` `reqShowTheVehicleSpeed`, from `NEED-HMI-002`, functional,
   test: shows each vehicle speed, or a newer one, within the presentation time,
@@ -391,7 +391,7 @@ that it shapes:
    gives as valid below 150 m; at the fixed distance of 150 m none is marked.
    The value is compared when the pin moves.
 3. The display shows that object as an element of its own and marks none of the
-   objects it detects as it, since the scene names none.
+   objects of the scene as it, since the scene names none.
 4. Distances are shown to the whole metre and speeds to the whole km/h; the
    rest of the scene is shown as the system gives it.
 5. The vehicle speed is the speed that the vehicle gives the driver-assistance
@@ -402,9 +402,9 @@ that it shapes:
 7. The share of the display in the time that the driver-assistance increment
    allots from the warning request to each mode is 0.1 s of wall-clock time
    from the boundary of the display, chosen by analogy with the division on the
-   path to the app of that increment and unmeasured for the renderer and the
-   sound. Every change of what the display shows takes the same 0.1 s as its
-   presentation time.
+   path to the app of that increment and unmeasured for the renderer, for the
+   app that draws the scene and for the sound. Every change of what the display
+   shows takes the same 0.1 s as its presentation time.
 8. An element is outdated once its time is more than 0.2 s of simulation time
    older than the newest time at the display, or once 0.2 s of wall-clock time
    pass with no new value of its input: two periods of 0.1 s. Late and missing
@@ -412,9 +412,11 @@ that it shapes:
 9. The warning is unavailable while the warning request is outdated and
    available again once it is current. A renderer that cannot give the warning
    is left for a later increment.
-10. The speed and the warning hold throughout each outage in the IVI VM. No
-    limit on the detection of an outage or on the return of the scene is set
-    before a probe measures them.
+10. The speed and the warning hold throughout each outage in the IVI VM. While
+    the app that draws the scene gives no frame, the scene is shown as outdated
+    within the limits of the term current and the presentation time, which no
+    probe has measured for an outage; no limit on the return of the scene is
+    set before a probe measures it.
 11. The speed, the warning and its sound go to the high availability renderer
     in an SDV Media VM and the scene to an app in the IVI VM, by the owner's
     decision of 2026-11-17.
