@@ -787,7 +787,8 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
     assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 "
-            "capability classification and Phase 4 stakeholder needs, proposal.**") in _flat(guide)
+            "capability classification, Phase 4 stakeholder needs and Phase 5 requirements, proposal.**") \
+        in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part eeArchitectureQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -832,10 +833,11 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "Starting this increment launches no compute and authorizes no spend.",
                    "Phase 3, the capability classification, records no feature-model delta, and review judges it: "
                    "its one blocking check has nothing to evaluate",
-                   "The next model obligation is **Phase 5**, the requirements.",
+                   "The next model obligation is **Phase 6**, the functional architecture.",
                    "The owner decided on 2026-11-18 to carry out Phases 1 to 3 of this increment before the "
                    "baseline of the driver-assistance increment, whose driving command it carries.",
-                   "After that baseline, the owner decided on 2026-11-21 to start Phase 4.",
+                   "After that baseline, the owner decided on 2026-11-21 to start Phase 4 and on 2026-11-22 to go "
+                   "on with Phase 5.",
                    "The testbed with its readiness probe waits for a further decision of the owner.",
                    "open gaps and Phase 1 concerns.",
                    "None of them asks these properties of a vehicle network; Phase 5 of this increment derives its "

@@ -395,7 +395,7 @@ def test_phase_two_makes_no_timing_safety_or_approval_claim():
 def test_the_guide_has_a_phase_two_section():
     guide = GUIDE.read_text(encoding="utf-8")
     assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability "
-            "classification and Phase 4 stakeholder needs, proposal.**") in _flat(guide)
+            "classification, Phase 4 stakeholder needs and Phase 5 requirements, proposal.**") in _flat(guide)
     assert guide.index("## Concerns (Phase 1)") < guide.index("## Operational context and story (Phase 2)") \
         < guide.index("## What the framing already records as open")
     flat = _guide_section()
@@ -426,12 +426,13 @@ def test_the_guide_has_a_phase_two_section():
 def test_the_guide_names_the_next_obligation_after_phase_two():
     flat = _flat(GUIDE.read_text(encoding="utf-8").split("## Next obligation and execution limits", 1)[1]
                  .split("\n## ", 1)[0])
-    # phase 3 records no feature-model delta, and phase 4 has started, so the next obligation is phase 5
+    # phase 3 records no feature-model delta, and phase 5 has started, so the next obligation is phase 6
     for phrase in ("Phase 3, the capability classification, records no feature-model delta, and review judges it: "
                    "its one blocking check has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, "
                    "with a prompt for review.",
-                   "After that baseline, the owner decided on 2026-11-21 to start Phase 4.",
-                   "The next model obligation is **Phase 5**, the requirements.",
+                   "After that baseline, the owner decided on 2026-11-21 to start Phase 4 and on 2026-11-22 to go "
+                   "on with Phase 5.",
+                   "The next model obligation is **Phase 6**, the functional architecture.",
                    "The testbed with its readiness probe waits for a further decision of the owner."):
         assert phrase in flat, phrase
     assert "The next model obligation is **Phase 4**" not in flat
