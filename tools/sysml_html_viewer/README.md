@@ -42,6 +42,18 @@ viewer.de4sdv.org). It also emits `elements.html` from
 (linked as **Elements** in the page header): the high-level guide to the
 SysML v2 element kinds used across the model and why DE4SDV uses them.
 
+The root build also emits `feature-configurator.html` (linked as
+**Configurator**): the equip-menu presentation of the PLEML SDV product-line
+feature model. It carries no catalogue of its own — the page fetches
+`/api/feature-model.json`, which `serve.py` projects from the deployed SysML
+v2 API corpus and its `#featureModel` evaluation (features, docs, group
+cardinalities, constraints, derivation rules, classifications and
+configurations). The endpoint answers 503 while the semantic corpus warms,
+then the projection is cached for the process (the API revision is
+immutable). Ref sub-sites and static mirrors do not carry the page: it shows
+only the deployed revision, and a build without the endpoint reports the API
+error instead of a stale catalogue.
+
 ### Multiple revisions (branch / PR selector)
 
 By default the working tree is built, plus `main` (or `origin/main`) when

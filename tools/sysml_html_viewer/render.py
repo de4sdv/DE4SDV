@@ -215,6 +215,7 @@ def _page_shell(
     filters: str = "",
     asset_stamp: str = "",
     uses_rel: str = "",
+    show_configurator: bool = True,
 ) -> str:
     crumbs = " / ".join(
         f'<a href="{esc(href)}">{esc(label)}</a>' for label, href in breadcrumbs
@@ -253,6 +254,7 @@ def _page_shell(
     <a class="site-nav-link" href="{esc(search_prefix + 'help.html')}">Help</a>
     <a class="site-nav-link" href="{esc(search_prefix + 'elements.html')}">Elements</a>
     <a class="site-nav-link" href="{esc(search_prefix + 'requirements.html')}">Needs &amp; Reqs</a>
+    {'' if not show_configurator else '<a class="site-nav-link" href="' + esc(search_prefix + 'feature-configurator.html') + '">Configurator</a>'}
     <a class="site-nav-link" href="https://chat.de4sdv.org" target="_blank" rel="noopener">Chat<svg class="site-chat-icon" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.2c-3.6 0-6.5 2.5-6.5 5.6 0 1.7.9 3.2 2.3 4.2-.1 1-.4 1.7-.9 2.3 1.3-.2 2.4-.7 3.2-1.3.6.1 1.2.2 1.9.2 3.6 0 6.5-2.5 6.5-5.5S11.6 2.2 8 2.2z"/></svg></a>
   </nav>
   <button type="button" id="themeToggle" class="theme-toggle" aria-label="Switch color theme" title="Switch light / dark theme">
@@ -300,6 +302,7 @@ def render_index(
     search_prefix: str = "",
     filters: str = "",
     asset_stamp: str = "",
+    show_configurator: bool = True,
 ) -> str:
     tree_html = render_tree(tree, "")
     stats_html = "".join(
@@ -384,6 +387,7 @@ def render_index(
         css_rel="assets/viewer.css", js_rel="assets/viewer.js",
         picker=picker, search_prefix=search_prefix, filters=filters,
         asset_stamp=asset_stamp, uses_rel="assets/uses-index.js",
+        show_configurator=show_configurator,
     )
 
 
@@ -406,6 +410,7 @@ def render_dir_page(
     search_prefix: str = "",
     filters: str = "",
     asset_stamp: str = "",
+    show_configurator: bool = True,
 ) -> str:
     items = []
     for c in children:
@@ -431,6 +436,7 @@ def render_dir_page(
         css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
         picker=picker, search_prefix=search_prefix, filters=filters,
         asset_stamp=asset_stamp, uses_rel=prefix + "assets/uses-index.js",
+        show_configurator=show_configurator,
     )
 
 
@@ -955,4 +961,5 @@ def render_file_page(
         css_rel=prefix + "assets/viewer.css", js_rel=prefix + "assets/viewer.js",
         picker=picker, search_prefix=search_prefix, filters=filters,
         asset_stamp=asset_stamp, uses_rel=prefix + "assets/uses-index.js",
+        show_configurator=not external_ref,
     )
