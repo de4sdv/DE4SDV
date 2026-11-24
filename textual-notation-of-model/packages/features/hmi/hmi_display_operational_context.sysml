@@ -2,18 +2,29 @@
  * DE4SDV HMI display: Phase 2 operational context.
  *
  * INC-HMI-001, phase 2: what happens in the world of the HMI display. The
- * candidate application of the driver-assistance increment gives its scene
- * and its warning request, the Eclipse S-CORE path carries the request, the
+ * candidate application of the driver-assistance increment gives its scene and
+ * its warning request, the Eclipse S-CORE path carries the request, the
  * vehicle gives its speed, and the display shows the driver the scene and the
  * speed and gives the collision warning on the display and as a sound. The
  * candidate and the S-CORE path are System 1 parts outside the display, as
  * phase 0 draws the boundary. The story is the driver-assistance increment's
  * scenarios as the driver sees them on the display, with the outages in the
- * IVI VM added to them; it names those scenarios and restates none of them.
+ * IVI VM and a warning request that stops reaching the display added to them;
+ * it names those scenarios and restates none of them. The last is the further
+ * run of SC-DRIVING-012 in which the Eclipse S-CORE path is stopped, which the
+ * stop-run decision of 2026-11-18 of the driver-assistance increment names.
  * CARLA, the cloud hosts, the scenario runner, the means that make Android in
  * the IVI VM hang, end and restart, the captures, the evaluators and the
  * recordings are System 2 and stay out of this context. No human-factors,
  * timing, safety, compliance or production-readiness claim is made.
+ *
+ * The owner decided on 2026-11-22 that the story gains SC-HMI-007, in which
+ * the warning request stops reaching the display, as a correction of phase 2
+ * that comes with phase 4: the missing-request decision of 2026-11-22.
+ *
+ * The owner decided on 2026-11-22 that the scene carries its time, as the
+ * vehicle speed and the warning request carry theirs, as a correction of
+ * phase 2 that comes with phase 4: the scene-time decision of 2026-11-22.
  */
 
 package DE4SDV_HmiDisplayOperationalContext {
@@ -37,10 +48,13 @@ package DE4SDV_HmiDisplayOperationalContext {
      * The scene as the candidate gives it from its own perception: its lane,
      * the path it fits to that lane, the objects it detects with their level
      * relative to its path, and the closest object in its path with the
-     * distance and the speed that its fusion gives. It holds nothing that the
-     * candidate does not give: neither the simulator's record of the scene nor
-     * an estimate of the display's own (hmiSimulatorTruthOutOfScope). At the
-     * inspected revision the candidate gives no such output (gapHmiSceneOutput).
+     * distance and the speed that its fusion gives. The scene carries its
+     * time, as the vehicle speed and the warning request carry theirs (the
+     * scene-time decision of 2026-11-22). It holds nothing that the candidate
+     * does not give: neither the simulator's record of the scene nor an
+     * estimate of the display's own (hmiSimulatorTruthOutOfScope). At the
+     * inspected revision the candidate gives no such output
+     * (gapHmiSceneOutput).
      */
   }
 
@@ -181,21 +195,22 @@ package DE4SDV_HmiDisplayOperationalContext {
      * The HMI display in operation: in the scenarios of the driver-assistance
      * increment it shows the driver what the candidate perceives beside the
      * speed and gives the collision warning when the candidate requests it,
-     * also while the app that draws the scene or Android in the IVI VM is out.
+     * also while the app that draws the scene or Android in the IVI VM is out,
+     * or while the warning request stops reaching the display.
      */
     attribute redefines ucMotivation = "The driver, a vehicle occupant, needs to see on the HMI display what the driving application perceives beside the vehicle speed, to get the collision warning on the display and as a sound, and to see the speed and the warning, or the fact that the warning is unavailable, also while Android in the IVI VM hangs, boots or restarts.";
-    attribute redefines ucTrigger = "The vehicle drives with the candidate active in a scenario of the driver-assistance increment: the candidate gives its scene and, when it decides on a warning, its warning request, and the vehicle gives its speed; at times the app that draws the scene ends or hangs, or Android in the IVI VM boots, hangs or restarts.";
-    attribute redefines ucResult = "The display shows the scene as the candidate gives it and the speed, gives the collision warning on the display and as a sound when the warning request arrives, shows no element as current when it is not, and keeps the speed and the warning, or the fact that the warning is unavailable, apparent while the app that draws the scene or Android in the IVI VM is out.";
+    attribute redefines ucTrigger = "The vehicle drives with the candidate active in a scenario of the driver-assistance increment: the candidate gives its scene and, when it decides on a warning, its warning request, and the vehicle gives its speed; at times the app that draws the scene ends or hangs, Android in the IVI VM boots, hangs or restarts, or the warning request stops reaching the display.";
+    attribute redefines ucResult = "The display shows the scene as the candidate gives it and the speed, gives the collision warning on the display and as a sound when the warning request arrives, shows no element as current when it is not, and keeps the speed and the warning, or the fact that the warning is unavailable, apparent while the app that draws the scene or Android in the IVI VM is out or the warning request stops reaching the display.";
 
     objective {
       doc /*
        * Frame what the driver sees in the scenarios of the driver-assistance
-       * increment and in each outage in the IVI VM, only. How the display
-       * detects an outage is for the system process of phase 6; the criteria,
-       * the age from which an element counts as late and how the time that the
-       * driver-assistance increment allots from the warning request to each
-       * mode divides (gapHmiWarningPresentation) are fixed with the
-       * requirements (phase 5).
+       * increment, in each outage in the IVI VM and while the warning request
+       * stops reaching the display, only. How the display detects an outage is
+       * for the system process of phase 6; the criteria, the age from which an
+       * element counts as late and how the time that the driver-assistance
+       * increment allots from the warning request to each mode divides
+       * (gapHmiWarningPresentation) are fixed with the requirements (phase 5).
        */
     }
   }
@@ -222,6 +237,7 @@ package DE4SDV_HmiDisplayOperationalContext {
     then include showSpeedAndWarningWhileAndroidBoots;
     then include keepSpeedAndWarningWhileAndroidHangs;
     then include keepSpeedAndWarningThroughAndroidRestart;
+    then include showWarningUnavailableWhenTheRequestStops;
     then done;
   }
 
@@ -371,6 +387,31 @@ package DE4SDV_HmiDisplayOperationalContext {
     then done;
   }
 
+  use case showWarningUnavailableWhenTheRequestStops {
+    subject hmiDisplay : HmiDisplaySystem = hmiDisplayOperationalContext::hmiDisplay;
+    actor candidate : DriverAssistanceSystem = hmiDisplayOperationalContext::candidate;
+    actor scorePath : SCORECommandAndWarningPath = hmiDisplayOperationalContext::scorePath;
+    actor vehicle : SubjectVehicle = hmiDisplayOperationalContext::vehicle;
+    actor driver : Driver = hmiDisplayOperationalContext::driver;
+
+    objective {
+      doc /*
+       * SC-HMI-007 (the warning request stops reaching the display):
+       * SC-DRIVING-012 is played once more with the Eclipse S-CORE path
+       * stopped, so the warning request stops reaching the display (the
+       * missing-request decision of 2026-11-22). The display shows that the
+       * warning is unavailable and shows no element as current when it is not
+       * (hmiStaleContentInScope), and the driver still sees the vehicle speed.
+       * Whether the display learns that the warning is unavailable from the
+       * age of its inputs or from a signal of its own is open
+       * (gapHmiWarningAvailability). No human-factors or safety claim is made.
+       */
+    }
+
+    first start;
+    then done;
+  }
+
   /* Traces to the Phase 0 records this context implements. */
   dependency hmiDisplayStoryAnswersProblem
     from hmiDisplayStory
@@ -410,16 +451,18 @@ package DE4SDV_HmiDisplayOperationalContext {
   dependency noReactionScenarioOnTurningOff
     from showNoWarningInTheNoReactionScenarios
     to DE4SDV_DriverAssistanceOperationalContext::noReactionToVehicleAheadTurningOff;
+  dependency missingRequestScenarioOnStationaryVehicle
+    from showWarningUnavailableWhenTheRequestStops
+    to DE4SDV_DriverAssistanceOperationalContext::warnAndBrakeForStationaryVehicle;
 
   comment vehicleSpeedSourceComment about DE4SDV_HmiDisplayFraming::hmiSpeedInScope
   /*
    * Phase 2 places the source of the vehicle speed: the vehicle gives the
-   * display the speed that it gives the candidate. Phase 0 leaves its carrier
-   * to phases 2 and 3; phase 3 places no element, so the carrier, a platform
-   * element of System 1 that brings the speed to the SDV Core VM, goes to the
-   * architecture phases. The Eclipse S-CORE path of the driver-assistance
-   * increment carries the driving command and the warning request, so this
-   * context draws no path for the speed.
+   * display the speed that it gives the candidate; phase 3 places no element,
+   * so the carrier, a platform element of System 1 that brings the speed to
+   * the SDV Core VM, goes to the architecture phases. The Eclipse S-CORE path
+   * of the driver-assistance increment carries the driving command and the
+   * warning request, so this context draws no path for the speed.
    */
 
   comment sceneOutputComment about DE4SDV_HmiDisplayFraming::gapHmiSceneOutput
@@ -473,11 +516,11 @@ package DE4SDV_HmiDisplayOperationalContext {
 
   concern hmiDisplayStoryConcern : OperationalStoryConcern {
     doc /*
-     * Systems engineers, verification engineers and open-source reviewers
-     * need the HMI display told in stakeholder language: what the driver sees
-     * in the scenarios of the driver-assistance increment, with and without a
-     * warning, and while the app that draws the scene or Android in the IVI
-     * VM is out.
+     * Systems engineers, verification engineers and open-source reviewers need
+     * the HMI display told in stakeholder language: what the driver sees in
+     * the scenarios of the driver-assistance increment, with and without a
+     * warning, while the app that draws the scene or Android in the IVI VM is
+     * out, and while the warning request stops reaching the display.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;

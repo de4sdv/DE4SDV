@@ -574,6 +574,18 @@ def _elements_html(repo_root: Path) -> str:
     )
 
 
+def _feature_configurator_html() -> str:
+    """The standalone Feature Configurator page, served at the site root.
+
+    It carries no model copy: the page fetches ``api/feature-model.json``,
+    which serve.py projects from the deployed SysML v2 API revision. A
+    static mirror without that endpoint shows the API error, never a stale
+    catalogue.
+    """
+    source = Path(__file__).parent / "feature_configurator.html"
+    return source.read_text(encoding="utf-8")
+
+
 def _render_help_md(text: str, link_path: str = "") -> str:
     """Convert the help markdown subset to HTML body content.
 
@@ -920,12 +932,21 @@ def _build_site(
     index_tree = _tree_with_prefix(tree, "", "")
     (out_dir / "index.html").write_text(
         render_index(
-            tree, stats, diagrams, picker(current), "", filters_html, stamp
+            tree, stats, diagrams, picker(current), "", filters_html, stamp,
+            show_configurator=not external_ref,
         ),
         encoding="utf-8",
     )
     (out_dir / "help.html").write_text(_help_html(repo_root), encoding="utf-8")
     (out_dir / "elements.html").write_text(_elements_html(repo_root), encoding="utf-8")
+    if not external_ref:
+        # The Feature Configurator reads one live JSON projection from the
+        # deployment's SysML v2 API (serve.py, /api/feature-model.json). It is
+        # emitted only at the real site root: a ref sub-site would otherwise
+        # show the deployed revision while its picker says another one.
+        (out_dir / "feature-configurator.html").write_text(
+            _feature_configurator_html(), encoding="utf-8"
+        )
 
     # requirements browser page (site root, tree + filters, one card per record)
     from .requirements_data import collect_requirement_records
@@ -942,6 +963,7 @@ def _build_site(
             picker=picker("requirements.html"),
             filters=filters_html,
             asset_stamp=stamp,
+            show_configurator=not external_ref,
         ),
         encoding="utf-8",
     )
@@ -972,6 +994,7 @@ def _build_site(
                 prefix,
                 filters_html,
                 stamp,
+                show_configurator=not external_ref,
             ),
             encoding="utf-8",
         )

@@ -42,6 +42,7 @@ import re
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 _SEMANTIC_RUNTIME = None
 _SEMANTIC_ERROR: str | None = None
@@ -70,6 +71,27 @@ def warm_status() -> dict:
             getattr(service, "semantic_authority_id", "") or ""
         )
     return status
+
+
+def warmed_corpus() -> tuple[Any, list[dict]] | None:
+    """The warmed API corpus and its deployment service, or None while warming.
+
+    Read-only projections (the Feature Configurator) share the one corpus the
+    semantic runtime already loaded from the API: no second retrieval, no
+    second model copy. ``None`` means the background load is still running;
+    a failed warm-up raises with its recorded error instead of starting a
+    competing load.
+    """
+    if not semantic_enabled():
+        raise RuntimeError("semantic API mode is disabled (NOUS_ASK_SEMANTIC)")
+    state = _WARM_STATE["status"]
+    if state == "error":
+        raise RuntimeError(_WARM_STATE.get("error") or "semantic warm-up failed")
+    if state != "ready":
+        start_warmup()
+        return None
+    service = _runtime()
+    return service, _load_elements_with_snapshot(service)
 
 
 def semantic_authority_status() -> dict:

@@ -38,6 +38,28 @@ The prebuilt branch and pull-request viewer remains available at the
 [native GitHub Pages URL](https://de4sdv.github.io/DE4SDV/) as a browse-only
 engineering mirror. It does not execute Ask-model requests.
 
+## Feature Configurator
+
+The **Configurator** tab (`feature-configurator.html`) equips the PLEML
+feature model of the SDV product line as a configurable member. It is not a
+model copy: the page fetches `/api/feature-model.json` from the viewer
+service, which projects the catalogue, the feature docs, the group
+cardinalities, the `requires`/`xor` constraints, the derivation rules, the
+governed-scope classifications and the committed feature configurations from
+the **deployed SysML v2 API revision** — the same revision-bound corpus the
+Ask-model capability uses. The page names that revision in its header.
+
+The verdict of a selection comes from the model: a selection equal to a
+committed feature configuration shows that configuration's validity and
+admission verdict. A selection that matches none of them is reported as
+"no committed configuration"; the page never invents a verdict of its own.
+The API endpoint is a reader of the served model, not a second authority.
+
+The page exists only at the root of the dynamic site, and only while the
+viewer service is running: a static build (including the Pages mirror) has
+no `/api/feature-model.json` and shows the API-unavailable error instead of a
+stale catalogue. Ref sub-sites do not carry the tab.
+
 ## Repository diagram collections
 
 Each first-level model area that declares concrete views has a generated

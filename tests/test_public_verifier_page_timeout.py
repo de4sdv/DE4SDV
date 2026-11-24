@@ -59,6 +59,10 @@ def _stub_checks_before_pagination(module: Any, monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(module, "check_status_document", lambda base: {"baseline": {}})
     monkeypatch.setattr(module, "check_model", lambda base, status: {"project": "p", "commit": "c"})
     monkeypatch.setattr(
+        module, "check_feature_configurator",
+        lambda ask, status: {"git_commit": "b" * 40, "features": 38, "configurations": 6},
+    )
+    monkeypatch.setattr(
         module, "wait_for_ask_semantic_runtime", lambda *args, **kwargs: {"warmup": "ready"}
     )
 

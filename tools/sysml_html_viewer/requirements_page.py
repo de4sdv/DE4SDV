@@ -115,6 +115,7 @@ def render_requirements_page(
     picker: str = "",
     filters: str = "",
     asset_stamp: str = "",
+    show_configurator: bool = True,
 ) -> str:
     """The standalone needs & requirements browser page."""
     from .render import _page_shell  # local import: render imports this module late
@@ -168,4 +169,5 @@ def render_requirements_page(
         search_prefix=prefix,
         filters=filters,
         asset_stamp=asset_stamp,
+        show_configurator=show_configurator,
     )

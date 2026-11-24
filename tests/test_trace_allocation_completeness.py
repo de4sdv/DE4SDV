@@ -48,6 +48,8 @@ ASSIST_N = FEATURES / "driving/driver_assistance_needs_requirements.sysml"
 ASSIST_F = FEATURES / "driving/driver_assistance_functional_architecture.sysml"
 ASSIST_L = FEATURES / "driving/driver_assistance_logical_architecture.sysml"
 ASSIST_P = FEATURES / "driving/driver_assistance_physical_software_realization.sysml"
+HMI_N = FEATURES / "hmi/hmi_display_needs_requirements.sysml"
+HMI_F = FEATURES / "hmi/hmi_display_functional_architecture.sysml"
 
 FUNCTION, LOGICAL, PHYSICAL = "AllocatableFunction", "LogicalAllocationElement", "PhysicalAllocationElement"
 REQUIREMENT = "RequirementCandidate"
@@ -86,6 +88,7 @@ GOVERNED = {
     ASSIST_P: (PHYSICAL, {"CandidateIdentityRecordingApplication", "SCORECameraInterface",
                           "VisionPilotPerceptionAndFusion", "VisionPilotSafetyGuardianPlanner", "SCOREVehicleInterface",
                           "SCOREWarningRequestPublisher"}),
+    HMI_F: (FUNCTION, {"RecordDisplayIdentity", "DrawScene", "JudgeCurrency", "ShowContent", "GiveCollisionWarning"}),
 }
 NOT_ENDPOINTS = {
     VIS_F: {"AebsVisualizationFunctionalFlow"},
@@ -105,6 +108,7 @@ NOT_ENDPOINTS = {
                "DriverAssistanceSoftwareRealization", "VisionPilotSCOREApplication", "DrivingCommandActuationAdapter",
                "DriverAssistanceSimulationServer", "FrontCameraRig", "SimulatedFrontCamera",
                "DriverAssistanceSDVCoreGuest", "DriverAssistanceIVIGuest", "CollisionWarningPresentationApplication"},
+    HMI_F: {"HmiDisplayFunctionalFlow"},
 }
 # Allocation definition -> governed end pair. Excluded mappings stay outside.
 PAIRS = {
@@ -145,9 +149,11 @@ ALLOCATION_FILES = {
     ASSIST_L: ((ASSIST_L, ASSIST_F), {(FUNCTION, LOGICAL): 4}, {}, (FUNCTION, LOGICAL)),
     ASSIST_P: ((ASSIST_P, ASSIST_L), {(LOGICAL, PHYSICAL): 7}, {"SystemToSoftwareSignalMappingCandidate": 8},
                (LOGICAL, PHYSICAL)),
+    HMI_F: ((HMI_F, HMI_N), {(REQUIREMENT, FUNCTION): 17}, {}, (REQUIREMENT, FUNCTION)),
 }
 LINEAGE_FILES = (VIS_F, VIS_L, VIS_P, VIS_N, MW_F, MW_L, MW_P, AEBS_P, AEBS_F, AEBS_L, AEBS_SIM, AEBS_NEEDS,
-                 DRIVING_F, DRIVING_L, DRIVING_P, ASSIST_F, ASSIST_L, ASSIST_P, KERNEL / "de4sdv_method_context.sysml")
+                 DRIVING_F, DRIVING_L, DRIVING_P, ASSIST_F, ASSIST_L, ASSIST_P, HMI_F,
+                 KERNEL / "de4sdv_method_context.sysml")
 # AEBS core endpoint lineage, pinned exactly. The two composites are a
 # recorded pre-existing deviation (w6-transition-record.md), not a pattern.
 AEBS_CORE_LINEAGE = {

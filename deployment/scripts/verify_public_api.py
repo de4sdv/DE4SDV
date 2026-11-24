@@ -350,6 +350,42 @@ def check_pagination_and_known_element(
     return total
 
 
+def check_feature_configurator(ask_url: str, status_doc: dict[str, Any]) -> dict[str, Any]:
+    """The viewer serves the page and projects the deployed model revision."""
+    ask_url = ask_url.rstrip("/")
+    status, _headers, page = fetch(f"{ask_url}/feature-configurator.html", timeout=60)
+    require(status == 200, f"Feature Configurator page returned {status}")
+    require(b"FEATURE CONFIGURATOR" in page, "Feature Configurator page is missing")
+    data = fetch_json(f"{ask_url}/api/feature-model.json", timeout=180)
+    require(isinstance(data, dict), "Feature Configurator data is not a JSON object")
+    source = data.get("source")
+    baseline = status_doc.get("baseline") or {}
+    require(isinstance(source, dict), "Feature Configurator data has no source record")
+    require(
+        source.get("git_commit") == baseline.get("git_commit"),
+        "Feature Configurator data is not the deployed model revision",
+    )
+    feature_model = data.get("feature_model")
+    require(isinstance(feature_model, dict),
+            "Feature Configurator data has no feature model")
+    tree = feature_model.get("tree")
+    require(
+        isinstance(tree, dict) and tree.get("short_name") == "PL-DE4SDV",
+        "Feature Configurator data is not the SDV product-line feature model",
+    )
+    features = feature_model.get("features")
+    require(
+        isinstance(features, list) and bool(features),
+        "Feature Configurator data has no features",
+    )
+    configurations = feature_model.get("configurations") or []
+    return {
+        "git_commit": source["git_commit"],
+        "features": len(features),
+        "configurations": len(configurations),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default="https://sysml-api.de4sdv.org")
@@ -415,6 +451,8 @@ def main() -> int:
 
         report["ask_semantic_ready"] = wait_for_ask_semantic_runtime(
             args.ask_url, status_doc, ready=True, timeout_seconds=args.semantic_ready_timeout)
+        report["feature_configurator"] = check_feature_configurator(
+            args.ask_url, status_doc)
 
         report["verdict"] = "pass"
     # OSError covers URLError, TimeoutError and reset connections;

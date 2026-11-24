@@ -188,6 +188,19 @@ KNOWN_PRESENTATION_NOTES = {
         "`DriverAssistanceFunctionalFlow`, and the requirements each function "
         "carries are in `driverAssistanceRequirementFunctionMappingView`."
     ),
+    "hmiDisplayFunctionBreakdownView": (
+        "SysIDE lists the items and the five functions of "
+        "`hmiDisplayFunctionalFlow` but does not draw the flows between "
+        "them. The flows are modeled in the source, in the action definition "
+        "`HmiDisplayFunctionalFlow`, and the requirements each function "
+        "carries are in `hmiDisplayRequirementFunctionMatrixView`."
+    ),
+    "hmiDisplaySystemProcessView": (
+        "SysIDE draws the lanes of the process and the flows between them but "
+        "prints no doc in this form: the times of the warning sequence and the "
+        "sequence of an outage are in the docs of `HmiDisplaySystemProcess` and "
+        "of its lanes."
+    ),
     "middlewareAdapterBoundaryExchangeView": (
         "The adapter and the AAOS SDV boundary are dashed «ref part» boxes. The "
         "boundary refers to them; in the configured member `MW-CONFIG-001` the "

@@ -51,6 +51,7 @@ SCENARIOS = {
     "showSpeedAndWarningWhileAndroidBoots": ("SC-HMI-004", ALL_ACTORS),
     "keepSpeedAndWarningWhileAndroidHangs": ("SC-HMI-005", ALL_ACTORS),
     "keepSpeedAndWarningThroughAndroidRestart": ("SC-HMI-006", ALL_ACTORS),
+    "showWarningUnavailableWhenTheRequestStops": ("SC-HMI-007", ALL_ACTORS),
 }
 #: The scenarios of the driver-assistance increment that each HMI scenario shows, by reference.
 DRIVING_SCENARIOS = {
@@ -59,6 +60,9 @@ DRIVING_SCENARIOS = {
     "showNoWarningInTheNoReactionScenarios": {
         "SC-DRIVING-014": "noReactionToStationaryVehicleBeyondTheCurve",
         "SC-DRIVING-015": "noReactionToVehicleAheadTurningOff"},
+    # the further run of SC-DRIVING-012 in which the Eclipse S-CORE path is stopped (the stop-run decision of
+    # 2026-11-18 of the driver-assistance increment), named by reference
+    "showWarningUnavailableWhenTheRequestStops": {"SC-DRIVING-012": "warnAndBrakeForStationaryVehicle"},
 }
 
 #: The operation: every action with its parameters, in order, and every flow between them.
@@ -90,9 +94,11 @@ ITEM_DOCS = {
     "PerceivedScene": (
         "The scene as the candidate gives it from its own perception: its lane, the path it fits to that lane, the "
         "objects it detects with their level relative to its path, and the closest object in its path with the "
-        "distance and the speed that its fusion gives. It holds nothing that the candidate does not give: neither "
-        "the simulator's record of the scene nor an estimate of the display's own (hmiSimulatorTruthOutOfScope). "
-        "At the inspected revision the candidate gives no such output (gapHmiSceneOutput)."),
+        "distance and the speed that its fusion gives. The scene carries its time, as the vehicle speed and the "
+        "warning request carry theirs (the scene-time decision of 2026-11-22). It holds nothing that the candidate "
+        "does not give: neither the simulator's record of the scene nor an estimate of the display's own "
+        "(hmiSimulatorTruthOutOfScope). At the inspected revision the candidate gives no such output "
+        "(gapHmiSceneOutput)."),
     "HmiDisplayContent": (
         "What the HMI display shows the driver beside the collision warning: the scene as the candidate gives it, "
         "the vehicle speed, and the fact that the warning is unavailable when it is, with no element shown as "
@@ -102,9 +108,10 @@ ITEM_DOCS = {
 #: The use case definition's doc, its motivation, its trigger and its result, whole: a sentence that adds the
 #: simulator's record, or hands this increment the time from the warning request to each mode, fails here.
 USE_CASE_DEF_DOC = (
-    "The HMI display in operation: in the scenarios of the driver-assistance increment it shows the driver what the "
-    "candidate perceives beside the speed and gives the collision warning when the candidate requests it, also while "
-    "the app that draws the scene or Android in the IVI VM is out.")
+    "The HMI display in operation: in the scenarios of the driver-assistance increment it shows the driver what "
+    "the candidate perceives beside the speed and gives the collision warning when the candidate requests it, also "
+    "while the app that draws the scene or Android in the IVI VM is out, or while the warning request stops "
+    "reaching the display.")
 USE_CASE_DEF_MOTIVATION = (
     "The driver, a vehicle occupant, needs to see on the HMI display what the driving application perceives beside the "
     "vehicle speed, to get the collision warning on the display and as a sound, and to see the speed and the warning, "
@@ -112,19 +119,21 @@ USE_CASE_DEF_MOTIVATION = (
 USE_CASE_DEF_TRIGGER = (
     "The vehicle drives with the candidate active in a scenario of the driver-assistance increment: the candidate "
     "gives its scene and, when it decides on a warning, its warning request, and the vehicle gives its speed; at "
-    "times the app that draws the scene ends or hangs, or Android in the IVI VM boots, hangs or restarts.")
+    "times the app that draws the scene ends or hangs, Android in the IVI VM boots, hangs or restarts, or the warning "
+    "request stops reaching the display.")
 USE_CASE_DEF_RESULT = (
-    "The display shows the scene as the candidate gives it and the speed, gives the collision warning on the display "
-    "and as a sound when the warning request arrives, shows no element as current when it is not, and keeps the "
-    "speed and the warning, or the fact that the warning is unavailable, apparent while the app that draws the scene "
-    "or Android in the IVI VM is out.")
+    "The display shows the scene as the candidate gives it and the speed, gives the collision warning on the "
+    "display and as a sound when the warning request arrives, shows no element as current when it is not, and "
+    "keeps the speed and the warning, or the fact that the warning is unavailable, apparent while the app that "
+    "draws the scene or Android in the IVI VM is out or the warning request stops reaching the display.")
 #: The objective of the use case definition. The driver-assistance increment allots the time from the request to
 #: each mode; only how that time divides on a path to this display is open (gapHmiWarningPresentation).
 USE_CASE_DEF_OBJECTIVE = (
-    "Frame what the driver sees in the scenarios of the driver-assistance increment and in each outage in the IVI "
-    "VM, only. How the display detects an outage is for the system process of phase 6; the criteria, the age from "
-    "which an element counts as late and how the time that the driver-assistance increment allots from the warning "
-    "request to each mode divides (gapHmiWarningPresentation) are fixed with the requirements (phase 5).")
+    "Frame what the driver sees in the scenarios of the driver-assistance increment, in each outage in the IVI VM "
+    "and while the warning request stops reaching the display, only. How the display detects an outage is for the "
+    "system process of phase 6; the criteria, the age from which an element counts as late and how the time that "
+    "the driver-assistance increment allots from the warning request to each mode divides "
+    "(gapHmiWarningPresentation) are fixed with the requirements (phase 5).")
 STORY_OBJECTIVE = (
     "Operate the HMI display without selecting the realization of an element or of a path, and without any "
     "human-factors, safety, on-road, compliance or production-readiness claim.")
@@ -171,7 +180,19 @@ SCENARIO_DOCS = {
         "current, and the driver sees the vehicle speed and the collision warning when the candidate requests it, "
         "or the fact that the warning is unavailable; then the scene appears again. No human-factors or safety "
         "claim is made."),
+    "showWarningUnavailableWhenTheRequestStops": (
+        "SC-HMI-007 (the warning request stops reaching the display): SC-DRIVING-012 is played once more with the "
+        "Eclipse S-CORE path stopped, so the warning request stops reaching the display (the missing-request "
+        "decision of 2026-11-22). The display shows that the warning is unavailable and shows no element as "
+        "current when it is not (hmiStaleContentInScope), and the driver still sees the vehicle speed. Whether the "
+        "display learns that the warning is unavailable from the age of its inputs or from a signal of its own is "
+        "open (gapHmiWarningAvailability). No human-factors or safety claim is made."),
 }
+#: The header's sentence that names the further run of SC-DRIVING-012 and the decision that sets it apart, by
+#: reference: the use case itself names neither a run nor the decision.
+STOP_RUN_REFERENCE = (
+    "The last is the further run of SC-DRIVING-012 in which the Eclipse S-CORE path is stopped, which the stop-run "
+    "decision of 2026-11-18 of the driver-assistance increment names.")
 #: The guide's sentence on what Phase 5 fixes, and the wording it replaces, which hands Phase 5 a time that the
 #: driver-assistance increment allots.
 WARNING_TIME_SENTENCE = (
@@ -188,7 +209,7 @@ ALLOTTED_WARNING_TIME = re.compile(
 #: (hmiSimulatorTruthOutOfScope); "current", "live", "stale", "frozen" or "freezes", "up to date" and a last frame
 #: only in sentences that never show stale content as current (hmiStaleContentInScope). A claim that uses none of
 #: these words is not caught here. The pinned texts give most of these sentences; RULE_SENTENCES are those of the
-#: texts that no equality pin covers: the file's header, the context's doc and the display's doc.
+#: file's header, which is pinned paragraph by paragraph, and of the context's doc and the display's doc.
 RULE_TERMS = re.compile(r"(?i)\b(?:simulat\w*|carla|ground[- ]truth|truth|current\w*|live\w*|last frames?|stale\w*"
                         r"|froz\w*|freez\w*|up[- ]to[- ]date)\b")
 #: The context doc's sentence on the world outside the display: it reaches the display only through the candidate.
@@ -205,6 +226,38 @@ RULE_SENTENCES = (
     "The HMI display: shows the scene as the candidate gives it and the speed, shows no element as current when it is "
     "not, and gives the collision warning on the display and as a sound when the warning request arrives, or shows "
     "that the warning is unavailable.",
+)
+#: The names of the two corrections of Phase 2 that come with Phase 4, one wording each wherever it is named.
+MISSING_REQUEST = "the missing-request decision of 2026-11-22"
+SCENE_TIME = "the scene-time decision of 2026-11-22"
+#: Their dated records, the last two paragraphs of the header, in day order.
+MISSING_REQUEST_RECORD = (
+    "The owner decided on 2026-11-22 that the story gains SC-HMI-007, in which the warning request stops reaching "
+    "the display, as a correction of phase 2 that comes with phase 4: the missing-request decision of 2026-11-22.")
+SCENE_TIME_RECORD = (
+    "The owner decided on 2026-11-22 that the scene carries its time, as the vehicle speed and the warning request "
+    "carry theirs, as a correction of phase 2 that comes with phase 4: the scene-time decision of 2026-11-22.")
+#: The header's title and the paragraph of the phase, which the two dated records follow.
+HEADER_TITLE = "DE4SDV HMI display: Phase 2 operational context."
+HEADER_SCOPE = (
+    "INC-HMI-001, phase 2: what happens in the world of the HMI display. The candidate application of the "
+    "driver-assistance increment gives its scene and its warning request, the Eclipse S-CORE path carries the request, "
+    "the vehicle gives its speed, and the display shows the driver the scene and the speed and gives the collision "
+    "warning on the display and as a sound. The candidate and the S-CORE path are System 1 parts outside the display, "
+    "as phase 0 draws the boundary. The story is the driver-assistance increment's scenarios as the driver sees them "
+    "on the display, with the outages in the IVI VM and a warning request that stops reaching the display added to "
+    "them; it names those scenarios and restates none of them. The last is the further run of SC-DRIVING-012 in which "
+    "the Eclipse S-CORE path is stopped, which the stop-run decision of 2026-11-18 of the driver-assistance increment "
+    "names. CARLA, the cloud hosts, the scenario runner, the means that make Android in the IVI VM hang, end and "
+    "restart, the captures, the evaluators and the recordings are System 2 and stay out of this context. No "
+    "human-factors, timing, safety, compliance or production-readiness claim is made.")
+#: The guide's paragraph on the two corrections, after the story of its Phase 2 section, sentence by sentence.
+PHASE_TWO_CORRECTIONS = (
+    "Two corrections of Phase 2 come with Phase 4.",
+    "On 2026-11-22 the owner decided that the story gains `SC-HMI-007`: the missing-request decision of "
+    "2026-11-22.",
+    "On 2026-11-22 the owner decided that the scene carries its time, as the vehicle speed and the warning request "
+    "carry theirs: the scene-time decision of 2026-11-22.",
 )
 #: The guide's Phase 2 section, whole, sentence by sentence.
 GUIDE_PHASE_TWO = (
@@ -229,7 +282,7 @@ GUIDE_PHASE_TWO = (
     "shows (`HmiDisplayContent`).",
     "Phase 2 places the source of the vehicle speed at the vehicle; which element of System 1 carries it to the "
     "SDV Core VM, and on which path the scene leaves the candidate's process (`gapHmiSceneOutput`), stay open.",
-    "The story holds six scenarios.",
+    "The story holds seven scenarios.",
     "Two are the scenarios of the driver-assistance increment as the driver sees them on the display, each tied to "
     "them by a dependency and none restating them: `SC-HMI-001` the warning scenarios `SC-DRIVING-012` and "
     "`SC-DRIVING-013`, with the scene, the speed and the collision warning on the display and as a sound, and "
@@ -238,6 +291,9 @@ GUIDE_PHASE_TWO = (
     "Four add an outage in the IVI VM to them: `SC-HMI-003` the app that draws the scene ends or hangs, "
     "`SC-HMI-004` Android in the IVI VM boots, `SC-HMI-005` it hangs with its last frame on the display, and "
     "`SC-HMI-006` it restarts.",
+    "One adds a missing input: in `SC-HMI-007` the warning request stops reaching the display during the further run "
+    "of `SC-DRIVING-012` that stops the Eclipse S-CORE path, which the stop-run decision of 2026-11-18 of the "
+    "driver-assistance increment names, and the display shows that the warning is unavailable.",
     "In each the driver sees the speed and the warning, or the fact that the warning is unavailable, and the "
     "display shows no element as current when it is not.",
     "The display shows what the candidate perceives, never the simulator's record of the scene.",
@@ -245,14 +301,16 @@ GUIDE_PHASE_TWO = (
     "10.",
     WARNING_TIME_SENTENCE,
     "No human-factors, timing, safety or compliance claim is made.",
+    *PHASE_TWO_CORRECTIONS,
     "The context view frames `hmiDisplayContextConcern`.",
     "The story view frames `hmiDisplayStoryConcern` and the Phase 1 concern `hmiDriverSupervisionConcern`, which "
     "the story answers.",
 )
-#: The one sentence of the next-obligation paragraph that may name the classification of Phase 3.
+#: The one sentence of the next-obligation paragraph that may name the classification of Phase 3: it records no
+#: feature-model delta, so the next obligation after Phase 2 is Phase 4.
 NEXT_OBLIGATION_PHASE_THREE = (
-    "The next model obligation is **Phase 3**, the capability classification, which review judges: which content "
-    "of the display is common to the member products and which derives from a member's driving application.")
+    "Phase 3, the capability classification, records no feature-model delta, and review judges it: its one blocking "
+    "check has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, with a prompt for review.")
 #: A Phase 3 classification or record, claimed outside that sentence.
 PHASE_THREE_CLAIM = re.compile(r"(?i)\bcommon\b|\bderives? from a member|feature candidate|classif|\bvariant|variab")
 
@@ -465,7 +523,7 @@ def test_every_use_case_binds_its_subject_and_actors_to_the_context():
     assert _objective(raw, f"use case {STORY} :") == STORY_OBJECTIVE
 
 
-def test_the_story_holds_the_six_scenarios():
+def test_the_story_holds_the_seven_scenarios():
     raw = _raw()
     code = _code()
     story = braced_body(code, f"use case {STORY} : {USE_CASE_DEF}")
@@ -475,7 +533,14 @@ def test_the_story_holds_the_six_scenarios():
         # the objective whole: its identity, what the driver sees, the alternative of every outage and the nonclaim
         assert _doc(raw, f"use case {name}") == SCENARIO_DOCS[name], f"{name} ({scenario_id}): the whole objective"
     ids = re.findall(r"SC-HMI-\d{3}", raw)
-    assert sorted(set(ids)) == sorted(s[0] for s in SCENARIOS.values()), "only the six new scenario identities"
+    assert sorted(set(ids)) == sorted(s[0] for s in SCENARIOS.values()), "only the seven new scenario identities"
+    # the further run of SC-DRIVING-012 is named in the header, by reference, never restated
+    header = _prose(raw.split("\npackage ", 1)[0])
+    assert STOP_RUN_REFERENCE in header
+    assert "with the outages in the IVI VM and a warning request that stops reaching the display added to them; it " \
+        "names those scenarios and restates none of them." in header
+    frame = GUIDE.read_text(encoding="utf-8").split("## Authoritative frame", 1)[1].split("\n## ", 1)[0]
+    assert "its story of seven scenarios." in _flat(frame), "the guide's frame counts the scenarios"
     da_ids = set(re.findall(r"SC-DRIVING-\d{3}", raw))
     assert da_ids == {i for refs in DRIVING_SCENARIOS.values() for i in refs}, "the four reused scenarios only"
 
@@ -502,7 +567,8 @@ def test_the_driving_scenarios_are_reused_by_reference_never_restated():
     own = _prose(FRAMING.read_text(encoding="utf-8")).lower()
     prose = _prose(raw).lower()
     da_def = f"use case def {DA_USE_CASE_DEF} :> SYSMODSystemUseCaseBase"
-    da_texts = [_doc(da, f"use case {u}") for refs in DRIVING_SCENARIOS.values() for u in refs.values()]
+    reused = sorted({u for refs in DRIVING_SCENARIOS.values() for u in refs.values()})
+    da_texts = [_doc(da, f"use case {u}") for u in reused]
     da_texts.append(_doc(da, da_def))
     for slot in ("ucMotivation", "ucTrigger", "ucResult"):
         da_texts.append(re.search(rf'\b{slot}\s*=\s*"([^"]+)"', braced_body(da, da_def)).group(1))
@@ -588,8 +654,9 @@ def test_operational_views_frame_operational_concerns_and_expose_phase_two():
         "outside; the driver only receives; nothing flows back to the candidate.")
     assert _doc(raw, "concern hmiDisplayStoryConcern : OperationalStoryConcern") == (
         "Systems engineers, verification engineers and open-source reviewers need the HMI display told in "
-        "stakeholder language: what the driver sees in the scenarios of the driver-assistance increment, with "
-        "and without a warning, and while the app that draws the scene or Android in the IVI VM is out.")
+        "stakeholder language: what the driver sees in the scenarios of the driver-assistance increment, with and "
+        "without a warning, while the app that draws the scene or Android in the IVI VM is out, and while the "
+        "warning request stops reaching the display.")
 
 
 def test_dependencies_trace_the_story_and_the_context_to_phase_zero():
@@ -610,7 +677,7 @@ def test_dependencies_trace_the_story_and_the_context_to_phase_zero():
          f"{FRAMING_PACKAGE}::gapHmiWarningAvailability"),
     }
     driving = [d for d in deps if d[2].startswith(DA_PACKAGE + "::")]
-    assert len(deps) == len(phase_zero) + len(driving) == 7 + 5, "seven phase 0 traces and five scenario references"
+    assert len(deps) == len(phase_zero) + len(driving) == 7 + 6, "seven phase 0 traces and six scenario references"
     framing = strip_comments(FRAMING.read_text(encoding="utf-8"))
     for _, _, supplier in phase_zero:
         name = supplier.split("::")[-1]
@@ -621,10 +688,8 @@ def test_dependencies_trace_the_story_and_the_context_to_phase_zero():
                       ("guestAcrossBoundaryComment", f"{FRAMING_PACKAGE}::gapHmiMemberGuestLayout")]
     speed = _comment(raw, "vehicleSpeedSourceComment")
     for phrase in ("Phase 2 places the source of the vehicle speed: the vehicle gives the display the speed that "
-                   "it gives the candidate.",
-                   "Phase 0 leaves its carrier to phases 2 and 3; phase 3 places no element, so the carrier, a "
-                   "platform element of System 1 that brings the speed to the SDV Core VM, goes to the "
-                   "architecture phases.",
+                   "it gives the candidate; phase 3 places no element, so the carrier, a platform element of System 1 "
+                   "that brings the speed to the SDV Core VM, goes to the architecture phases.",
                    "this context draws no path for the speed."):
         assert phrase in speed, phrase
     scene = _comment(raw, "sceneOutputComment")
@@ -671,8 +736,9 @@ def test_phase_two_makes_no_timing_safety_or_approval_claim_and_names_no_number(
 
 def test_the_guide_has_a_phase_two_section():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert ("**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context, proposal.**"
-            in _flat(guide))
+    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability "
+            "classification, Phase 4 stakeholder needs, Phase 5 requirements and Phase 6 functional architecture, "
+            "proposal.**") in _flat(guide)
     assert "](../../textual-notation-of-model/packages/features/hmi/hmi_display_operational_context.sysml)" in guide
     assert guide.index("## Concerns (Phase 1)") < guide.index("## Operational context and story (Phase 2)") \
         < guide.index("## What the framing already records as open")
@@ -715,17 +781,50 @@ def test_the_simulator_and_stale_content_appear_only_in_the_rule_sentences():
 def test_the_guide_names_the_next_obligation_after_phase_two():
     flat = _flat(GUIDE.read_text(encoding="utf-8").split("## Next obligation and execution limits", 1)[1]
                  .split("\n## ", 1)[0])
-    # Phase 3 is owed: only its one sentence names the classification, and nothing in the section claims it or
-    # names the simulator
+    # Phase 3 is judged by review and has nothing to evaluate: only its one sentence names the classification, and
+    # nothing in the section claims it or names the simulator
     assert flat.count(NEXT_OBLIGATION_PHASE_THREE) == 1
     rest = flat.replace(NEXT_OBLIGATION_PHASE_THREE, "")
     assert not PHASE_THREE_CLAIM.search(rest), PHASE_THREE_CLAIM.search(rest)
     assert "simulator" not in rest
-    for phrase in ("The next model obligation is **Phase 3**, the capability classification, which review judges:",
-                   "With no characteristic recorded, the one blocking check of Phase 3 has nothing to evaluate, so "
-                   "the Method Check lists Phase 3 as vacuous and names its next obligation in Phase 4.",
+    for phrase in ("The next model obligation is **Phase 7**, the logical architecture.",
                    "Phase 3 and later phases waited for the revision of the governed scope, which the model now "
                    "holds"):
         assert phrase in flat, phrase
     assert "The next model obligation is **Phase 2**" not in flat
+    assert "The next model obligation is **Phase 3**" not in flat
+    assert "The next model obligation is **Phase 4**" not in flat
+    assert "The next model obligation is **Phase 5**" not in flat
+    assert "The next model obligation is **Phase 6**" not in flat
     assert "Phase 3 and later phases wait for the revision" not in flat, "the scope revision ended the wait"
+
+
+def test_the_two_corrections_of_phase_2_are_recorded_in_day_order_under_one_name_each():
+    raw = _raw()
+    header = _prose(raw.split("\npackage ", 1)[0]).removesuffix("/").strip()
+    assert header.endswith(f"{MISSING_REQUEST_RECORD} {SCENE_TIME_RECORD}"), \
+        "the two dated records close the header, the missing-request decision first"
+    assert header.count(MISSING_REQUEST_RECORD) == 1 and header.count(SCENE_TIME_RECORD) == 1
+    prose = _prose(raw)
+    assert prose.count(MISSING_REQUEST) == 2, "the record and the objective of SC-HMI-007 name it"
+    assert prose.count(SCENE_TIME) == 2, "the record and the doc of PerceivedScene name it"
+    assert MISSING_REQUEST in SCENARIO_DOCS["showWarningUnavailableWhenTheRequestStops"]
+    assert SCENE_TIME in ITEM_DOCS["PerceivedScene"]
+    guide = _flat(GUIDE.read_text(encoding="utf-8"))
+    section = _guide_section()
+    for name in (MISSING_REQUEST, SCENE_TIME):
+        assert section.count(name) == 1 and guide.count(name) == 1, name
+    # one wording of each correction: no other wording dates an amendment or a correction
+    assert not re.search(r"(?i)\b(?:amend\w*|correct\w*) (?:on|of) 2026-11-22", prose + " " + guide)
+
+
+def _header_paragraphs(raw: str) -> list[str]:
+    head = raw.split("\npackage ", 1)[0].strip()
+    assert head.startswith("/*") and head.endswith("*/"), "the file opens with its header"
+    return [_prose(part) for part in re.split(r"\n\s*\*\s*\n", head[2:-2])]
+
+
+def test_the_header_is_pinned_paragraph_by_paragraph():
+    # The title, the paragraph of the phase and the two dated records, each whole and in this order. Prose added to
+    # the header in other words, a quotation or another dating of a correction, fails here and is for review.
+    assert _header_paragraphs(_raw()) == [HEADER_TITLE, HEADER_SCOPE, MISSING_REQUEST_RECORD, SCENE_TIME_RECORD]

@@ -55,7 +55,11 @@
  * have lowered its speed before the contact by at most 2.4 km/h: the
  * deceleration calibration decision of 2026-11-21. On 2026-11-21 the
  * verification status of each requirement was set from S1, as the requirements
- * package records (the status decision of 2026-11-21).
+ * package records (the status decision of 2026-11-21). On 2026-11-22 the owner
+ * approved the exact text of a comment on pull request 427 of VisionPilot, and
+ * DE4SDV posted it; counterClaimNoUpstreamEndorsementOrRights points to the
+ * driving folder's upstream record (upstream.md, Upstream contact) for what
+ * DE4SDV sent: the upstream comment decision of 2026-11-22.
  *
  * The outcome vocabulary and the verdict map are this increment's own, with the
  * six literals of INC-DRIVING-001's. The evidence record is one record per run,
@@ -2562,10 +2566,13 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
 
   requirement counterClaimNoUpstreamEndorsementOrRights : DriverAssistanceCounterClaim {
     doc /*
-     * No upstream contact, endorsement or rights clearance is asserted: the
-     * terms of the network weights and of the data they were trained on are not
-     * read, and a result about the project is shown to its maintainers before
-     * it is published (gapUpstreamContactAndRights).
+     * No upstream endorsement or rights clearance is asserted: the repository
+     * holds no reading of the terms of the network weights and of the data they
+     * were trained on, and a result about the project is shown to its
+     * maintainers before it is published (gapUpstreamContactAndRights). Since
+     * the upstream comment decision of 2026-11-22, the driving folder's
+     * upstream record (upstream.md, Upstream contact) states what DE4SDV sent
+     * to the VisionPilot maintainers.
      */
     subject bench : DriverAssistanceVerificationBench;
   }

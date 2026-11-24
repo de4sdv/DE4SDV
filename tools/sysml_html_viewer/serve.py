@@ -61,6 +61,7 @@ from .ask_model_semantic import (
     semantic_authority_status,
     start_warmup,
     warm_status,
+    warmed_corpus,
 )
 from .model_parse import ModelFile, build_member_index, load_model
 from .model_parse import ElementRef  # noqa: F401  (type only)
@@ -457,6 +458,12 @@ class ViewerServer(ThreadingHTTPServer):
 
 _MARKER = b"<script>window.__DE4SDV_VIEWER_SERVER__=true;</script>"
 
+# The Feature Configurator reads one projection per deployed API revision.
+# The revision is immutable, so the bytes never change within a process.
+_FEATURE_MODEL_CACHE: dict[tuple[str, str, str, str], bytes] = {}
+_FEATURE_MODEL_BUILDING: set[tuple[str, str, str, str]] = set()
+_FEATURE_MODEL_LOCK = threading.Lock()
+
 
 class _Handler(SimpleHTTPRequestHandler):
     """Static file serving + the /_refs manifest + on-demand ref builds."""
@@ -485,6 +492,9 @@ class _Handler(SimpleHTTPRequestHandler):
                     "status": warmup_state.get("status", "unknown")
                 },
             })
+            return
+        if path == "/api/feature-model.json":
+            self._handle_feature_model()
             return
         if path == "/" or path.endswith(".html"):
             # pick up working-tree model changes before serving pages
@@ -548,6 +558,83 @@ class _Handler(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
+
+    def _send_bytes(self, body: bytes, ctype: str,
+                    status: int = 200) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _handle_feature_model(self) -> None:
+        """The Feature Configurator's data: the deployed API revision.
+
+        The corpus is the semantic runtime's, already loaded from the API and
+        guarded by the served-model record; the projection runs once per
+        revision and is cached. A warming process answers 503 so the page
+        retries instead of holding a Caddy request open on the cold load.
+        """
+        try:
+            snapshot = warmed_corpus()
+        except Exception as exc:  # noqa: BLE001 — surfaced to the page
+            self._send_json({
+                "status": "error",
+                "detail": f"the SysML v2 API corpus is unavailable: {exc}",
+            }, status=503)
+            return
+        if snapshot is None:
+            self._send_json({
+                "status": "warming",
+                "detail": "the deployed SysML v2 API model is still loading",
+            }, status=503)
+            return
+        service, elements = snapshot
+        binding = service.binding
+        served = getattr(binding, "served_model", None)
+        key = (
+            str(binding.git_commit),
+            str(binding.sysml_project_id),
+            str(binding.sysml_commit_id),
+            str(getattr(served, "content_sha256", "")),
+        )
+        body = _FEATURE_MODEL_CACHE.get(key)
+        if body is None:
+            with _FEATURE_MODEL_LOCK:
+                body = _FEATURE_MODEL_CACHE.get(key)
+                if body is None and key in _FEATURE_MODEL_BUILDING:
+                    # One request projects; every other visitor retries instead
+                    # of queueing a thread behind a 20-second CPU projection.
+                    self._send_json({
+                        "status": "warming",
+                        "detail": "the feature model is being projected from the API revision",
+                    }, status=503)
+                    return
+                _FEATURE_MODEL_BUILDING.add(key)
+            try:
+                from .feature_configurator_data import build_projection
+
+                document = build_projection(service, elements)
+                body = json.dumps(
+                    document, ensure_ascii=False
+                ).encode("utf-8")
+            except Exception as exc:  # noqa: BLE001 — fail closed
+                sys.stderr.write(
+                    "feature-configurator: "
+                    f"{type(exc).__name__}: {exc}\n"
+                )
+                self._send_json({
+                    "status": "error",
+                    "detail": f"the feature model cannot be projected: {exc}",
+                }, status=503)
+                return
+            finally:
+                with _FEATURE_MODEL_LOCK:
+                    _FEATURE_MODEL_BUILDING.discard(key)
+            with _FEATURE_MODEL_LOCK:
+                _FEATURE_MODEL_CACHE[key] = body
+        self._send_bytes(body, "application/json; charset=utf-8")
 
     # -- POST endpoints ------------------------------------------------------
     # Two separate capabilities, never falling back into each other:

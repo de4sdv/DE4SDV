@@ -270,6 +270,12 @@ DECISIONS_1121 = (
     "On 2026-11-21 the verification status of each requirement was set from S1, as the requirements package "
     "records (the status decision of 2026-11-21).",
 )
+#: the decision of 2026-11-22 that the slice header records after those of 2026-11-21: the counter-claim of the
+#: upstream contact points to the driving folder's upstream record (the amendment rule: a record in the amended head)
+DECISION_1122 = (
+    "On 2026-11-22 the owner approved the exact text of a comment on pull request 427 of VisionPilot, and DE4SDV "
+    "posted it; counterClaimNoUpstreamEndorsementOrRights points to the driving folder's upstream record "
+    "(upstream.md, Upstream contact) for what DE4SDV sent: the upstream comment decision of 2026-11-22.")
 #: the second slice, as the slice header states it
 SECOND_SLICE = (
     "The second slice records the evidence of the judged session S1, session 20261121T014447Z of the bench at "
@@ -642,6 +648,13 @@ def test_the_records_are_one_per_run_of_s1_and_one_of_the_analysis_with_consecut
         "the sequence starts with this slice and is consecutive"
     stop = _body(_code(SLICE), r"(?m)^  item pathStoppedRunEvidence : \w+ \{")
     assert re.search(r"attribute :>> setting;", stop), "the further run is no run of a setting"
+
+
+def test_the_slice_header_records_the_upstream_comment_decision_after_the_decisions_of_2026_11_21() -> None:
+    header = _flat(SLICE.read_text(encoding="utf-8").split("*/", 1)[0])
+    assert header.count(DECISION_1122) == 1
+    assert header.index(DECISIONS_1121[-1]) < header.index(DECISION_1122), "in day order, after those of 2026-11-21"
+    assert header.count("the upstream comment decision of 2026-11-22") == 1, "one name, once in the header"
 
 
 def test_the_slice_header_records_the_second_slice_and_the_decisions_of_2026_11_21() -> None:
@@ -1072,6 +1085,20 @@ def test_each_counter_claim_restates_a_non_claim_of_the_framing_and_is_tied_to_i
             "only the records of its own runs (asmBenchReuse).") in docs
     assert BENCH_COUNTER_CLAIM in docs
     assert "No case has started and no evidence record exists" not in docs
+    # the upstream comment decision of 2026-11-22: the counter-claim asserts no endorsement and no rights clearance,
+    # and points to the record of what DE4SDV sent upstream instead of asserting that nothing was sent
+    upstream = _flat(_body(raw, r"\brequirement counterClaimNoUpstreamEndorsementOrRights : "
+                                r"DriverAssistanceCounterClaim \{"))
+    for phrase in ("No upstream endorsement or rights clearance is asserted:",
+                   # the terms were read in a draft of 2026-11-18 that the repository does not hold
+                   "the repository holds no reading of the terms of the network weights and of the data they were "
+                   "trained on, and a result about the project is shown to its maintainers before it is published "
+                   "(gapUpstreamContactAndRights).",
+                   "Since the upstream comment decision of 2026-11-22, the driving folder's upstream record "
+                   "(upstream.md, Upstream contact) states what DE4SDV sent to the VisionPilot maintainers."):
+        assert upstream.count(phrase) == 1, phrase
+    assert "No upstream contact" not in upstream
+    assert "not read" not in upstream, "the counter-claim states what the repository holds"
     framing = _docs(FRAMING)
     assert "tuning the candidate or a scenario until a case passes" in framing
     assert "Their results for the first application are not evidence for this one." in framing

@@ -6,6 +6,12 @@
  * The framing asserts no implementation, no runtime result, no product-line
  * admission and no compliance; the baseline decision states what the
  * increment reached.
+ *
+ * On 2026-11-22 the owner approved the exact text of a comment on pull request
+ * 427 of VisionPilot, and DE4SDV posted it. The driving folder's upstream
+ * record (upstream.md, Upstream contact) states what it reports, what it asks
+ * and what it leaves out; gapUpstreamContactAndRights records it after the
+ * baseline and stays deferred: the upstream comment decision of 2026-11-22.
  */
 package DE4SDV_DriverAssistanceFraming {
   private import DE4SDV_MethodContext::*;
@@ -474,6 +480,16 @@ package DE4SDV_DriverAssistanceFraming {
      * and the terms of the network weights and of their data are not read
      * (counterClaimNoUpstreamEndorsementOrRights). Deferred to a later
      * increment.
+     *
+     * After the baseline, on 2026-11-22: DE4SDV posted a comment on pull
+     * request 427 of VisionPilot, by the upstream comment decision of
+     * 2026-11-22. The driving folder's upstream record (upstream.md, Upstream
+     * contact) states what it reports, what it asks and what it leaves out. It
+     * does not show the maintainers the draft of the warning output or the
+     * interface seam. No endorsement and no rights clearance exists. Contrary
+     * to the baseline paragraph, the terms of the network weights and of their
+     * data were read on 2026-11-18, in a draft outside the repository. Still
+     * deferred to a later increment.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }

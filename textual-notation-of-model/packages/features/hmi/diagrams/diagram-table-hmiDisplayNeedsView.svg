@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1168" height="974" viewBox="0 0 1168 974" role="img" aria-labelledby="title description">
+  <title id="title">table-hmiDisplayNeedsView</title>
+  <desc id="description">table-hmiDisplayNeedsView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="1168" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-hmiDisplayNeedsView</text>
+  <rect x="0" y="54" width="120" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">ID</tspan>
+  </text>
+  <rect x="120" y="54" width="328" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="132" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="132" dy="0">Need</tspan>
+  </text>
+  <rect x="448" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="460" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="460" dy="0">Statement</tspan>
+  </text>
+  <rect x="808" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="820" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="820" dy="0">Source</tspan>
+  </text>
+  <rect x="0" y="94" width="120" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-HMI-001</tspan>
+  </text>
+  <rect x="120" y="94" width="328" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="132" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="132" dy="0">needPerceivedSceneOnTheDisplay</tspan>
+  </text>
+  <rect x="448" y="94" width="360" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="460" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="460" dy="0">Vehicle occupants need the HMI display to</tspan>
+    <tspan x="460" dy="20">show the driver the scene as the driver-</tspan>
+    <tspan x="460" dy="20">assistance system gives it from its own</tspan>
+    <tspan x="460" dy="20">perception: its lane, the path it fits to</tspan>
+    <tspan x="460" dy="20">that lane, the objects it detects with</tspan>
+    <tspan x="460" dy="20">their level relative to that path, and,</tspan>
+    <tspan x="460" dy="20">marked apart from the other objects, the</tspan>
+    <tspan x="460" dy="20">closest object in its path, which the</tspan>
+    <tspan x="460" dy="20">system acts on, with the distance and the</tspan>
+    <tspan x="460" dy="20">speed that its fusion gives.</tspan>
+  </text>
+  <rect x="808" y="94" width="360" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="820" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="820" dy="0">INC-HMI-001 hmiDriverSupervisionConcern,</tspan>
+    <tspan x="820" dy="20">hmiDisplayInputsConcern,</tspan>
+    <tspan x="820" dy="20">hmiContentVarianceConcern, scope item</tspan>
+    <tspan x="820" dy="20">hmiSceneInScope, gaps gapHmiSceneOutput</tspan>
+    <tspan x="820" dy="20">and gapHmiSceneContent, scenarios SC-</tspan>
+    <tspan x="820" dy="20">HMI-001 and SC-HMI-002</tspan>
+  </text>
+  <rect x="0" y="314" width="120" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="338" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-HMI-002</tspan>
+  </text>
+  <rect x="120" y="314" width="328" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="132" y="338" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="132" dy="0">needVehicleSpeedOnTheDisplay</tspan>
+  </text>
+  <rect x="448" y="314" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="460" y="338" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="460" dy="0">Vehicle occupants need the HMI display to</tspan>
+    <tspan x="460" dy="20">show the driver the vehicle speed that the</tspan>
+    <tspan x="460" dy="20">driver-assistance system is given.</tspan>
+  </text>
+  <rect x="808" y="314" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="820" y="338" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="820" dy="0">INC-HMI-001 hmiDriverSupervisionConcern,</tspan>
+    <tspan x="820" dy="20">scope item hmiSpeedInScope, scenarios SC-</tspan>
+    <tspan x="820" dy="20">HMI-001 and SC-HMI-002</tspan>
+  </text>
+  <rect x="0" y="394" width="120" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-HMI-003</tspan>
+  </text>
+  <rect x="120" y="394" width="328" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="132" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="132" dy="0">needCollisionWarningOnRequest</tspan>
+  </text>
+  <rect x="448" y="394" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="460" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="460" dy="0">Vehicle occupants need the HMI display to</tspan>
+    <tspan x="460" dy="20">give the driver the collision warning on</tspan>
+    <tspan x="460" dy="20">the display and as a sound when the</tspan>
+    <tspan x="460" dy="20">warning request of the driver-assistance</tspan>
+    <tspan x="460" dy="20">system asks for it, and no collision</tspan>
+    <tspan x="460" dy="20">warning without such a request.</tspan>
+  </text>
+  <rect x="808" y="394" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="820" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="820" dy="0">INC-HMI-001 hmiDriverSupervisionConcern,</tspan>
+    <tspan x="820" dy="20">hmiWarningSequenceConcern, scope item</tspan>
+    <tspan x="820" dy="20">hmiCollisionWarningInScope, gaps</tspan>
+    <tspan x="820" dy="20">gapHmiRendererCollisionWarning and</tspan>
+    <tspan x="820" dy="20">gapHmiWarningPresentation, scenarios SC-</tspan>
+    <tspan x="820" dy="20">HMI-001 and SC-HMI-002</tspan>
+  </text>
+  <rect x="0" y="534" width="120" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-HMI-004</tspan>
+  </text>
+  <rect x="120" y="534" width="328" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="132" y="558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="132" dy="0">needSpeedAndWarningThroughOutages</tspan>
+  </text>
+  <rect x="448" y="534" width="360" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="460" y="558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="460" dy="0">Vehicle occupants need the HMI display to</tspan>
+    <tspan x="460" dy="20">show the driver the vehicle speed and to</tspan>
+    <tspan x="460" dy="20">give the collision warning when it is</tspan>
+    <tspan x="460" dy="20">requested, or, when the warning cannot be</tspan>
+    <tspan x="460" dy="20">given, to show that it is unavailable,</tspan>
+    <tspan x="460" dy="20">also while the app that draws the scene</tspan>
+    <tspan x="460" dy="20">hangs or ends and while Android in the IVI</tspan>
+    <tspan x="460" dy="20">VM hangs, boots or restarts.</tspan>
+  </text>
+  <rect x="808" y="534" width="360" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="820" y="558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="820" dy="0">INC-HMI-001 hmiDriverSupervisionConcern,</tspan>
+    <tspan x="820" dy="20">hmiAndroidOutageConcern,</tspan>
+    <tspan x="820" dy="20">hmiRendererAllocationConcern,</tspan>
+    <tspan x="820" dy="20">hmiRendererPathConcern, scope items</tspan>
+    <tspan x="820" dy="20">hmiAndroidOutageInScope and</tspan>
+    <tspan x="820" dy="20">hmiRendererSplitInScope, gaps</tspan>
+    <tspan x="820" dy="20">gapHmiRendererIntegration and</tspan>
+    <tspan x="820" dy="20">gapHmiMemberGuestLayout, scenarios SC-</tspan>
+    <tspan x="820" dy="20">HMI-003 to SC-HMI-006</tspan>
+  </text>
+  <rect x="0" y="734" width="120" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="758" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-HMI-005</tspan>
+  </text>
+  <rect x="120" y="734" width="328" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="132" y="758" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="132" dy="0">needNoElementShownAsCurrentWhenItIsNot</tspan>
+  </text>
+  <rect x="448" y="734" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="460" y="758" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="460" dy="0">Vehicle occupants need the HMI display to</tspan>
+    <tspan x="460" dy="20">show the driver no element as current when</tspan>
+    <tspan x="460" dy="20">it is not, and to show the driver when the</tspan>
+    <tspan x="460" dy="20">collision warning is unavailable.</tspan>
+  </text>
+  <rect x="808" y="734" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="820" y="758" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="820" dy="0">INC-HMI-001 hmiDriverSupervisionConcern,</tspan>
+    <tspan x="820" dy="20">hmiContentCurrencyConcern, scope item</tspan>
+    <tspan x="820" dy="20">hmiStaleContentInScope, gap</tspan>
+    <tspan x="820" dy="20">gapHmiWarningAvailability, scenarios SC-</tspan>
+    <tspan x="820" dy="20">HMI-003 to SC-HMI-007</tspan>
+  </text>
+  <rect x="0" y="854" width="120" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-HMI-006</tspan>
+  </text>
+  <rect x="120" y="854" width="328" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="132" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="132" dy="0">needRunsIdentifyTheDisplay</tspan>
+  </text>
+  <rect x="448" y="854" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="460" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="460" dy="0">Verification engineers and product-line</tspan>
+    <tspan x="460" dy="20">engineers need each run of the HMI display</tspan>
+    <tspan x="460" dy="20">to identify the build and the</tspan>
+    <tspan x="460" dy="20">configuration of the display that ran, so</tspan>
+    <tspan x="460" dy="20">that each verdict is bound to what ran.</tspan>
+  </text>
+  <rect x="808" y="854" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="820" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="820" dy="0">INC-HMI-001 hmiDisplayVerdictConcern,</tspan>
+    <tspan x="820" dy="20">scope item hmiVerdictEvidenceInScope,</tspan>
+    <tspan x="820" dy="20">assumption asmHmiSimulationStandsIn,</tspan>
+    <tspan x="820" dy="20">scenarios SC-HMI-001 to SC-HMI-007</tspan>
+  </text>
+</svg>
