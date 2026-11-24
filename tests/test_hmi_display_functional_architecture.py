@@ -29,7 +29,8 @@ of them, the decisions of the design of 2026-11-24:
 - no function waits on the drawing of the scene: every exchange is a plain flow, and the only successions put the
   record of the display identity first;
 - no technology, platform or claim in the docs of the package, and no vehicle signal specification in it; the
-  process view hides doc rows, so the view index notes where its times are, and the lane docs carry them.
+  process view hides doc rows, so the view index notes where its times are, and the lane docs carry them;
+- the guide's Phase 6 section, every block whole and in order, as its closing paragraph says.
 """
 
 from pathlib import Path
@@ -616,6 +617,53 @@ GUIDE_PROCESS_PARAGRAPH = (
     "functional flow as one action. The context of Phase 2 holds no other presentation of the warning beside the "
     "display; whether a build of this display replaces the presentation of the warning in the driver-assistance "
     "increment stays open.")
+#: The guide's opening paragraph of the section.
+GUIDE_OPENING_PARAGRAPH = (
+    "The [functional "
+    "architecture](../../textual-notation-of-model/packages/features/hmi/hmi_display_functional_architecture.sysml) "
+    "breaks the HMI display down into five functions:")
+#: The guide's paragraph of the flow, after the function bullets.
+GUIDE_FLOW_PARAGRAPH = (
+    "They are `AllocatableFunction` actions of the functional flow `HmiDisplayFunctionalFlow`. The flow takes the "
+    "scene, the vehicle speed and the warning request in, and gives what the display shows and the collision warning "
+    "out. Inside, the functions exchange the drawn scenes and the currency of the content, and the display identity is "
+    "recorded before the display gives its first frame. The functions state what the display has to do, not what any "
+    "element does at an inspected revision; Phase 8 maps them to its software.")
+#: The line that introduces the four decisions.
+GUIDE_DECISIONS_INTRO = (
+    "Four decisions shape the functional architecture:")
+#: The guide's paragraph of the conceptual interfaces: the five ports and their items.
+GUIDE_INTERFACE_PARAGRAPH = (
+    "The conceptual interfaces are the five ports of `HmiDisplayFunctionalBoundary`, the display at its boundary: the "
+    "scene, the vehicle speed and the warning request in, each with its time, and what the display shows and the "
+    "collision warning out. The items of the vehicle speed and of the warning request specialize the items that the "
+    "driver-assistance increment defines at its own boundary and add nothing to them, so each quantity is defined "
+    "once. The items carry ISQ quantities; no vehicle signal specification is used, and the signal typing starts at "
+    "Phase 8.")
+#: The line that introduces the five views.
+GUIDE_VIEWS_INTRO = (
+    "Five views publish the architecture, one per SAF question:")
+#: The guide's closing paragraph: what the test pins and what review judges.
+GUIDE_CLOSING_PARAGRAPH = (
+    "`tests/test_hmi_display_functional_architecture.py` pins the functions, their flows and allocations, the process "
+    "with its times, the states, the interfaces, the five views and this section. The Phase 6 gates check that a "
+    "function exists and that each functional requirement is allocated to one; review judges whether they are the "
+    "right ones.")
+#: The guide's five view bullets, whole and in order; the process view's says where its times are.
+GUIDE_VIEW_BULLETS = [
+    ("the breakdown `hmiDisplayFunctionBreakdownView`, which lists the items and the five functions of the flow but "
+     "draws no item flows, and frames `hmiDisplayFunctionsConcern`;"),
+    ("the matrix `hmiDisplayRequirementFunctionMatrixView`, with the ten requirements in rows, `REQ-HMI-009` an empty "
+     "one, and the functions in columns, which frames `hmiDisplayFunctionsConcern` as well;"),
+    ("the process `hmiDisplaySystemProcessView`, with its participants as swim lanes and the items that cross the "
+     "boundary, which answers the Phase 1 concerns `hmiDisplayInputsConcern`, `hmiWarningSequenceConcern` and "
+     "`hmiAndroidOutageConcern`; it prints no doc, so the times of the warning sequence and the sequence of an outage "
+     "are in the docs of the process and of its lanes;"),
+    ("the table `hmiDisplayStateTableView` of the states and what the functions that depend on them do in each, which "
+     "answers the Phase 1 concern `hmiContentCurrencyConcern`;"),
+    ("the tree `hmiDisplayFunctionalInterfaceView` of the five port definitions, each with its directed item, which "
+     "frames `hmiDisplayInterfaceConcern`."),
+]
 #: The two grids of the phase: key -> (title, description, row axis, column axis), pinned whole.
 GRIDS = {
     f"matrix-{MATRIX_VIEW}": (
@@ -810,6 +858,10 @@ def test_the_drawing_of_the_scene_stands_apart():
     """D3: the drawn scenes are the one exchange with the drawing. judgeCurrency and showContent take nothing else
     from drawScene, giveWarning takes nothing from it, and no separate function detects an outage."""
     body = _flow_body()
+    assert len(re.findall(r"\bdrawScene\b", body)) == 4, \
+        "drawScene appears only as its usage, its succession and its two flows"
+    assert not re.search(r"\b(?:message|bind|connect|connection|interface)\b", body), \
+        "the functions exchange nothing but plain flows"
     flows = re.findall(r"\bflow\s+from\s+([\w.]+)\s+to\s+([\w.]+)\s*;", body)
     from_drawing = [(source, target) for source, target in flows if source.startswith("drawScene.")]
     assert from_drawing and all(source == "drawScene.drawnScene" for source, _ in from_drawing)
@@ -1306,6 +1358,17 @@ def test_the_guide_has_a_phase_6_section_and_names_phase_7_next():
     blocks = [" ".join(block.split()) for block in re.split(r"\n\s*\n", raw_section.strip())]
     assert blocks.count(GUIDE_ALLOCATION_PARAGRAPH) == 1, "the allocation paragraph, whole"
     assert blocks.count(GUIDE_PROCESS_PARAGRAPH) == 1, "the process paragraph, whole"
+    views = [" ".join(match.split())
+             for match in re.findall(r"(?ms)^- (the (?:breakdown|matrix|process|table|tree) .*?)(?=^- |^\s*$)",
+                                     raw_section)]
+    assert views == GUIDE_VIEW_BULLETS, "the five view bullets, whole, in order"
+    assert blocks == [GUIDE_OPENING_PARAGRAPH,
+                      " ".join(f"- **`{name}`** {text}" for name, text in GUIDE_FUNCTION_BULLETS.items()),
+                      GUIDE_FLOW_PARAGRAPH, GUIDE_DECISIONS_INTRO,
+                      " ".join(f"- **{name}** {text}" for name, text in GUIDE_DECISIONS.items()),
+                      GUIDE_ALLOCATION_PARAGRAPH, GUIDE_PROCESS_PARAGRAPH, GUIDE_INTERFACE_PARAGRAPH,
+                      GUIDE_VIEWS_INTRO, " ".join(f"- {bullet}" for bullet in GUIDE_VIEW_BULLETS),
+                      GUIDE_CLOSING_PARAGRAPH], "every block of the section, whole and in order, as it says"
     assert f"{_number_word(ALLOCATION_COUNT)} allocations in all" in GUIDE_ALLOCATION_PARAGRAPH
     assert "VisionPilot/" not in raw_section and ".cpp" not in raw_section, "the guide carries no upstream paths"
     prose = re.sub(r"`[^`]*`|\]\([^)]*\)", " ", raw_section)
