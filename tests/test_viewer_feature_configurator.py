@@ -266,6 +266,14 @@ def test_page_carries_no_game_cost():
     assert re.search(r'\.mp\b|id="mp"', page) is None
 
 
+def test_page_starts_with_nothing_equipped():
+    # The configurator starts from zero: loading the model equips no
+    # feature. The user picks them, or loads a charter configuration.
+    boot = re.search(r"async function loadModel\(attempt\)\{(.*?)\n\}", _page(), re.S)
+    assert boot, "the page has no loadModel"
+    assert "state.sel" not in boot.group(1)
+
+
 def test_help_button_sits_beside_the_sound_button():
     assert re.search(
         r'<button id="btn-sound">[^<]*</button>\s*'

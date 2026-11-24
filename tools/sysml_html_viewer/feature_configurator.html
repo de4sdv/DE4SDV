@@ -160,13 +160,14 @@
     display:flex;align-items:center;gap:12px;
     padding:7px 8px;border-radius:8px;font-size:18px;line-height:1.15;
   }
-  #slots li .slabel{width:140px;flex:none;font-family:var(--pix);font-weight:700;font-size:11.5px;color:var(--dim);letter-spacing:.5px}
+  #slots li .slabel{width:104px;flex:none;font-family:var(--pix);font-weight:700;font-size:11.5px;color:var(--dim);letter-spacing:.5px}
   #slots li .sname{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #slots li .sauto{font-size:13px;
     background:var(--gold-shine);background-size:280% 100%;
     -webkit-background-clip:text;background-clip:text;color:transparent;
     animation:goldtext 2.8s steps(12) infinite;}
   #slots li.empty .sname{color:#7288c4}
+  #slots li.adapter .sname{font-size:15px}
   #slots li.derived .sname{
     background:var(--gold-shine);background-size:280% 100%;
     -webkit-background-clip:text;background-clip:text;color:transparent;
@@ -531,6 +532,13 @@ const CONFIG_LABELS = {
   closedLoopDrivingAutoE2ESCOREReference:'AUTO E2E S-CORE',
   driverAssistanceVisionPilotSCOREReference:'VISIONPILOT S-CORE'
 };
+// presentation titles for the admitted alternatives; any other alternative
+// falls back to its model name, prettified.
+const ALT_LABELS = {
+  standalone:'STANDALONE',
+  aaosIntegrated:'AAOS INTEGRATED',
+  scoreIntegrated:'S-CORE INTEGRATED'
+};
 
 /* ================================================================
    SOUND — small WebAudio synth, FF-menu flavored (original blips)
@@ -834,6 +842,8 @@ function reasonText(r){
   return String(r);
 }
 function evaluate(){
+  if(!state.sel.size)
+    return {level:'', big:'◇ NOTHING EQUIPPED', text:'Pick a feature in the bay to start, or load a charter configuration with 1–9.'};
   const problems=[];
   for(const g of Object.values(GROUPS)){
     const n=selGroup(g.path).length;
@@ -847,9 +857,11 @@ function evaluate(){
     if(!match.valid)
       return {level:'bad', big:`✕ INVALID CONFIGURATION — ${match.title}`,
               text:(match.reasons||[]).map(reasonText).join(' · ') || 'The model rejects this configuration.'};
-    if(match.admitted)
-      return {level:'star', big:`★ ADMITTED — ${String(match.alternative||'governed').toUpperCase()} MEMBER`,
+    if(match.admitted){
+      const alt=match.alternative||'governed';
+      return {level:'star', big:`★ ADMITTED — ${ALT_LABELS[alt] || pretty(alt).toUpperCase()} MEMBER`,
               text:`configuration ${match.title}. ${match.description||''}`.trim()};
+    }
     return {level:'warn', big:`✓ VALID · NOT ADMITTED — ${match.title}`,
             text:((match.admission&&match.admission.reasons)||[]).join(' · ') || 'The configuration is valid but outside the governed scope.'};
   }
@@ -884,7 +896,7 @@ function render(){
     const li=document.createElement('li');
     if(s.derived){
       const a=adapter();
-      li.className = a?'derived':'empty';
+      li.className = (a?'derived':'empty')+' adapter';
       li.innerHTML=`<span class="slabel">${esc(s.label)}</span>
         <span class="orb s24 on locked" style="--mc:#f2dd9c"></span>
         <span class="sname">${a?esc(a.name):'— awaiting pair —'}</span><span class="sauto">DERIVED</span>`;
@@ -1109,13 +1121,9 @@ async function loadModel(attempt){
     if(!res.ok) throw new Error(`HTTP ${res.status} — ${(await res.text()).slice(0,240)}`);
     const doc=await res.json();
     buildModel(doc);
-    const start=CONFIGS.find(c=>c.admitted)||CONFIGS[0];
-    if(start){
-      state.sel=new Set(start.selected);
-      state.origin={};
-      for(const id of start.selected) state.origin[id]='manual';
-      log(`★ starting charter: ${start.title}`,'e');
-    }
+    // Start from zero: loading the model equips nothing. The user picks
+    // the features, or loads a charter configuration with 1–9.
+    log('★ nothing equipped: pick a feature, or load a charter with 1–9','e');
     splashReady=true;
     splashStatus('— PRESS ENTER —');
     render();

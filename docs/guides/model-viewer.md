@@ -54,6 +54,8 @@ committed feature configuration shows that configuration's validity and
 admission verdict. A selection that matches none of them is reported as
 "no committed configuration"; the page never invents a verdict of its own.
 The API endpoint is a reader of the served model, not a second authority.
+The page starts with nothing equipped: pick the features one by one, or load
+a committed configuration from the charter (keys 1–9).
 
 The **HELP** button beside **SOUND** explains the page's words in a few short
 lines: feature, group, rule (the C of a rule number like C012 stands for
