@@ -627,7 +627,7 @@ GUIDE_STATUS_OLD = (
     "Phase 4 stakeholder needs, proposal.**")
 GUIDE_STATUS_NEW = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs and Phase 5 requirements, proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements and Phase 6 functional architecture, proposal.**")
 GUIDE_FRAME_LINE = f"- [SysML requirements]({GUIDE_LINK}): the Phase 5 requirements of the HMI display."
 GUIDE_PHASE_FOUR_OLD = (
     "No need states a number or names a drawing: Phase 5 derives the requirements and their limits, how the app in "
@@ -641,7 +641,7 @@ GUIDE_PHASE_FOUR_NEW = (
     "telltale. Phase 5 states in its requirements what the scene of the pinned driver-assistance system carries and "
     "what the warning request asks for and carries.")
 GUIDE_NEXT_OLD = "The next model obligation is **Phase 5**, the requirements."
-GUIDE_NEXT_NEW = "The next model obligation is **Phase 6**, the functional architecture."
+GUIDE_NEXT_NEW = "The next model obligation is **Phase 7**, the logical architecture."
 GUIDE_HEADING = "## Requirements (Phase 5)"
 #: the blocks of the guide's Phase 5 section, in order; BULLETS and DECISIONS stand for the two lists
 GUIDE_BLOCKS = (
@@ -1275,6 +1275,7 @@ def test_the_guide_states_phase_5_and_the_next_obligation():
     assert GUIDE_PHASE_FOUR_NEW in phase_four and GUIDE_PHASE_FOUR_OLD not in flat
     nxt = " ".join(guide.split("## Next obligation and execution limits", 1)[1].split("\n## ", 1)[0].split())
     assert nxt.count(GUIDE_NEXT_NEW) == 1 and GUIDE_NEXT_OLD not in flat
+    assert "The next model obligation is **Phase 6**" not in flat, "phase 6 moved the next obligation to phase 7"
     assert guide.endswith("\n") and not guide.endswith("\n\n"), "the guide ends with exactly one newline"
 
 

@@ -135,6 +135,19 @@ GRID_METADATA = {
         "modes (state usages)",
         "",
     ),
+    "matrix-hmiDisplayRequirementFunctionMatrixView": GridMetadata(
+        "HMI display requirement-function mapping",
+        "Maps the requirements of the HMI display to the system functions that carry them.",
+        "requirements (requirement usages)",
+        "system functions (action usages)",
+    ),
+    "table-hmiDisplayStateTableView": GridMetadata(
+        "HMI display states",
+        "The states of each element of the HMI display and of the collision warning, and the functions whose "
+        "behavior differs in each.",
+        "states (state usages)",
+        "",
+    ),
     "table-middlewareProductLineClassificationView": GridMetadata(
         "Middleware product-line classification",
         "Classifies middleware characteristics and attaches each rationale to its element.",

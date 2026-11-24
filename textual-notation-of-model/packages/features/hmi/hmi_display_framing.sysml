@@ -431,7 +431,8 @@ package DE4SDV_HmiDisplayFraming {
       "DE4SDV_HmiDisplayFraming",
       "DE4SDV_HmiDisplayOperationalContext",
       "DE4SDV_HmiDisplayCapabilityClassification",
-      "DE4SDV_HmiDisplayNeedsRequirements"
+      "DE4SDV_HmiDisplayNeedsRequirements",
+      "DE4SDV_HmiDisplayFunctionalArchitecture"
     );
     attribute :>> expectedReviewEvidence = (
       "owner confirmation of the engineering question and the scope",

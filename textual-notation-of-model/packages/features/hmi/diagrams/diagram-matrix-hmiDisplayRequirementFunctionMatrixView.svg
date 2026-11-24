@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1014" height="524" viewBox="0 0 1014 524" role="img" aria-labelledby="title description">
+  <title id="title">HMI display requirement-function mapping</title>
+  <desc id="description">Maps the requirements of the HMI display to the system functions that carry them.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="1014" height="84" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">HMI display requirement-function mapping</text>
+  <text x="12" y="62" font-family="Inter, Arial, sans-serif" font-size="13" fill="#d9e2f2">Rows ↓: requirements (requirement usages)   |   Columns →: system functions (action usages)</text>
+  <rect x="0" y="84" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0"></tspan>
+  </text>
+  <rect x="360" y="84" width="192" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0">recordDisplayIdentity</tspan>
+  </text>
+  <rect x="552" y="84" width="110" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="564" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="564" dy="0">drawScene</tspan>
+  </text>
+  <rect x="662" y="84" width="128" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="674" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="674" dy="0">judgeCurrency</tspan>
+  </text>
+  <rect x="790" y="84" width="112" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="802" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="802" dy="0">showContent</tspan>
+  </text>
+  <rect x="902" y="84" width="112" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="914" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="914" dy="0">giveWarning</tspan>
+  </text>
+  <rect x="0" y="124" width="360" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqShowTheSceneAsGiven</tspan>
+  </text>
+  <rect x="360" y="124" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="552" y="124" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="555" y="127" width="104" height="34" rx="5" fill="#dff4e5"/>
+  <text x="607.0" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="607.0" dy="0">↗</tspan>
+  </text>
+  <rect x="662" y="124" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="674" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="674" dy="0"></tspan>
+  </text>
+  <rect x="790" y="124" width="112" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="793" y="127" width="106" height="34" rx="5" fill="#dff4e5"/>
+  <text x="846.0" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="846.0" dy="0">↗</tspan>
+  </text>
+  <rect x="902" y="124" width="112" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="914" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="914" dy="0"></tspan>
+  </text>
+  <rect x="0" y="164" width="360" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqMarkTheObjectTheSystemActsOn</tspan>
+  </text>
+  <rect x="360" y="164" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="552" y="164" width="110" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="555" y="167" width="104" height="34" rx="5" fill="#dff4e5"/>
+  <text x="607.0" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="607.0" dy="0">↗</tspan>
+  </text>
+  <rect x="662" y="164" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="674" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="674" dy="0"></tspan>
+  </text>
+  <rect x="790" y="164" width="112" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="793" y="167" width="106" height="34" rx="5" fill="#dff4e5"/>
+  <text x="846.0" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="846.0" dy="0">↗</tspan>
+  </text>
+  <rect x="902" y="164" width="112" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="914" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="914" dy="0"></tspan>
+  </text>
+  <rect x="0" y="204" width="360" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqShowTheVehicleSpeed</tspan>
+  </text>
+  <rect x="360" y="204" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="552" y="204" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="564" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="564" dy="0"></tspan>
+  </text>
+  <rect x="662" y="204" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="674" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="674" dy="0"></tspan>
+  </text>
+  <rect x="790" y="204" width="112" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="793" y="207" width="106" height="34" rx="5" fill="#dff4e5"/>
+  <text x="846.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="846.0" dy="0">↗</tspan>
+  </text>
+  <rect x="902" y="204" width="112" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="914" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="914" dy="0"></tspan>
+  </text>
+  <rect x="0" y="244" width="360" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqCollisionWarningWhileRequested</tspan>
+  </text>
+  <rect x="360" y="244" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="552" y="244" width="110" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="564" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="564" dy="0"></tspan>
+  </text>
+  <rect x="662" y="244" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="665" y="247" width="122" height="34" rx="5" fill="#dff4e5"/>
+  <text x="726.0" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="726.0" dy="0">↗</tspan>
+  </text>
+  <rect x="790" y="244" width="112" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="802" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="802" dy="0"></tspan>
+  </text>
+  <rect x="902" y="244" width="112" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="905" y="247" width="106" height="34" rx="5" fill="#dff4e5"/>
+  <text x="958.0" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="958.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="284" width="360" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqStartEachWarningModeWithinLimit</tspan>
+  </text>
+  <rect x="360" y="284" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="552" y="284" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="564" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="564" dy="0"></tspan>
+  </text>
+  <rect x="662" y="284" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="665" y="287" width="122" height="34" rx="5" fill="#dff4e5"/>
+  <text x="726.0" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="726.0" dy="0">↗</tspan>
+  </text>
+  <rect x="790" y="284" width="112" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="802" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="802" dy="0"></tspan>
+  </text>
+  <rect x="902" y="284" width="112" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="905" y="287" width="106" height="34" rx="5" fill="#dff4e5"/>
+  <text x="958.0" y="308" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="958.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="324" width="360" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqShowOutdatedElementsAsOutdated</tspan>
+  </text>
+  <rect x="360" y="324" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="552" y="324" width="110" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="564" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="564" dy="0"></tspan>
+  </text>
+  <rect x="662" y="324" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="665" y="327" width="122" height="34" rx="5" fill="#dff4e5"/>
+  <text x="726.0" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="726.0" dy="0">↗</tspan>
+  </text>
+  <rect x="790" y="324" width="112" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="793" y="327" width="106" height="34" rx="5" fill="#dff4e5"/>
+  <text x="846.0" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="846.0" dy="0">↗</tspan>
+  </text>
+  <rect x="902" y="324" width="112" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="914" y="348" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="914" dy="0"></tspan>
+  </text>
+  <rect x="0" y="364" width="360" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqShowWarningUnavailableWhileRequestOutdated</tspan>
+  </text>
+  <rect x="360" y="364" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="552" y="364" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="564" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="564" dy="0"></tspan>
+  </text>
+  <rect x="662" y="364" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="665" y="367" width="122" height="34" rx="5" fill="#dff4e5"/>
+  <text x="726.0" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="726.0" dy="0">↗</tspan>
+  </text>
+  <rect x="790" y="364" width="112" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="793" y="367" width="106" height="34" rx="5" fill="#dff4e5"/>
+  <text x="846.0" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="846.0" dy="0">↗</tspan>
+  </text>
+  <rect x="902" y="364" width="112" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="914" y="388" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="914" dy="0"></tspan>
+  </text>
+  <rect x="0" y="404" width="360" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="428" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqSpeedAndWarningThroughOutages</tspan>
+  </text>
+  <rect x="360" y="404" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="428" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="552" y="404" width="110" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="564" y="428" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="564" dy="0"></tspan>
+  </text>
+  <rect x="662" y="404" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="665" y="407" width="122" height="34" rx="5" fill="#dff4e5"/>
+  <text x="726.0" y="428" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="726.0" dy="0">↗</tspan>
+  </text>
+  <rect x="790" y="404" width="112" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="793" y="407" width="106" height="34" rx="5" fill="#dff4e5"/>
+  <text x="846.0" y="428" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="846.0" dy="0">↗</tspan>
+  </text>
+  <rect x="902" y="404" width="112" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="905" y="407" width="106" height="34" rx="5" fill="#dff4e5"/>
+  <text x="958.0" y="428" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="958.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="444" width="360" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="468" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqRendererSplitAndInputPaths</tspan>
+  </text>
+  <rect x="360" y="444" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="372" y="468" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="372" dy="0"></tspan>
+  </text>
+  <rect x="552" y="444" width="110" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="564" y="468" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="564" dy="0"></tspan>
+  </text>
+  <rect x="662" y="444" width="128" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="674" y="468" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="674" dy="0"></tspan>
+  </text>
+  <rect x="790" y="444" width="112" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="802" y="468" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="802" dy="0"></tspan>
+  </text>
+  <rect x="902" y="444" width="112" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="914" y="468" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="914" dy="0"></tspan>
+  </text>
+  <rect x="0" y="484" width="360" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="508" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">reqRecordDisplayIdentity</tspan>
+  </text>
+  <rect x="360" y="484" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="363" y="487" width="186" height="34" rx="5" fill="#dff4e5"/>
+  <text x="456.0" y="508" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="456.0" dy="0">↗</tspan>
+  </text>
+  <rect x="552" y="484" width="110" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="564" y="508" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="564" dy="0"></tspan>
+  </text>
+  <rect x="662" y="484" width="128" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="674" y="508" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="674" dy="0"></tspan>
+  </text>
+  <rect x="790" y="484" width="112" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="802" y="508" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="802" dy="0"></tspan>
+  </text>
+  <rect x="902" y="484" width="112" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="914" y="508" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="914" dy="0"></tspan>
+  </text>
+</svg>

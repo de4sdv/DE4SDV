@@ -12,9 +12,9 @@ increment asks whether the HMI display of the VisionPilot configuration can do
 both, and holds what it shows against what the application gives.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase
-3 capability classification, Phase 4 stakeholder needs and Phase 5
-requirements, proposal.** No implementation, run, result, product-line
-admission or compliance is claimed.
+3 capability classification, Phase 4 stakeholder needs, Phase 5 requirements
+and Phase 6 functional architecture, proposal.** No implementation, run,
+result, product-line admission or compliance is claimed.
 
 ## Authoritative frame
 
@@ -30,6 +30,8 @@ admission or compliance is claimed.
   the Phase 4 needs of the HMI display and their planned reviews.
 - [SysML requirements](../../textual-notation-of-model/packages/features/hmi/hmi_display_needs_requirements.sysml):
   the Phase 5 requirements of the HMI display.
+- [SysML functional architecture](../../textual-notation-of-model/packages/features/hmi/hmi_display_functional_architecture.sysml):
+  the Phase 6 functional architecture of the HMI display.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/hmi/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/hmi/upstream.md)
@@ -442,6 +444,118 @@ that each requirement has a statement, one subject, a derivation from a need
 and one verification method. Review judges whether the requirements are the
 right ones.
 
+## Functional architecture (Phase 6)
+
+The
+[functional architecture](../../textual-notation-of-model/packages/features/hmi/hmi_display_functional_architecture.sysml)
+breaks the HMI display down into five functions:
+
+- **`recordDisplayIdentity`** records the display identity before the first
+  frame on the display in each run;
+- **`drawScene`** draws each scene that reaches the display, with the object
+  that the system acts on as an element of its own, and gives each scene that
+  it draws with the time of that scene;
+- **`judgeCurrency`** judges, by the term current, whether each element and
+  the warning request are current or outdated;
+- **`showContent`** shows the drawn scene and the vehicle speed, each element
+  as outdated while, and only while, it is outdated, and that the collision
+  warning is unavailable while, and only while, the warning request is
+  outdated;
+- **`giveWarning`** gives the collision warning on the display and as a sound
+  while, and only while, the warning request asks for it.
+
+They are `AllocatableFunction` actions of the functional flow
+`HmiDisplayFunctionalFlow`. The flow takes the scene, the vehicle speed and the
+warning request in, and gives what the display shows and the collision warning
+out. Inside, the functions exchange the drawn scenes and the currency of the
+content, and the display identity is recorded before the display gives its
+first frame. The functions state what the display has to do, not what any
+element does at an inspected revision; Phase 8 maps them to its software.
+
+Four decisions shape the functional architecture:
+
+- **The drawing of the scene stands apart.** `judgeCurrency` and `showContent`
+  take nothing from `drawScene` but the drawn scenes, and `giveWarning` takes
+  nothing from it at all. An outage of the drawing of the scene or of the
+  environment that hosts it is an event inside the display: the drawn scenes
+  stop, `judgeCurrency` finds the scene outdated by the term current, and
+  `showContent` shows it as outdated until the drawing gives a current scene
+  again, while the vehicle speed and the warning go on. The drawn scenes are
+  the exchange that carries the outage inside the display, so no separate
+  function detects it: `judgeCurrency` finds it from the drawn scenes. Phase 8
+  maps that exchange to the realization.
+- **The share of the display in the time.** Each mode of the warning starts
+  within 0.1 s of wall-clock time after the start of a request reaches the
+  display (`REQ-HMI-005`). The driver-assistance increment allots 0.2 s of
+  wall-clock time from the warning request at the boundary of the candidate to
+  each mode, and the other 0.1 s lies before the boundary of the display, on
+  the path, which the architecture phases of both increments place. Phase 8
+  divides the 0.1 s of the display among its elements.
+- **States, not modes.** Phase 5 calls a form of the warning, on the display
+  or as a sound, a mode, so the conditions of the display are states:
+  `ElementCurrency`, outdated or current for each element on its own, and
+  `CollisionWarningStates`, unavailable, not asking or asking. `showContent`
+  and `giveWarning` depend on the states in which their behavior differs.
+- **`REQ-HMI-009` is left to Phase 8.** It constrains which elements draw the
+  scene, the vehicle speed and the warning, and the paths that bring them
+  their inputs, not what a function does. Phase 8 carries it by the elements
+  that it places, and the inspection of the realization that Phase 8 records
+  verifies it.
+
+Each of the other nine requirements is allocated (`allocatedTo`) to the
+functions that carry it, seventeen allocations in all, and each function
+carries at least one. `REQ-HMI-004` and the performance requirement
+`REQ-HMI-005` go to `judgeCurrency` and `giveWarning`, since the asking and
+its start depend on the currency judgement. An allocation assigns
+responsibility only; it claims no satisfaction.
+
+The display in operation is the process `HmiDisplaySystemProcess`. Its
+participants are the parts of the operational context of Phase 2, each the
+swim lane of its functions: the candidate gives the scene and the warning
+request every 0.1 s of simulation time, the command and warning path carries
+the warning request to the display, the vehicle gives its speed with each
+world snapshot, every step of 0.05 s, and the driver supervises the system
+with what the display shows and gets the collision warning. The display
+performs its functional flow as one action. The context of Phase 2 holds no
+other presentation of the warning beside the display; whether a build of this
+display replaces the presentation of the warning in the driver-assistance
+increment stays open.
+
+The conceptual interfaces are the five ports of
+`HmiDisplayFunctionalBoundary`, the display at its boundary: the scene, the
+vehicle speed and the warning request in, each with its time, and what the
+display shows and the collision warning out. The items of the vehicle speed
+and of the warning request specialize the items that the driver-assistance
+increment defines at its own boundary and add nothing to them, so each
+quantity is defined once. The items carry ISQ quantities; no vehicle signal
+specification is used, and the signal typing starts at Phase 8.
+
+Five views publish the architecture, one per SAF question:
+
+- the breakdown `hmiDisplayFunctionBreakdownView`, which lists the items and
+  the five functions of the flow but draws no item flows, and frames
+  `hmiDisplayFunctionsConcern`;
+- the matrix `hmiDisplayRequirementFunctionMatrixView`, with the ten
+  requirements in rows, `REQ-HMI-009` an empty one, and the functions in
+  columns, which frames `hmiDisplayFunctionsConcern` as well;
+- the process `hmiDisplaySystemProcessView`, with its participants as swim
+  lanes and the items that cross the boundary, which answers the Phase 1
+  concerns `hmiDisplayInputsConcern`, `hmiWarningSequenceConcern` and
+  `hmiAndroidOutageConcern`; it prints no doc, so the times of the warning
+  sequence and the sequence of an outage are in the docs of the process and
+  of its lanes;
+- the table `hmiDisplayStateTableView` of the states and what the functions
+  that depend on them do in each, which answers the Phase 1 concern
+  `hmiContentCurrencyConcern`;
+- the tree `hmiDisplayFunctionalInterfaceView` of the five port definitions,
+  each with its directed item, which frames `hmiDisplayInterfaceConcern`.
+
+`tests/test_hmi_display_functional_architecture.py` pins the functions, their
+flows and allocations, the process with its times, the states, the interfaces,
+the five views and this section. The Phase 6 gates check that a function exists
+and that each functional requirement is allocated to one; review judges whether
+they are the right ones.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -541,7 +655,7 @@ Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. Phase 3, the capability classification,
 records no feature-model delta, and review judges it: its one blocking check
 has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, with a
-prompt for review. The next model obligation is **Phase 6**, the functional
+prompt for review. The next model obligation is **Phase 7**, the logical
 architecture. On 2026-11-21 the owner decided that the increment goes on
 without waiting for Phase 10 of the driver-assistance increment. Phase 3 and
 later phases waited for the revision of the governed scope, which the model now
@@ -559,7 +673,8 @@ authorizes no spend.
 
 Run `sysand sync`, `python scripts/check_repo.py`,
 `python scripts/smoke_test.py` and
-`python -m pytest tests/test_hmi_display_framing.py -q`. These are repository
+`python -m pytest tests/test_hmi_display_framing.py
+tests/test_hmi_display_functional_architecture.py -q`. These are repository
 and lexical checks, not SysML semantic validation and not runtime
 verification. Use `python scripts/validate_sysml.py` where a licensed
 validator is available, or request the maintainer-run **Privileged Syside
