@@ -1,0 +1,723 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1940" height="5974" viewBox="0 0 1940 5974" role="img" aria-labelledby="title description">
+  <title id="title">table-eeArchitectureRequirementsView</title>
+  <desc id="description">table-eeArchitectureRequirementsView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="1940" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-eeArchitectureRequirementsView</text>
+  <rect x="0" y="54" width="110" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">ID</tspan>
+  </text>
+  <rect x="110" y="54" width="280" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="122" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="122" dy="0">Requirement</tspan>
+  </text>
+  <rect x="390" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="402" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="402" dy="0">Statement</tspan>
+  </text>
+  <rect x="750" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="762" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="762" dy="0">Source</tspan>
+  </text>
+  <rect x="1110" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1122" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="1122" dy="0">Rationale</tspan>
+  </text>
+  <rect x="1470" y="54" width="110" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1482" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="1482" dy="0">Method</tspan>
+  </text>
+  <rect x="1580" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1592" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="1592" dy="0">Criteria</tspan>
+  </text>
+  <rect x="0" y="94" width="110" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-EE-001</tspan>
+  </text>
+  <rect x="110" y="94" width="280" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="122" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="122" dy="0">reqBothRoutesInOneTopology</tspan>
+  </text>
+  <rect x="390" y="94" width="360" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="402" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="402" dy="0">The vehicle network shall hold the route</tspan>
+    <tspan x="402" dy="20">through a zone controller and the direct</tspan>
+    <tspan x="402" dy="20">route in one topology.</tspan>
+  </text>
+  <rect x="750" y="94" width="360" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="762" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="762" dy="0">NEED-EE-001; eeTopologyStructureConcern;</tspan>
+    <tspan x="762" dy="20">eeCommandRouteExchangeConcern; scope item</tspan>
+    <tspan x="762" dy="20">eeTopologyInScope; gap</tspan>
+    <tspan x="762" dy="20">gapEEZoneRouteInVehicles</tspan>
+  </text>
+  <rect x="1110" y="94" width="360" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1122" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1122" dy="0">This is a design constraint on the</tspan>
+    <tspan x="1122" dy="20">structure of the vehicle network. The</tspan>
+    <tspan x="1122" dy="20">lifecycle decision is whether the product</tspan>
+    <tspan x="1122" dy="20">line admits one zonal vehicle network as</tspan>
+    <tspan x="1122" dy="20">its reference vehicle network, from a</tspan>
+    <tspan x="1122" dy="20">verdict for each requirement on each</tspan>
+    <tspan x="1122" dy="20">route, so both routes run in the same</tspan>
+    <tspan x="1122" dy="20">topology: verdicts from two topologies</tspan>
+    <tspan x="1122" dy="20">would judge two networks. The increment</tspan>
+    <tspan x="1122" dy="20">takes neither route as given</tspan>
+    <tspan x="1122" dy="20">(gapEEZoneRouteInVehicles). Phases 6 to 8</tspan>
+    <tspan x="1122" dy="20">decide the realization of each element and</tspan>
+    <tspan x="1122" dy="20">the medium of the direct link, and how the</tspan>
+    <tspan x="1122" dy="20">topology relates to the platform stack and</tspan>
+    <tspan x="1122" dy="20">to the vehicle network boundary of the</tspan>
+    <tspan x="1122" dy="20">AAOS SDV middleware stays open</tspan>
+    <tspan x="1122" dy="20">(gapEEStackAndNetworkBoundary).</tspan>
+  </text>
+  <rect x="1470" y="94" width="110" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1482" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1482" dy="0">inspect</tspan>
+  </text>
+  <rect x="1580" y="94" width="360" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1592" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1592" dy="0">Met when the inspection of the realization</tspan>
+    <tspan x="1592" dy="20">that phase 8 records, and of the</tspan>
+    <tspan x="1592" dy="20">configuration of each run of the run set,</tspan>
+    <tspan x="1592" dy="20">shows one topology that holds both routes:</tspan>
+    <tspan x="1592" dy="20">one central computer, two zone</tspan>
+    <tspan x="1592" dy="20">controllers, one Ethernet backbone between</tspan>
+    <tspan x="1592" dy="20">them, a CAN bus in each zone and a direct</tspan>
+    <tspan x="1592" dy="20">link from the central computer to the</tspan>
+    <tspan x="1592" dy="20">actuation ECU that passes no zone</tspan>
+    <tspan x="1592" dy="20">controller.</tspan>
+  </text>
+  <rect x="0" y="454" width="110" height="400" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-EE-002</tspan>
+  </text>
+  <rect x="110" y="454" width="280" height="400" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="122" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="122" dy="0">reqCommandsOnlyFromSCOREPath</tspan>
+  </text>
+  <rect x="390" y="454" width="360" height="400" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="402" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="402" dy="0">The vehicle network shall take driving</tspan>
+    <tspan x="402" dy="20">commands only from the Eclipse S-CORE</tspan>
+    <tspan x="402" dy="20">path.</tspan>
+  </text>
+  <rect x="750" y="454" width="360" height="400" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="762" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="762" dy="0">NEED-EE-001; assumption</tspan>
+    <tspan x="762" dy="20">asmEEScoreCommandSource;</tspan>
+    <tspan x="762" dy="20">eeCommandRouteExchangeConcern</tspan>
+  </text>
+  <rect x="1110" y="454" width="360" height="400" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1122" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1122" dy="0">This is a design constraint on the input</tspan>
+    <tspan x="1122" dy="20">of the vehicle network. The driving</tspan>
+    <tspan x="1122" dy="20">command enters the vehicle network from</tspan>
+    <tspan x="1122" dy="20">the Eclipse S-CORE path of the existing</tspan>
+    <tspan x="1122" dy="20">increments on the central computer</tspan>
+    <tspan x="1122" dy="20">(asmEEScoreCommandSource), the only path</tspan>
+    <tspan x="1122" dy="20">over which REQ-DRIVING-038 lets the</tspan>
+    <tspan x="1122" dy="20">driver-assistance system give it, and a</tspan>
+    <tspan x="1122" dy="20">readiness probe is to test this first. A</tspan>
+    <tspan x="1122" dy="20">command that reaches the actuation ECU by</tspan>
+    <tspan x="1122" dy="20">another way, such as one given straight to</tspan>
+    <tspan x="1122" dy="20">the CAN bus of its zone, would let the</tspan>
+    <tspan x="1122" dy="20">vehicle act while the routes carry</tspan>
+    <tspan x="1122" dy="20">nothing, so the criteria hold that each</tspan>
+    <tspan x="1122" dy="20">command that reaches the actuation ECU was</tspan>
+    <tspan x="1122" dy="20">taken at the boundary interface. The</tspan>
+    <tspan x="1122" dy="20">statement names the Eclipse S-CORE path,</tspan>
+    <tspan x="1122" dy="20">so phase 9 links it to the feature</tspan>
+    <tspan x="1122" dy="20">eclipseSCORE.</tspan>
+  </text>
+  <rect x="1470" y="454" width="110" height="400" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1482" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1482" dy="0">test</tspan>
+  </text>
+  <rect x="1580" y="454" width="360" height="400" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1592" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1592" dy="0">Met when the run set is judged and, in</tspan>
+    <tspan x="1592" dy="20">each of its runs, each driving command</tspan>
+    <tspan x="1592" dy="20">that reaches the actuation ECU is one that</tspan>
+    <tspan x="1592" dy="20">the vehicle network took from the Eclipse</tspan>
+    <tspan x="1592" dy="20">S-CORE path at its boundary interface.</tspan>
+  </text>
+  <rect x="0" y="854" width="110" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-EE-003</tspan>
+  </text>
+  <rect x="110" y="854" width="280" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="122" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="122" dy="0">reqCommandsOnlyOnTheirRoute</tspan>
+  </text>
+  <rect x="390" y="854" width="360" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="402" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="402" dy="0">The vehicle network shall carry the</tspan>
+    <tspan x="402" dy="20">driving commands of each run only through</tspan>
+    <tspan x="402" dy="20">the elements of the route of the run.</tspan>
+  </text>
+  <rect x="750" y="854" width="360" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="762" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="762" dy="0">NEED-EE-001;</tspan>
+    <tspan x="762" dy="20">eeCommandRouteExchangeConcern; scope item</tspan>
+    <tspan x="762" dy="20">eeCommandRouteInScope; scenarios SC-EE-001</tspan>
+    <tspan x="762" dy="20">to SC-EE-004</tspan>
+  </text>
+  <rect x="1110" y="854" width="360" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1122" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1122" dy="0">This is a design constraint on the way of</tspan>
+    <tspan x="1122" dy="20">the command. A verdict holds for the route</tspan>
+    <tspan x="1122" dy="20">that ran: a command of a run on the direct</tspan>
+    <tspan x="1122" dy="20">route that also passes a zone controller,</tspan>
+    <tspan x="1122" dy="20">or one of a run through a zone controller</tspan>
+    <tspan x="1122" dy="20">that also takes the direct link, would</tspan>
+    <tspan x="1122" dy="20">give that verdict to a route that did not</tspan>
+    <tspan x="1122" dy="20">carry the command alone. Which elements</tspan>
+    <tspan x="1122" dy="20">realize each route is decided in phases 6</tspan>
+    <tspan x="1122" dy="20">to 8, with the medium of the direct link.</tspan>
+  </text>
+  <rect x="1470" y="854" width="110" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1482" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1482" dy="0">test</tspan>
+  </text>
+  <rect x="1580" y="854" width="360" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1592" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1592" dy="0">Met when the run set is judged and, in</tspan>
+    <tspan x="1592" dy="20">each of its runs, the records show each</tspan>
+    <tspan x="1592" dy="20">driving command forwarded only by the</tspan>
+    <tspan x="1592" dy="20">elements of the route of the run: on the</tspan>
+    <tspan x="1592" dy="20">route through a zone controller, the</tspan>
+    <tspan x="1592" dy="20">network side of the central computer, the</tspan>
+    <tspan x="1592" dy="20">Ethernet backbone, the zone controller of</tspan>
+    <tspan x="1592" dy="20">the zone of the actuation ECU and the CAN</tspan>
+    <tspan x="1592" dy="20">bus of that zone; on the direct route, the</tspan>
+    <tspan x="1592" dy="20">network side of the central computer and</tspan>
+    <tspan x="1592" dy="20">the direct link.</tspan>
+  </text>
+  <rect x="0" y="1094" width="110" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-EE-004</tspan>
+  </text>
+  <rect x="110" y="1094" width="280" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="122" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="122" dy="0">reqDeliverCommandStreamUnchanged</tspan>
+  </text>
+  <rect x="390" y="1094" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="402" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="402" dy="0">In each run, the vehicle network shall</tspan>
+    <tspan x="402" dy="20">deliver to the actuation ECU each driving</tspan>
+    <tspan x="402" dy="20">command that no fault affects, once, in</tspan>
+    <tspan x="402" dy="20">its order and with each part unchanged.</tspan>
+  </text>
+  <rect x="750" y="1094" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="762" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="762" dy="0">NEED-EE-001; eeVehicleCommandConcern;</tspan>
+    <tspan x="762" dy="20">assumption</tspan>
+    <tspan x="762" dy="20">asmEECommandFromDrivingBaseline; scenarios</tspan>
+    <tspan x="762" dy="20">SC-EE-001 to SC-EE-004</tspan>
+  </text>
+  <rect x="1110" y="1094" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1122" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1122" dy="0">The vehicle can act on a driving command</tspan>
+    <tspan x="1122" dy="20">only if the command reaches the actuation</tspan>
+    <tspan x="1122" dy="20">ECU as the vehicle network took it. The</tspan>
+    <tspan x="1122" dy="20">actuation ECU takes a command for valid</tspan>
+    <tspan x="1122" dy="20">only when its check value holds and its</tspan>
+    <tspan x="1122" dy="20">sequence count is one more than the</tspan>
+    <tspan x="1122" dy="20">reference count, so a command lost,</tspan>
+    <tspan x="1122" dy="20">repeated, put out of order or changed on</tspan>
+    <tspan x="1122" dy="20">its way is rejected, and a lost or changed</tspan>
+    <tspan x="1122" dy="20">one costs the command after it as well.</tspan>
+    <tspan x="1122" dy="20">The form of the command is the one that</tspan>
+    <tspan x="1122" dy="20">the driver-assistance increment fixes at</tspan>
+    <tspan x="1122" dy="20">its baseline</tspan>
+    <tspan x="1122" dy="20">(asmEECommandFromDrivingBaseline). Whether</tspan>
+    <tspan x="1122" dy="20">it fits a CAN frame is open</tspan>
+    <tspan x="1122" dy="20">(gapEEActuationEnd); however the elements</tspan>
+    <tspan x="1122" dy="20">pack it, each part arrives as it was</tspan>
+    <tspan x="1122" dy="20">taken. In a run with a fault, of SC-EE-003</tspan>
+    <tspan x="1122" dy="20">or SC-EE-004, it holds for each command</tspan>
+    <tspan x="1122" dy="20">that no fault affects, so the vehicle</tspan>
+    <tspan x="1122" dy="20">network keeps carrying the stream around</tspan>
+    <tspan x="1122" dy="20">the fault; REQ-EE-008 and REQ-EE-009 state</tspan>
+    <tspan x="1122" dy="20">what the actuation ECU does with what</tspan>
+    <tspan x="1122" dy="20">reaches it.</tspan>
+  </text>
+  <rect x="1470" y="1094" width="110" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1482" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1482" dy="0">test</tspan>
+  </text>
+  <rect x="1580" y="1094" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1592" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1592" dy="0">Met when the run set is judged and, in</tspan>
+    <tspan x="1592" dy="20">each of its runs, the driving commands</tspan>
+    <tspan x="1592" dy="20">that reach the actuation ECU, apart from</tspan>
+    <tspan x="1592" dy="20">those that the fault of the run affects,</tspan>
+    <tspan x="1592" dy="20">are the command stream without those, each</tspan>
+    <tspan x="1592" dy="20">once and in its order, with each part</tspan>
+    <tspan x="1592" dy="20">equal to the part that the path gave to</tspan>
+    <tspan x="1592" dy="20">the boundary interface.</tspan>
+  </text>
+  <rect x="0" y="1594" width="110" height="560" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-EE-005</tspan>
+  </text>
+  <rect x="110" y="1594" width="280" height="560" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="122" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="122" dy="0">reqCarryEachCommandWithin50Ms</tspan>
+  </text>
+  <rect x="390" y="1594" width="360" height="560" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="402" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="402" dy="0">In each run without a fault, the vehicle</tspan>
+    <tspan x="402" dy="20">network shall carry each driving command</tspan>
+    <tspan x="402" dy="20">from the boundary interface to the</tspan>
+    <tspan x="402" dy="20">actuation ECU within 50 ms of simulation</tspan>
+    <tspan x="402" dy="20">time after taking it.</tspan>
+  </text>
+  <rect x="750" y="1594" width="360" height="560" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="762" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="762" dy="0">NEED-EE-001; eeVehicleCommandConcern;</tspan>
+    <tspan x="762" dy="20">assumption</tspan>
+    <tspan x="762" dy="20">asmEECommandFromDrivingBaseline; scenarios</tspan>
+    <tspan x="762" dy="20">SC-EE-001 and SC-EE-002</tspan>
+  </text>
+  <rect x="1110" y="1594" width="360" height="560" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1122" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1122" dy="0">This is a performance requirement on the</tspan>
+    <tspan x="1122" dy="20">carriage of the command. The actuation ECU</tspan>
+    <tspan x="1122" dy="20">takes a command for valid only when its</tspan>
+    <tspan x="1122" dy="20">issue time is no more than 100 ms of</tspan>
+    <tspan x="1122" dy="20">simulation time older than its arrival,</tspan>
+    <tspan x="1122" dy="20">the delay limit of the actuation adapter</tspan>
+    <tspan x="1122" dy="20">of the driver-assistance increment. The</tspan>
+    <tspan x="1122" dy="20">vehicle network gets half of that limit,</tspan>
+    <tspan x="1122" dy="20">from the boundary interface to the</tspan>
+    <tspan x="1122" dy="20">actuation ECU; the other half is the share</tspan>
+    <tspan x="1122" dy="20">of the path that carries the command to</tspan>
+    <tspan x="1122" dy="20">the boundary interface, which a judged run</tspan>
+    <tspan x="1122" dy="20">keeps. At its baseline the source gives at</tspan>
+    <tspan x="1122" dy="20">most one driving command each 100 ms of</tspan>
+    <tspan x="1122" dy="20">simulation time: one image of the front</tspan>
+    <tspan x="1122" dy="20">camera each 100 ms, one plan per frame</tspan>
+    <tspan x="1122" dy="20">with a result and one command per plan. A</tspan>
+    <tspan x="1122" dy="20">command carried within 50 ms reaches the</tspan>
+    <tspan x="1122" dy="20">actuation ECU before the next one is</tspan>
+    <tspan x="1122" dy="20">given, so the vehicle network carries the</tspan>
+    <tspan x="1122" dy="20">commands at the cadence at which they</tspan>
+    <tspan x="1122" dy="20">come. A run with a fault, of SC-EE-003 or</tspan>
+    <tspan x="1122" dy="20">SC-EE-004, is outside this requirement.</tspan>
+    <tspan x="1122" dy="20">The limit counts on the clock of the</tspan>
+    <tspan x="1122" dy="20">virtual vehicle and makes no timing claim</tspan>
+    <tspan x="1122" dy="20">for a vehicle network</tspan>
+    <tspan x="1122" dy="20">(asmEESoftwareTestbedStandsIn).</tspan>
+  </text>
+  <rect x="1470" y="1594" width="110" height="560" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1482" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1482" dy="0">test</tspan>
+  </text>
+  <rect x="1580" y="1594" width="360" height="560" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1592" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1592" dy="0">Met when the run set is judged and, in</tspan>
+    <tspan x="1592" dy="20">each of its runs without a fault, each</tspan>
+    <tspan x="1592" dy="20">driving command reaches the actuation ECU</tspan>
+    <tspan x="1592" dy="20">no more than 50 ms of simulation time</tspan>
+    <tspan x="1592" dy="20">after the vehicle network took it.</tspan>
+  </text>
+  <rect x="0" y="2154" width="110" height="360" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-EE-006</tspan>
+  </text>
+  <rect x="110" y="2154" width="280" height="360" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="122" y="2178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="122" dy="0">reqApplyEachValidCommand</tspan>
+  </text>
+  <rect x="390" y="2154" width="360" height="360" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="402" y="2178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="402" dy="0">Until the stop response starts, the</tspan>
+    <tspan x="402" dy="20">vehicle network shall apply each valid</tspan>
+    <tspan x="402" dy="20">driving command at the actuation ECU.</tspan>
+  </text>
+  <rect x="750" y="2154" width="360" height="360" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="762" y="2178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="762" dy="0">NEED-EE-001; eeVehicleCommandConcern;</tspan>
+    <tspan x="762" dy="20">scenarios SC-EE-001 to SC-EE-004</tspan>
+  </text>
+  <rect x="1110" y="2154" width="360" height="360" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1122" y="2178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1122" dy="0">The vehicle acts on a driving command only</tspan>
+    <tspan x="1122" dy="20">when the actuation ECU applies it, at the</tspan>
+    <tspan x="1122" dy="20">simulation time at which it arrives. After</tspan>
+    <tspan x="1122" dy="20">a repetition the actuation ECU applies the</tspan>
+    <tspan x="1122" dy="20">next valid driving command; a loss, a</tspan>
+    <tspan x="1122" dy="20">corruption, the delay of the run set or a</tspan>
+    <tspan x="1122" dy="20">link that goes down leaves it 200 ms or</tspan>
+    <tspan x="1122" dy="20">more without one, and once more than 200</tspan>
+    <tspan x="1122" dy="20">ms pass, the stop response starts (REQ-</tspan>
+    <tspan x="1122" dy="20">EE-009) and no later command is applied. A</tspan>
+    <tspan x="1122" dy="20">valid command that arrives more than 200</tspan>
+    <tspan x="1122" dy="20">ms after the last one comes when the stop</tspan>
+    <tspan x="1122" dy="20">response is due, so the criteria leave it</tspan>
+    <tspan x="1122" dy="20">out even while the start of the response</tspan>
+    <tspan x="1122" dy="20">is within its tolerance. The stop response</tspan>
+    <tspan x="1122" dy="20">holds until the run ends, as the</tspan>
+    <tspan x="1122" dy="20">standstill of REQ-DRIVING-022 does.</tspan>
+  </text>
+  <rect x="1470" y="2154" width="110" height="360" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1482" y="2178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1482" dy="0">test</tspan>
+  </text>
+  <rect x="1580" y="2154" width="360" height="360" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1592" y="2178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1592" dy="0">Met when the run set is judged and, in</tspan>
+    <tspan x="1592" dy="20">each of its runs, the actuation ECU</tspan>
+    <tspan x="1592" dy="20">applies each valid driving command that</tspan>
+    <tspan x="1592" dy="20">reaches it before the stop response starts</tspan>
+    <tspan x="1592" dy="20">and no more than 200 ms of simulation time</tspan>
+    <tspan x="1592" dy="20">after the last valid driving command</tspan>
+    <tspan x="1592" dy="20">before it reached the actuation ECU, or</tspan>
+    <tspan x="1592" dy="20">after the run started when it is the</tspan>
+    <tspan x="1592" dy="20">first, at the simulation time at which it</tspan>
+    <tspan x="1592" dy="20">reaches it.</tspan>
+  </text>
+  <rect x="0" y="2514" width="110" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-EE-007</tspan>
+  </text>
+  <rect x="110" y="2514" width="280" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="122" y="2538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="122" dy="0">reqPassDetectionPartsOnAsTaken</tspan>
+  </text>
+  <rect x="390" y="2514" width="360" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="402" y="2538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="402" dy="0">The vehicle network shall pass the</tspan>
+    <tspan x="402" dy="20">detection parts of each driving command on</tspan>
+    <tspan x="402" dy="20">to the actuation ECU at each element as</tspan>
+    <tspan x="402" dy="20">the element received them, without</tspan>
+    <tspan x="402" dy="20">computing any of them anew.</tspan>
+  </text>
+  <rect x="750" y="2514" width="360" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="762" y="2538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="762" dy="0">NEED-EE-002; eeCommandItemConcern; REQ-</tspan>
+    <tspan x="762" dy="20">DRIVING-039; gap gapEEActuationEnd</tspan>
+  </text>
+  <rect x="1110" y="2514" width="360" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1122" y="2538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1122" dy="0">This is a design constraint on the</tspan>
+    <tspan x="1122" dy="20">exchange items of the vehicle network.</tspan>
+    <tspan x="1122" dy="20">REQ-DRIVING-039 makes the driving command</tspan>
+    <tspan x="1122" dy="20">detectable by its form: its issue time</tspan>
+    <tspan x="1122" dy="20">shows a delay, its sequence count a loss</tspan>
+    <tspan x="1122" dy="20">or a repetition, and its check value a</tspan>
+    <tspan x="1122" dy="20">corruption. That detection holds from the</tspan>
+    <tspan x="1122" dy="20">boundary interface to the actuation ECU</tspan>
+    <tspan x="1122" dy="20">only if no element computes a detection</tspan>
+    <tspan x="1122" dy="20">part anew: a zone controller that repacks</tspan>
+    <tspan x="1122" dy="20">the command from Ethernet to CAN with a</tspan>
+    <tspan x="1122" dy="20">new check value, issue time or sequence</tspan>
+    <tspan x="1122" dy="20">count would hide from the actuation ECU a</tspan>
+    <tspan x="1122" dy="20">fault that came before it. A record shows</tspan>
+    <tspan x="1122" dy="20">a detection part that changes at an</tspan>
+    <tspan x="1122" dy="20">element in a run with a fault, but no test</tspan>
+    <tspan x="1122" dy="20">can tell a new check value over unchanged</tspan>
+    <tspan x="1122" dy="20">parts from the one taken, so the</tspan>
+    <tspan x="1122" dy="20">requirement is verified by analysis of the</tspan>
+    <tspan x="1122" dy="20">realization and of the records. How a zone</tspan>
+    <tspan x="1122" dy="20">controller repacks the command, and</tspan>
+    <tspan x="1122" dy="20">whether the command fits a CAN frame, are</tspan>
+    <tspan x="1122" dy="20">decided in phases 6 to 8</tspan>
+    <tspan x="1122" dy="20">(gapEEActuationEnd). The analysis rests on</tspan>
+    <tspan x="1122" dy="20">the realization that phase 8 records and</tspan>
+    <tspan x="1122" dy="20">makes no freedom-from-interference claim.</tspan>
+  </text>
+  <rect x="1470" y="2514" width="110" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1482" y="2538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1482" dy="0">analyze</tspan>
+  </text>
+  <rect x="1580" y="2514" width="360" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1592" y="2538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1592" dy="0">Met when the run set is judged and the</tspan>
+    <tspan x="1592" dy="20">analysis of the realization that phase 8</tspan>
+    <tspan x="1592" dy="20">records, and of the records of the runs of</tspan>
+    <tspan x="1592" dy="20">SC-EE-003 of the run set, shows, for each</tspan>
+    <tspan x="1592" dy="20">element of each route, that the element</tspan>
+    <tspan x="1592" dy="20">passes on the issue time, the sequence</tspan>
+    <tspan x="1592" dy="20">count and the check value of each driving</tspan>
+    <tspan x="1592" dy="20">command as it received them and computes</tspan>
+    <tspan x="1592" dy="20">none of them anew.</tspan>
+  </text>
+  <rect x="0" y="3054" width="110" height="980" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-EE-008</tspan>
+  </text>
+  <rect x="110" y="3054" width="280" height="980" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="122" y="3078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="122" dy="0">reqGiveOnlyLastValidCommand</tspan>
+  </text>
+  <rect x="390" y="3054" width="360" height="980" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="402" y="3078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="402" dy="0">Until the stop response starts, the</tspan>
+    <tspan x="402" dy="20">vehicle network shall give the vehicle at</tspan>
+    <tspan x="402" dy="20">the actuation ECU only the steering angle</tspan>
+    <tspan x="402" dy="20">and the acceleration of the last valid</tspan>
+    <tspan x="402" dy="20">driving command that it applied.</tspan>
+  </text>
+  <rect x="750" y="3054" width="360" height="980" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="762" y="3078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="762" dy="0">NEED-EE-002; REQ-MW-006; REQ-DRIVING-039;</tspan>
+    <tspan x="762" dy="20">eeNetworkFaultResponseConcern; gap</tspan>
+    <tspan x="762" dy="20">gapEEActuationEnd; scenario SC-EE-003</tspan>
+  </text>
+  <rect x="1110" y="3054" width="360" height="980" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1122" y="3078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1122" dy="0">The driver-assistance increment places at</tspan>
+    <tspan x="1122" dy="20">its actuation end the share of REQ-MW-006</tspan>
+    <tspan x="1122" dy="20">that is not applying a command that the</tspan>
+    <tspan x="1122" dy="20">actuation rejects, and this increment puts</tspan>
+    <tspan x="1122" dy="20">the actuation in the actuation ECU, so the</tspan>
+    <tspan x="1122" dy="20">vehicle network holds that share: a</tspan>
+    <tspan x="1122" dy="20">command that a fault has made invalid on</tspan>
+    <tspan x="1122" dy="20">its way no longer stands for what its</tspan>
+    <tspan x="1122" dy="20">source gave. A fault shows at the</tspan>
+    <tspan x="1122" dy="20">actuation ECU in the sequence count for a</tspan>
+    <tspan x="1122" dy="20">loss or a repetition, in the check value</tspan>
+    <tspan x="1122" dy="20">for a corruption, and in the issue time</tspan>
+    <tspan x="1122" dy="20">against the simulation time at its arrival</tspan>
+    <tspan x="1122" dy="20">for a delay, by the rules of the actuation</tspan>
+    <tspan x="1122" dy="20">adapter of the driver-assistance increment</tspan>
+    <tspan x="1122" dy="20">(the adapter counting decision of</tspan>
+    <tspan x="1122" dy="20">2026-11-18), with the arrival time set</tspan>
+    <tspan x="1122" dy="20">here in place of the newest world time of</tspan>
+    <tspan x="1122" dy="20">that adapter. The arrival time counts on</tspan>
+    <tspan x="1122" dy="20">the clock of the virtual vehicle, which</tspan>
+    <tspan x="1122" dy="20">the testbed gives every element, so</tspan>
+    <tspan x="1122" dy="20">judging the age of a command needs no</tspan>
+    <tspan x="1122" dy="20">newest world time at the actuation ECU,</tspan>
+    <tspan x="1122" dy="20">whose inputs stay open</tspan>
+    <tspan x="1122" dy="20">(gapEEActuationEnd). Nothing is applied in</tspan>
+    <tspan x="1122" dy="20">place of an invalid command, so the</tspan>
+    <tspan x="1122" dy="20">vehicle keeps the last valid one; an</tspan>
+    <tspan x="1122" dy="20">invalid command, a neutral control in</tspan>
+    <tspan x="1122" dy="20">place of one, or a value that no command</tspan>
+    <tspan x="1122" dy="20">carried each breaks this requirement. A</tspan>
+    <tspan x="1122" dy="20">repetition costs that one command; the</tspan>
+    <tspan x="1122" dy="20">delay of the run set costs the delayed</tspan>
+    <tspan x="1122" dy="20">command and those that wait behind it, and</tspan>
+    <tspan x="1122" dy="20">the stop response follows (REQ-EE-009); a</tspan>
+    <tspan x="1122" dy="20">loss or a corruption costs the lost or</tspan>
+    <tspan x="1122" dy="20">corrupted command and the next one, which</tspan>
+    <tspan x="1122" dy="20">reveals the gap. A corruption that the</tspan>
+    <tspan x="1122" dy="20">check value misses is judged by its</tspan>
+    <tspan x="1122" dy="20">sequence count and its issue time alone</tspan>
+    <tspan x="1122" dy="20">and can make the actuation ECU reject</tspan>
+    <tspan x="1122" dy="20">later valid commands as repetitions: the</tspan>
+    <tspan x="1122" dy="20">bound of the check value (the check-value</tspan>
+    <tspan x="1122" dy="20">bound decision of 2026-11-21 of that</tspan>
+    <tspan x="1122" dy="20">increment). Which element detects and</tspan>
+    <tspan x="1122" dy="20">rejects is decided in phases 6 to 8</tspan>
+    <tspan x="1122" dy="20">(gapEEActuationEnd). The requirement</tspan>
+    <tspan x="1122" dy="20">carries no safety claim and no claim of</tspan>
+    <tspan x="1122" dy="20">freedom from interference.</tspan>
+  </text>
+  <rect x="1470" y="3054" width="110" height="980" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1482" y="3078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1482" dy="0">test</tspan>
+  </text>
+  <rect x="1580" y="3054" width="360" height="980" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1592" y="3078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1592" dy="0">Met when the run set is judged and, in</tspan>
+    <tspan x="1592" dy="20">each of its runs, what the actuation ECU</tspan>
+    <tspan x="1592" dy="20">gives the vehicle before the stop response</tspan>
+    <tspan x="1592" dy="20">starts is the steering angle and the</tspan>
+    <tspan x="1592" dy="20">acceleration of the last valid driving</tspan>
+    <tspan x="1592" dy="20">command that it applied, and nothing</tspan>
+    <tspan x="1592" dy="20">before it applies the first.</tspan>
+  </text>
+  <rect x="0" y="4034" width="110" height="1460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="4058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-EE-009</tspan>
+  </text>
+  <rect x="110" y="4034" width="280" height="1460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="122" y="4058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="122" dy="0">reqStopResponseAfter200Ms</tspan>
+  </text>
+  <rect x="390" y="4034" width="360" height="1460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="402" y="4058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="402" dy="0">The vehicle network shall start the stop</tspan>
+    <tspan x="402" dy="20">response at the actuation ECU once more</tspan>
+    <tspan x="402" dy="20">than 200 ms of simulation time pass with</tspan>
+    <tspan x="402" dy="20">no valid driving command reaching the</tspan>
+    <tspan x="402" dy="20">actuation ECU.</tspan>
+  </text>
+  <rect x="750" y="4034" width="360" height="1460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="762" y="4058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="762" dy="0">NEED-EE-002; REQ-DRIVING-028;</tspan>
+    <tspan x="762" dy="20">eeNetworkFaultResponseConcern; gap</tspan>
+    <tspan x="762" dy="20">gapEEActuationEnd; scenarios SC-EE-003 and</tspan>
+    <tspan x="762" dy="20">SC-EE-004</tspan>
+  </text>
+  <rect x="1110" y="4034" width="360" height="1460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1122" y="4058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1122" dy="0">This is the share of the vehicle network</tspan>
+    <tspan x="1122" dy="20">in the stop response that REQ-DRIVING-028</tspan>
+    <tspan x="1122" dy="20">of INC-DRIVING-001 asks and SC-EE-004</tspan>
+    <tspan x="1122" dy="20">takes for a link that goes down. The</tspan>
+    <tspan x="1122" dy="20">adapter of the driver-assistance increment</tspan>
+    <tspan x="1122" dy="20">has no stop response, and the actuation</tspan>
+    <tspan x="1122" dy="20">ECU is the last element that a command</tspan>
+    <tspan x="1122" dy="20">reaches, so it gives the response itself</tspan>
+    <tspan x="1122" dy="20">because it can no longer be told to. The</tspan>
+    <tspan x="1122" dy="20">200 ms of simulation time and the 300 ms</tspan>
+    <tspan x="1122" dy="20">of the criteria are those of REQ-</tspan>
+    <tspan x="1122" dy="20">DRIVING-028, whose rationale counts a</tspan>
+    <tspan x="1122" dy="20">command every 100 ms, so that two missed</tspan>
+    <tspan x="1122" dy="20">commands mean that the path has stopped;</tspan>
+    <tspan x="1122" dy="20">the source of this increment gives at most</tspan>
+    <tspan x="1122" dy="20">one each 100 ms. Set here: a command that</tspan>
+    <tspan x="1122" dy="20">reaches the actuation ECU exactly 200 ms</tspan>
+    <tspan x="1122" dy="20">after the last valid one still counts, and</tspan>
+    <tspan x="1122" dy="20">the stop response starts only after that,</tspan>
+    <tspan x="1122" dy="20">because a judged run without a fault can</tspan>
+    <tspan x="1122" dy="20">leave exactly 200 ms between two valid</tspan>
+    <tspan x="1122" dy="20">commands, and a start at 200 ms would make</tspan>
+    <tspan x="1122" dy="20">the verdict of such a run depend on the</tspan>
+    <tspan x="1122" dy="20">step of the clock of the testbed. Set here</tspan>
+    <tspan x="1122" dy="20">too: with the rules of the actuation</tspan>
+    <tspan x="1122" dy="20">adapter of the driver-assistance increment</tspan>
+    <tspan x="1122" dy="20">kept, one lost or corrupted command costs</tspan>
+    <tspan x="1122" dy="20">two, although REQ-DRIVING-028 reads two</tspan>
+    <tspan x="1122" dy="20">missed commands as a stopped path. The</tspan>
+    <tspan x="1122" dy="20">valid commands on either side of the gap</tspan>
+    <tspan x="1122" dy="20">then have issue times 300 ms apart, so</tspan>
+    <tspan x="1122" dy="20">more than 200 ms pass at the actuation ECU</tspan>
+    <tspan x="1122" dy="20">without a valid command and the stop</tspan>
+    <tspan x="1122" dy="20">response starts, unless the valid command</tspan>
+    <tspan x="1122" dy="20">before the gap takes the whole 100 ms to</tspan>
+    <tspan x="1122" dy="20">reach the actuation ECU and the one after</tspan>
+    <tspan x="1122" dy="20">it none, which leaves exactly 200 ms and</tspan>
+    <tspan x="1122" dy="20">no stop response due. Set here too: a run</tspan>
+    <tspan x="1122" dy="20">ends 100 ms of simulation time after the</tspan>
+    <tspan x="1122" dy="20">path gives its last driving command, more</tspan>
+    <tspan x="1122" dy="20">than the 50 ms share of the vehicle</tspan>
+    <tspan x="1122" dy="20">network, so that the last command can</tspan>
+    <tspan x="1122" dy="20">reach the actuation ECU within the run,</tspan>
+    <tspan x="1122" dy="20">and less than the 200 ms after which the</tspan>
+    <tspan x="1122" dy="20">stop response starts, so that a run</tspan>
+    <tspan x="1122" dy="20">without a fault ends without it. A</tspan>
+    <tspan x="1122" dy="20">repetition costs only its copy. A delay</tspan>
+    <tspan x="1122" dy="20">that only just makes a command late would</tspan>
+    <tspan x="1122" dy="20">leave exactly 200 ms without a valid one,</tspan>
+    <tspan x="1122" dy="20">where the outcome would depend on the</tspan>
+    <tspan x="1122" dy="20">clock of the testbed, so the run set</tspan>
+    <tspan x="1122" dy="20">delays the command by 300 ms; with the</tspan>
+    <tspan x="1122" dy="20">commands that wait behind it, that leaves</tspan>
+    <tspan x="1122" dy="20">more than 200 ms without a valid one on</tspan>
+    <tspan x="1122" dy="20">every clock, and the stop response</tspan>
+    <tspan x="1122" dy="20">follows. The stop response gives the</tspan>
+    <tspan x="1122" dy="20">deceleration of REQ-DRIVING-020 with the</tspan>
+    <tspan x="1122" dy="20">steering of REQ-DRIVING-021 until the run</tspan>
+    <tspan x="1122" dy="20">ends, which holds the vehicle at</tspan>
+    <tspan x="1122" dy="20">standstill as REQ-DRIVING-022 does, so</tspan>
+    <tspan x="1122" dy="20">that it needs no vehicle speed at the</tspan>
+    <tspan x="1122" dy="20">actuation ECU, whose inputs stay open</tspan>
+    <tspan x="1122" dy="20">(gapEEActuationEnd). When the actuation</tspan>
+    <tspan x="1122" dy="20">ECU has applied no valid command, there is</tspan>
+    <tspan x="1122" dy="20">no steering angle to hold, so the stop</tspan>
+    <tspan x="1122" dy="20">response gives 0°, which steers the</tspan>
+    <tspan x="1122" dy="20">vehicle neither left nor right. The</tspan>
+    <tspan x="1122" dy="20">response is shown on the virtual vehicle</tspan>
+    <tspan x="1122" dy="20">and carries no safety claim; its time</tspan>
+    <tspan x="1122" dy="20">limit counts on the clock of the virtual</tspan>
+    <tspan x="1122" dy="20">vehicle and makes no timing claim for a</tspan>
+    <tspan x="1122" dy="20">vehicle network.</tspan>
+  </text>
+  <rect x="1470" y="4034" width="110" height="1460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1482" y="4058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1482" dy="0">test</tspan>
+  </text>
+  <rect x="1580" y="4034" width="360" height="1460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1592" y="4058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1592" dy="0">Met when the run set is judged and, in</tspan>
+    <tspan x="1592" dy="20">each of its runs in which more than 200 ms</tspan>
+    <tspan x="1592" dy="20">of simulation time pass with no valid</tspan>
+    <tspan x="1592" dy="20">driving command reaching the actuation</tspan>
+    <tspan x="1592" dy="20">ECU, the actuation ECU gives the vehicle</tspan>
+    <tspan x="1592" dy="20">the stop response, with its deceleration</tspan>
+    <tspan x="1592" dy="20">and its steering angle, from later than</tspan>
+    <tspan x="1592" dy="20">200 ms and no later than 300 ms of</tspan>
+    <tspan x="1592" dy="20">simulation time after the last valid</tspan>
+    <tspan x="1592" dy="20">driving command reached it, or after the</tspan>
+    <tspan x="1592" dy="20">run started when none did, until the run</tspan>
+    <tspan x="1592" dy="20">ends, and applies no driving command that</tspan>
+    <tspan x="1592" dy="20">reaches it after those 200 ms; and when no</tspan>
+    <tspan x="1592" dy="20">run of the run set holds a start of the</tspan>
+    <tspan x="1592" dy="20">stop response at another time.</tspan>
+  </text>
+  <rect x="0" y="5494" width="110" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="5518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-EE-010</tspan>
+  </text>
+  <rect x="110" y="5494" width="280" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="122" y="5518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="122" dy="0">reqRecordNetworkIdentity</tspan>
+  </text>
+  <rect x="390" y="5494" width="360" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="402" y="5518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="402" dy="0">The vehicle network shall record its</tspan>
+    <tspan x="402" dy="20">network identity before it takes the first</tspan>
+    <tspan x="402" dy="20">driving command of each run.</tspan>
+  </text>
+  <rect x="750" y="5494" width="360" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="762" y="5518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="762" dy="0">NEED-EE-003; eeRouteVerdictConcern; scope</tspan>
+    <tspan x="762" dy="20">item eeVerdictEvidenceInScope; scenarios</tspan>
+    <tspan x="762" dy="20">SC-EE-001 to SC-EE-004</tspan>
+  </text>
+  <rect x="1110" y="5494" width="360" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1122" y="5518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1122" dy="0">A verdict holds only for the route, the</tspan>
+    <tspan x="1122" dy="20">topology and the revision of the vehicle</tspan>
+    <tspan x="1122" dy="20">network that ran, and another engineer can</tspan>
+    <tspan x="1122" dy="20">rerun a run only from what it names. The</tspan>
+    <tspan x="1122" dy="20">commit names the revision, and the</tspan>
+    <tspan x="1122" dy="20">recorded difference tells a build with a</tspan>
+    <tspan x="1122" dy="20">change that the commit lacks apart from</tspan>
+    <tspan x="1122" dy="20">it, as the candidate identity of REQ-</tspan>
+    <tspan x="1122" dy="20">DRIVING-044 does; the SHA-256 of each file</tspan>
+    <tspan x="1122" dy="20">of the configuration and the settings read</tspan>
+    <tspan x="1122" dy="20">from outside a file pin what the vehicle</tspan>
+    <tspan x="1122" dy="20">network read, because a run can read what</tspan>
+    <tspan x="1122" dy="20">the commit does not fix, and the files</tspan>
+    <tspan x="1122" dy="20">that set the topology pin it. The recorded</tspan>
+    <tspan x="1122" dy="20">command stream, its binding to the</tspan>
+    <tspan x="1122" dy="20">revision that made it and the testbed</tspan>
+    <tspan x="1122" dy="20">belong to System 2 and are bound there</tspan>
+    <tspan x="1122" dy="20">(gapEERecordedCommandStream,</tspan>
+    <tspan x="1122" dy="20">asmEESoftwareTestbedStandsIn), so the</tspan>
+    <tspan x="1122" dy="20">record covers only what the vehicle</tspan>
+    <tspan x="1122" dy="20">network itself runs. Phase 8 names the</tspan>
+    <tspan x="1122" dy="20">files of the configuration</tspan>
+    <tspan x="1122" dy="20">(gapEEBenchPlatform).</tspan>
+  </text>
+  <rect x="1470" y="5494" width="110" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1482" y="5518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1482" dy="0">test</tspan>
+  </text>
+  <rect x="1580" y="5494" width="360" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1592" y="5518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1592" dy="0">Met when each run of the run set has the</tspan>
+    <tspan x="1592" dy="20">record before the vehicle network takes</tspan>
+    <tspan x="1592" dy="20">its first driving command; when its route</tspan>
+    <tspan x="1592" dy="20">is the route that the records show the</tspan>
+    <tspan x="1592" dy="20">commands of the run passing; when the</tspan>
+    <tspan x="1592" dy="20">named files are the files of the</tspan>
+    <tspan x="1592" dy="20">configuration that phase 8 names; and when</tspan>
+    <tspan x="1592" dy="20">another engineer who checks out the named</tspan>
+    <tspan x="1592" dy="20">commit, applies the recorded difference</tspan>
+    <tspan x="1592" dy="20">and hashes the named files obtains the</tspan>
+    <tspan x="1592" dy="20">recorded values.</tspan>
+  </text>
+</svg>

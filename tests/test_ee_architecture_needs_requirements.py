@@ -180,7 +180,7 @@ GUIDE_PARAGRAPHS = (
     "states a number: Phase 5 derives the requirements, their limits and the share of the network in the "
     "response when no valid command arrives, after REQ-DRIVING-028 of INC-DRIVING-001. The form of the "
     "command comes from the baseline of the driver-assistance increment, which states no cadence of the "
-    "command as such; a comment about `NEED-EE-001` keeps that input contract for Phase 5.",
+    "command as such; Phase 5 states that input contract in its requirements.",
     "`tests/test_ee_architecture_needs_requirements.py` pins the needs, their holders and sources, the "
     "planned reviews and their scenarios, and the wording a need may not use. The Phase 4 gates check "
     "that each need has a statement, a stakeholder, a source, a rationale and a planned review. Review "
@@ -301,12 +301,6 @@ PLAN_DOCS = {
         "route carried the command and which topology and revision of the vehicle network ran, and "
         "whether each verdict is bound to them?"),
 }
-#: the input contract kept for phase 5 as a comment about the first need, pinned whole
-CONTRACT = (
-    "The vehicle network takes the driving command, DrivingCommand of INC-DRIVING-002, in the form "
-    "that that increment fixes at its baseline, from the Eclipse S-CORE path "
-    "(asmEEScoreCommandSource). Phase 5 states it as requirements and derives the cadence that the "
-    "vehicle network carries.")
 #: Phase 0 to 2 text that said the baseline of INC-DRIVING-002 fixes the cadence, and the hold of Phase 4
 OLD_TEXTS = (
     "Until that baseline, both can change.", "Phase 4 onward", "form and the cadence", "form and cadence",
@@ -539,13 +533,8 @@ def test_the_stop_response_stays_on_the_review_and_comes_from_the_closed_loop_in
         _plan_doc("SC-EE-006")
 
 
-def test_the_command_form_contract_is_a_comment_for_phase_5():
-    raw = _raw()
-    match = re.search(r"\bcomment\s+commandFormContract\s+about\s+needDrivingCommandReachesActuationOnEachRoute\s*"
-                      r"/\*(.*?)\*/", raw, re.S)
-    assert match, "the input contract is a comment about the first need"
-    assert _flat(match.group(1)) == CONTRACT
-    assert not COMMAND_FIELD.findall(CONTRACT) and not re.search(r"\d", ALLOWED_DIGITS.sub("", CONTRACT))
+def test_phase_5_states_the_input_contract_as_requirements():
+    assert "commandFormContract" not in _raw()
 
 
 def test_two_tables_frame_the_needs_concern_and_show_needs_and_planned_reviews():
@@ -615,11 +604,12 @@ def test_the_guide_has_a_phase_4_section_and_names_phase_5_next():
     assert "after REQ-DRIVING-028 of INC-DRIVING-001" in section
     assert not CLAUSE_NUMBER.findall(raw_section), CLAUSE_NUMBER.findall(raw_section)
     flat = " ".join(guide.split())
-    assert "After that baseline, the owner decided on 2026-11-21 to start Phase 4. The next model obligation is " \
-        "**Phase 5**, the requirements. The testbed with its readiness probe waits for a further decision of the " \
-        "owner." in flat
+    assert "After that baseline, the owner decided on 2026-11-21 to start Phase 4 and on 2026-11-22 to go on with " \
+        "Phase 5. The next model obligation is **Phase 6**, the functional architecture. The testbed with its " \
+        "readiness probe waits for a further decision of the owner." in flat
     assert "Phase 5 waits" not in flat and "Phase 5 and the testbed" not in flat, "no hold of Phase 5 is written"
-    assert "Phase 3 capability classification and Phase 4 stakeholder needs, proposal." in flat
+    assert "Phase 3 capability classification, Phase 4 stakeholder needs and Phase 5 requirements, proposal." \
+        in flat
 
 
 def test_the_guide_ends_with_exactly_one_newline():
