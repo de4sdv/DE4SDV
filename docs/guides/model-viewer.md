@@ -55,6 +55,12 @@ admission verdict. A selection that matches none of them is reported as
 "no committed configuration"; the page never invents a verdict of its own.
 The API endpoint is a reader of the served model, not a second authority.
 
+The **HELP** button beside **SOUND** explains the page's words in a few short
+lines: feature, group, rule (the C of a rule number like C012 stands for
+constraint), the derived adapter, the charter, valid against admitted, and the
+governed-scope tags. The help defines words only: it names no feature, rule,
+configuration or verdict, so it cannot drift from the model the page reads.
+
 The page exists only at the root of the dynamic site, and only while the
 viewer service is running: a static build (including the Pages mirror) has
 no `/api/feature-model.json` and shows the API-unavailable error instead of a

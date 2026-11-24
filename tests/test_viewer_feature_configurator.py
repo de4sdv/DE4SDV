@@ -9,6 +9,7 @@ evaluation — no model file is copied and no API is contacted.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -236,6 +237,69 @@ def test_page_and_nav_are_generated_at_the_site_root(tmp_path):
     assert "const FEATURES = [" not in page
     index = (out / "index.html").read_text(encoding="utf-8")
     assert 'href="feature-configurator.html">Configurator</a>' in index
+
+
+PAGE = REPO_ROOT / "tools" / "sysml_html_viewer" / "feature_configurator.html"
+
+
+def _page() -> str:
+    return PAGE.read_text(encoding="utf-8")
+
+
+def _js_table(page: str, name: str) -> dict[str, str]:
+    """The string entries of one ``const NAME = {...};`` table of the page."""
+    match = re.search(r"const %s = \{(.*?)\};" % re.escape(name), page, re.S)
+    assert match, f"the page has no {name} table"
+    return dict(re.findall(r"'?([\w-]+)'?\s*:\s*'([^']*)'", match.group(1)))
+
+
+def _help_text(page: str) -> str:
+    match = re.search(r'<section id="help"[^>]*>(.*?)</section>', page, re.S)
+    assert match, "the page has no help dialog"
+    return re.sub(r"<[^>]+>", " ", match.group(1))
+
+
+def test_page_carries_no_game_cost():
+    # MP was a game number with no model property behind it.
+    page = _page()
+    assert re.search(r"\bMP\b", page) is None
+    assert re.search(r'\.mp\b|id="mp"', page) is None
+
+
+def test_help_button_sits_beside_the_sound_button():
+    assert re.search(
+        r'<button id="btn-sound">[^<]*</button>\s*'
+        r'<button id="btn-help"[^>]*aria-controls="help"[^>]*>[^<]*HELP</button>',
+        _page(),
+    )
+
+
+def test_help_explains_every_scope_tag_and_both_verdicts():
+    page = _page()
+    text = _help_text(page)
+    for label in _js_table(page, "STATUS_TAG").values():
+        assert label in text, f"the help does not explain the tag {label}"
+    for word in ("VALID", "ADMITTED", "constraint", "CHARTER"):
+        assert word in text
+
+
+def test_help_names_no_feature_or_configuration():
+    # The help defines words only. A feature, a configuration or a scope fact
+    # named there would be a model copy that goes stale with the model.
+    page = _page()
+    text = _help_text(page)
+    labels = _js_table(page, "LABELS")
+    choices = [
+        label for key, label in labels.items()
+        if not any(other.startswith(key + "-") for other in labels)
+    ]
+    named = [
+        label
+        for label in choices + list(_js_table(page, "CONFIG_LABELS").values())
+        if re.search(r"(?<!\w)%s(?!\w)" % re.escape(label), text, re.I)
+    ]
+    assert named == []
+    assert re.search(r"\bF-[A-Z]", text) is None
 
 
 def _git(repo: Path, *args: str) -> None:
