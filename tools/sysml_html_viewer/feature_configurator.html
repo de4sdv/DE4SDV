@@ -335,7 +335,7 @@
     <a class="back" href="index.html">← MODEL VIEWER</a>
     <a class="chip-mp" id="model-chip" href="https://sysml-api.de4sdv.org" target="_blank" rel="noopener">API · …</a>
     <div class="chip-mp">MP <b id="mp">0</b></div>
-    <button id="btn-fx">FX: FULL</button>
+    <button id="btn-fx">FX: LEAN</button>
     <button id="btn-sound">♪ SOUND: ON</button>
   </header>
 
@@ -1016,17 +1016,13 @@ $('#btn-sound').onclick=(e)=>{
 };
 $('#btn-sound').textContent = `♪ SOUND: ${SFX.muted?'OFF':'ON'}`;
 
-/* Lean paint mode: low-core or reduced-motion clients start with the
-   software-friendly look; the toggle makes the full FF effects opt-in. */
-const FX_KEY='de4sdv.fx';
+/* Lean paint mode is the default; the toggle makes the full FF effects
+   opt-in. Reduced-motion clients always stay lean. */
+const FX_KEY='de4sdv.fx.v2';
 let fxMode=null;
 try{fxMode=localStorage.getItem(FX_KEY);}catch(_){}
-if(fxMode!=='lean' && fxMode!=='full'){
-  const lowCore=(navigator.hardwareConcurrency||8)<=6;
-  let reduced=false;
-  try{reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(_){}
-  fxMode=(lowCore||reduced)?'lean':'full';
-}
+if(fxMode!=='lean' && fxMode!=='full') fxMode='lean';
+try{if(matchMedia('(prefers-reduced-motion: reduce)').matches) fxMode='lean';}catch(_){}
 function applyFx(mode){
   document.documentElement.dataset.fx=mode;
   const btn=$('#btn-fx');
