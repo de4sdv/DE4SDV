@@ -541,7 +541,9 @@ Five views publish the architecture, one per SAF question:
 - the process `hmiDisplaySystemProcessView`, with its participants as swim
   lanes and the items that cross the boundary, which answers the Phase 1
   concerns `hmiDisplayInputsConcern`, `hmiWarningSequenceConcern` and
-  `hmiAndroidOutageConcern`;
+  `hmiAndroidOutageConcern`; it prints no doc, so the times of the warning
+  sequence and the sequence of an outage are in the docs of the process and
+  of its lanes;
 - the table `hmiDisplayStateTableView` of the states and what the functions
   that depend on them do in each, which answers the Phase 1 concern
   `hmiContentCurrencyConcern`;
