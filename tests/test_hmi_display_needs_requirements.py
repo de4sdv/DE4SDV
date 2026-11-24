@@ -728,11 +728,11 @@ GUIDE_HOLDERS = {
 #: the guide's status line
 STATUS = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs and Phase 5 requirements, proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements and Phase 6 functional architecture, proposal.**")
 
 #: the guide's next obligation
 NEXT_OBLIGATION = (
-    "The next model obligation is **Phase 6**, the functional architecture.")
+    "The next model obligation is **Phase 7**, the logical architecture.")
 
 
 
@@ -1101,6 +1101,7 @@ def test_the_guide_has_a_phase_4_section_and_names_the_next_obligation():
     assert nxt.count(NEXT_OBLIGATION) == 1
     assert "The next model obligation is **Phase 4**" not in flat
     assert "The next model obligation is **Phase 5**" not in flat
+    assert "The next model obligation is **Phase 6**" not in flat
 
 
 def test_the_guide_ends_with_exactly_one_newline():
