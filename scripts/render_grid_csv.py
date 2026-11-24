@@ -148,6 +148,20 @@ GRID_METADATA = {
         "states (state usages)",
         "",
     ),
+    "matrix-eeVehicleNetworkRequirementFunctionMatrixView": GridMetadata(
+        "Vehicle network requirements by function",
+        "Each requirement of phase 5 and the functions of the vehicle network that carry it; no function carries "
+        "REQ-EE-001 or REQ-EE-003 in this phase.",
+        "requirements (requirement usages)",
+        "system functions (action usages)",
+    ),
+    "table-eeVehicleNetworkStateTableView": GridMetadata(
+        "Vehicle network states",
+        "The states of the actuation ECU in a run, by the valid driving commands that reach it, and the function "
+        "whose behavior differs in each.",
+        "states (state usages)",
+        "",
+    ),
     "table-middlewareProductLineClassificationView": GridMetadata(
         "Middleware product-line classification",
         "Classifies middleware characteristics and attaches each rationale to its element.",
