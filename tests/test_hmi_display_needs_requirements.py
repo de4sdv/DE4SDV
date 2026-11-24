@@ -8,7 +8,9 @@ phase 5. Each reviewed text is pinned whole, and the rule guards stay beside the
 identifiers, no number with a unit, no clause number, no positive safety or timing claim, no anti-cheating
 clause, no drawing, no renderer in a statement, and the simulator and stale content named only in the listed
 sentences. The guards match the words they list; a claim in other words is for review. The tests read the model
-text; they do not parse SysML.
+text; they do not parse SysML. The requirements of phase 5 in the same package have their own module,
+test_hmi_display_requirements.py; this one keeps the needs, the reviews and the rules over every sentence of
+the package.
 """
 
 from __future__ import annotations
@@ -180,8 +182,9 @@ FURTHER_CONTENT = re.compile(r"(?i)\b(?:gears?|set speed|speed limits?|telltales
 RENDERER = re.compile(r"(?i)high availability renderer|\bHAR\b|SDV Media")
 #: the simulator, its record and the truth of the scene (hmiSimulatorTruthOutOfScope)
 TRUTH_TERMS = re.compile(r"(?i)\b(?:simulat\w*|carla|ground[- ]truth|truth)\b")
-#: stale content and its synonyms (hmiStaleContentInScope)
-CURRENCY_TERMS = re.compile(r"(?i)\b(?:current\w*|live\w*|last frames?|stale\w*|froz\w*|freez\w*|up[- ]to[- ]date)\b")
+#: stale content and its synonyms, outdated content among them (hmiStaleContentInScope)
+CURRENCY_TERMS = re.compile(r"(?i)\b(?:current\w*|live\w*|last frames?|stale\w*|froz\w*|freez\w*|up[- ]to[- ]date|"
+                            r"outdat\w*)\b")
 
 #: the purpose of the scene on the display, a purpose and no claim of how a driver supervises
 SCENE_PURPOSE = (
@@ -239,17 +242,195 @@ CURRENCY_REVIEW = (
     "state in which the collision warning is unavailable, what the display shows in each, and whether the display "
     "showed any element as current when it was not, or the warning as available when it could not be given?")
 
-#: the sentences that may name the simulator: each keeps the simulator's record off the display or binds a
-#: verdict to the simulated configuration
-TRUTH_SENTENCES = (SCENE_NO_ESTIMATE, SIMULATED_ONLY)
+#: the sentences of the requirements of phase 5, their terms, the header and the comments that name the simulation:
+#: each counts a time or a limit in simulation time, or keeps the simulator's record off the display
+PHASE_FIVE_TRUTH_SENTENCES = (
+    (
+        "A display that shows the simulator's record of the scene or an estimate of its own shows another scene "
+        "(hmiSimulatorTruthOutOfScope)."),
+    (
+        "Met when each of SC-HMI-001 to SC-HMI-007 has at least one run, each run of SC-HMI-004 and SC-HMI-006 has "
+        "the end of its outage in the IVI VM before its own end, and in each run every scene that reaches the HMI "
+        "display outside an outage in the IVI VM, or a newer scene, is on the display less than 0.1 s of wall-clock "
+        "time after it arrives, with its lane points, its path and each of its objects with its level, as many "
+        "objects as the scene gives and at the positions that it gives, read within the drawing tolerance that phase "
+        "8 states; and when no frame on the display shows a lane, a path or an object that no scene of the run gives, "
+        "from the simulator's record of the scene or from an estimate of the display's own."),
+    (
+        "In the realization of the driver-assistance increment the vehicle speed enters the system with its sample "
+        "time in simulation time, typed by COVESA VSS in km/h (VehicleSpeedSamplePayload and "
+        "MAP-DRIVING-DA-VEHICLE-SPEED), and the system reads it once in each result pass."),
+    (
+        "The warning request is the output that the driver-assistance increment realizes from the warnings of each "
+        "plan: one event for each plan, which asks for the collision warning when the plan holds the "
+        "forward-collision warning or the emergency braking and carries the capture time in simulation time of the "
+        "frame that the plan came from, with no value changed on its path (CollisionWarningRequestOutput and "
+        "MAP-DRIVING-DA-WARNING-REQUEST)."),
+    (
+        "The limit counts in wall-clock time while the simulation runs no faster than wall-clock time, which is the "
+        "obligation of System 2, and makes no timing claim for a vehicle."),
+    (
+        "The scene and the warning request share one period of 0.1 s of simulation time in the realization of the "
+        "driver-assistance increment: one camera image, one result pass, one plan and one event of the warning "
+        "request each 0.1 s; the vehicle speed comes with each world snapshot at the input of the system, every step "
+        "of 0.05 s."),
+    (
+        "The vehicle speed brings the newest time to the display with each world snapshot, so the limit in simulation "
+        "time also counts the time from the capture of a frame to the arrival of its scene and its event at the "
+        "display, and the time that the display takes to show the scene."),
+    (
+        "The limit in simulation time counts against the newest time that has reached the display, so it catches a "
+        "delay before the display, which an age taken from the arrival would hide, and a value whose time the display "
+        "changes."),
+    (
+        "At 014e0e7a VisionPilot makes one pass for each camera image that it takes, and the bench of the "
+        "driver-assistance increment gives it one each 0.1 s of simulation time."),
+    (
+        "- Vehicle speed: the speed of the vehicle in km/h, with its sample time in simulation time, as the vehicle "
+        "gives it to the driver-assistance system at its input."),
+    (
+        "- Warning request: the input by which the HMI display is asked for the collision warning, in the form that "
+        "the driver-assistance increment gives it at its boundary: one event for each plan of the driver-assistance "
+        "system, telling whether it requests the collision warning, with its issue time in simulation time."),
+    (
+        "- Time of a value: the time in simulation time that a value of an input carries as its source gives it: for "
+        "a scene, the capture time of the camera image of its result pass; for a vehicle speed, its sample time; for "
+        "an event of the warning request, its issue time."),
+    (
+        "- Current: a value of an input is current while the time of the value is at most 0.2 s of simulation time "
+        "older than the newest time of a value that has reached the HMI display, and the newest value of the same "
+        "input reached it at most 0.2 s of wall-clock time before."),
+    "- Simulation time: the time of the simulated world.",
+    (
+        "Set here, each with its reason in a rationale: the speed of the closest object as its fusion gives it; the "
+        "object that the system acts on; distances to the whole metre and speeds to the whole km/h; the vehicle speed "
+        "at the input of the driver-assistance system; the share of the HMI display in the time that the "
+        "driver-assistance increment allots from the warning request to each mode, 0.1 s of wall-clock time, which "
+        "every change of what the display shows takes as its presentation time; the limits of 0.2 s of simulation "
+        "time and of 0.2 s of wall-clock time beyond which an element is outdated; the warning unavailable while the "
+        "warning request is outdated; and the split of the renderers, by the owner's decision of 2026-11-17."),
+    (
+        "Whether the time from the capture of a frame to the arrival of its scene and its event at the HMI display, "
+        "with the time to show the scene, stays within one period of 0.1 s, as the limit in simulation time of the "
+        "term current needs, is open until a readiness probe measures it; a longer time revises that limit."),
+    "The bench runs the simulation no faster than wall-clock time.",
+    (
+        "The records hold each value of each input as its source gives it, with its simulation time, and where it "
+        "reaches the HMI display, with the wall-clock time of its arrival; each frame on the display and the start of "
+        "each sound, with their wall-clock times; and the files and the settings that the display identity names."),
+)
+
+#: the sentences that may name the simulator: each keeps the simulator's record off the display, binds a
+#: verdict to the simulated configuration, or counts in simulation time
+TRUTH_SENTENCES = (SCENE_NO_ESTIMATE, SIMULATED_ONLY, *PHASE_FIVE_TRUTH_SENTENCES)
 
 #: the statement that no element is shown as current when it is not
 CURRENCY_STATEMENT = (
     "Vehicle occupants need the HMI display to show the driver no element as current when it is not, and to show the "
     "driver when the collision warning is unavailable.")
 
-#: the sentences that may name current, live or stale content: each shows no late element as current
-CURRENCY_SENTENCES = (CURRENCY_STATEMENT, CURRENCY_PURPOSE, CURRENCY_STATES, CURRENCY_REVIEW)
+#: the sentences of the requirements of phase 5, their terms, the header and the comments that name current or outdated
+#: content: each states when an element or the warning request is current, or what the display shows while it is
+#: outdated
+PHASE_FIVE_CURRENCY_SENTENCES = (
+    (
+        "During an outage in the IVI VM the app that draws the scene cannot show it; REQ-HMI-006 then shows the scene "
+        "as outdated, and once the app gives its first frame again this requirement holds again."),
+    (
+        "Before the first vehicle speed of a run reaches the display there is no speed to show, and REQ-HMI-006 shows "
+        "the element as outdated."),
+    (
+        "The request carries no end, so the warning lasts while the request asks: a continuing request continues the "
+        "warning, and the warning ends once the request asks for none or is outdated, when REQ-HMI-007 shows that it "
+        "is unavailable."),
+    (
+        "The HMI display shall show each element as outdated while, and only while, the element is outdated, "
+        "following each change of its state within the presentation time."),
+    (
+        "The display shows no element as current when it is not, so that the driver supervises the driver-assistance "
+        "system on what it perceives now (NEED-HMI-005)."),
+    "The limits of the term current take two periods, so that one late value is tolerated.",
+    (
+        "While those times stay within one period together, a scene stays current until the next one is shown, and "
+        "the warning request until its next event; with longer times an element can turn outdated before its next "
+        "value comes, and the limit is revisited once a readiness probe measures them "
+        "(warningPresentationFixedInPhase5)."),
+    (
+        "Late and missing values give one state, outdated, and phase 8 states how an outdated element looks; the "
+        "visual design stays out of scope (hmiHumanFactorsOutOfScope)."),
+    (
+        "An element is shown as current again once it is current, which is the validity rule of the display; the "
+        "converse, current while it is current, keeps a display from showing everything as outdated."),
+    "The state of each element counts on its own, so a late scene leaves the vehicle speed current.",
+    (
+        "Met when each of SC-HMI-001 to SC-HMI-007 has at least one run, each run of SC-HMI-003 to SC-HMI-006 has its "
+        "outage in the IVI VM and each run of SC-HMI-007 the stop of the Eclipse S-CORE path, and in each run each "
+        "frame on the display shows each element as outdated, in the form that phase 8 states for it, from less than "
+        "0.1 s of wall-clock time after the element turns outdated until less than 0.1 s of wall-clock time after it "
+        "turns current again, and as current at every other time; an element is outdated from the start of the run "
+        "until a first current value of its input reaches the HMI display."),
+    (
+        "The HMI display shall show that the collision warning is unavailable while, and only while, the warning "
+        "request is outdated, following each change of the state of the warning request within the presentation time."),
+    (
+        "The warning request carries no indication of its own availability (gapHmiWarningAvailability), and one of "
+        "its events comes for each plan, telling whether it asks, so the display learns from their age that the "
+        "warning cannot come: the warning is unavailable while the warning request is outdated."),
+    (
+        "The warning shows as available again once the warning request is current, which is the validity rule; the "
+        "converse keeps a display from showing the warning as unavailable at all times."),
+    (
+        "Met when each of SC-HMI-001 to SC-HMI-007 has at least one run, each run of SC-HMI-007 has the stop of the "
+        "Eclipse S-CORE path at least 0.3 s of wall-clock time before its end, and in each run the display shows that "
+        "the collision warning is unavailable from less than 0.1 s of wall-clock time after the warning request turns "
+        "outdated until less than 0.1 s of wall-clock time after it turns current again, and at no other time, so "
+        "that the warning shows as available again only once an event of the warning request is current."),
+    (
+        "Throughout each outage in the IVI VM, the HMI display shall show the vehicle speed, give the collision "
+        "warning while the warning request asks for it, and show that the warning is unavailable while the warning "
+        "request is outdated."),
+    (
+        "The speed and the warning hold throughout, the scene returns under REQ-HMI-001 once the app gives frames "
+        "again, and until then REQ-HMI-006 shows it as outdated, within the limits of the term current and the "
+        "presentation time from the last scene that the app has shown."),
+    (
+        "- Ask: the warning request asks while its newest event that has reached the HMI display is current and "
+        "requests the collision warning."),
+    (
+        "- Current: a value of an input is current while the time of the value is at most 0.2 s of simulation time "
+        "older than the newest time of a value that has reached the HMI display, and the newest value of the same "
+        "input reached it at most 0.2 s of wall-clock time before."),
+    (
+        "An element is current while it shows a current value, and the warning request is current while its newest "
+        "event is current."),
+    (
+        "- Outdated: an element or the warning request is outdated at each instant at which it is other than current: "
+        "a value that comes late and a value that never comes count alike, and so does the time before the first "
+        "value of its input reaches the HMI display."),
+    (
+        "Set here, each with its reason in a rationale: the speed of the closest object as its fusion gives it; the "
+        "object that the system acts on; distances to the whole metre and speeds to the whole km/h; the vehicle speed "
+        "at the input of the driver-assistance system; the share of the HMI display in the time that the "
+        "driver-assistance increment allots from the warning request to each mode, 0.1 s of wall-clock time, which "
+        "every change of what the display shows takes as its presentation time; the limits of 0.2 s of simulation "
+        "time and of 0.2 s of wall-clock time beyond which an element is outdated; the warning unavailable while the "
+        "warning request is outdated; and the split of the renderers, by the owner's decision of 2026-11-17."),
+    (
+        "Whether the time from the capture of a frame to the arrival of its scene and its event at the HMI display, "
+        "with the time to show the scene, stays within one period of 0.1 s, as the limit in simulation time of the "
+        "term current needs, is open until a readiness probe measures it; a longer time revises that limit."),
+    (
+        "Fixed: the HMI display learns that the collision warning is unavailable from the age of the events of the "
+        "warning request, with no signal of its own: the warning is unavailable while the warning request is "
+        "outdated, and available again once it is current (REQ-HMI-007 and the term current)."),
+    (
+        "It leaves at least 0.3 s of wall-clock time before the end of the run, the longest response that the "
+        "criteria judge: 0.2 s to turn outdated and 0.1 s to show it."),
+)
+
+#: the sentences that may name current, live, stale or outdated content: each shows no late element as current
+CURRENCY_SENTENCES = (CURRENCY_STATEMENT, CURRENCY_PURPOSE, CURRENCY_STATES, CURRENCY_REVIEW,
+                      *PHASE_FIVE_CURRENCY_SENTENCES)
 
 # The reviewed texts, pinned whole (whitespace flattened). A change to a need, a review or a contract comment is a
 # change of the reviewed content: update the pin in the same commit, on purpose.
@@ -391,40 +572,11 @@ PLAN_DOCS = {
         "whether each verdict is bound to them, and whether a display with a changed build or setting identifies "
         "itself as a different one?"),
 }
-#: comment -> (the need it is about, its text): the input contracts kept for phase 5, pinned whole
-CONTRACTS = {
-    "perceivedSceneContract": ("needPerceivedSceneOnTheDisplay", (
-        "At the inspected revision the driver-assistance system builds a scene only inside its own visualization. "
-        "The bridge of its panel builds it from the path that the lateral fusion fits, the offset and the heading "
-        "of the vehicle in its lane, the lane points of AutoSteer placed on the road through the homography that "
-        "the system loads, the detections of AutoSpeed as boxes with a score and a class, which is a level "
-        "relative to the path, and the validity and the distance of the closest object, and it does not read the "
-        "plan. The scene of the panel carries no speed of the closest object and no time, and the inference result "
-        "carries a frame identity and no capture time. The fusion reads the first level as the same lane and the "
-        "second as the adjacent lane. It takes as the closest object the nearest detection of the first level, or of "
-        "the second when that one is nearer, a cut-in, and, where AutoDrive flags an object in the path, fuses its "
-        "distance with the distance that AutoDrive gives; where AutoSpeed gives no detection of the first level and "
-        "AutoDrive flags an object in the path, it takes the closest object from AutoDrive alone. The planner plans on "
-        "that closest object, and the collision warnings of each plan follow from the acceleration that it plans. "
-        "Where AutoSpeed gives no detection of the first level and AutoDrive flags no object in the path, the fusion "
-        "still gives a valid closest object at a fixed distance, and the scene carries it; the planner plans on the "
-        "closest object only when it is nearer than that distance. The scene names no detection as the closest object. "
-        "The fusion gives the closest object a distance and a speed, and moves the distance by that speed over time; "
-        "its comment reads a negative speed as approaching, and the planner takes the speed as that of the vehicle "
-        "ahead where it predicts the gap and as the speed at which the vehicle closes on it where it sets the "
-        "acceleration, so which the display shows is open. Where AutoDrive flags an object in the path and AutoSpeed "
-        "gives no detection of the first level, the visualization also draws a mark for the closest object at the "
-        "distance that AutoDrive gives, the distance that the fusion then takes from AutoDrive, when that distance "
-        "lies within its range and, in its panel, no box lies near it; NEED-HMI-001 asks for the closest object of the "
-        "fusion that the planner plans on, not for that mark. Phase 5 states as "
-        "requirements what the display takes from the scene.")),
-    "warningRequestContract": ("needCollisionWarningOnRequest", (
-        "The warning request is the output that the driver-assistance increment realizes from the warnings of each "
-        "plan: it asks for the collision warning when the plan holds the forward-collision warning or the emergency "
-        "braking, and it carries the capture time of the frame that the plan came from. One plan holds at most one of "
-        "the two. The request does not tell them apart, and the system's own visualization does. Phase 5 states as "
-        "requirements what the display takes from it.")),
-}
+#: the comments of phase 4 on the input contracts, which phase 5 states as requirements and rationales
+REMOVED_CONTRACTS = ("perceivedSceneContract", "warningRequestContract")
+#: the named comments of the package: the terms of the requirements and the three comments on the gaps
+PHASE_FIVE_COMMENTS = ["termsHmiDisplayRequirements", "warningPresentationFixedInPhase5",
+                       "warningAvailabilityFixedInPhase5", "hmiTestbedObligationsOfPhase5"]
 #: the count sentence of the header
 HEADER_COUNT = (
     "Seven concerns are reviewer questions: a need's source names them and its review checks them.")
@@ -469,8 +621,34 @@ DISPLAY_RULE_RECORD = (
     "wrong, with the object that the system acts on marked, and not only what reaches the control of the vehicle: "
     "the display-rule decision of 2026-11-22. NEED-HMI-001 and its review carry it.")
 
-#: the header paragraph that hands the requirements to phase 5
+#: the header paragraph of phase 4 that handed the requirements to phase 5, which phase 5 replaces
 HEADER_PHASE_FIVE = "Phase 5 adds to this package the requirements derived from these needs."
+#: the two header paragraphs of phase 5, pinned whole: the requirement set and its values, and their variability
+HEADER_PHASE_FIVE_SET = (
+    "Phase 5: the requirements derived from these needs, each with one subject, the HMI display, one verification "
+    "method and its success criteria. They derive from the needs and rest on REQ-AEBS-002 and REQ-AEBS-013, and the "
+    "scope of the increment caps them at ten. From the driver-assistance increment the terms take the form of the "
+    "warning request and the start of each mode; from the files of VisionPilot at 014e0e7a they take the levels, the "
+    "fixed distance of 150 m and the sign that the fusion declares for the speed of the closest object. The "
+    "rationales name those files by their file names, and upstream.md gives each with its path. Set here, each with "
+    "its reason in a rationale: the speed of the closest object as its fusion gives it; the object that the system "
+    "acts on; distances to the whole metre and speeds to the whole km/h; the vehicle speed at the input of the "
+    "driver-assistance system; the share of the HMI display in the time that the driver-assistance increment allots "
+    "from the warning request to each mode, 0.1 s of wall-clock time, which every change of what the display shows "
+    "takes as its presentation time; the limits of 0.2 s of simulation time and of 0.2 s of wall-clock time beyond "
+    "which an element is outdated; the warning unavailable while the warning request is outdated; and the split of "
+    "the renderers, by the owner's decision of 2026-11-17. The comments on gapHmiWarningPresentation and "
+    "gapHmiWarningAvailability give what phase 5 fixes of those gaps and what stays open, and the comment on "
+    "gapHmiRendererIntegration gives what the criteria ask of System 2.")
+HEADER_PHASE_FIVE_VARIABILITY = (
+    "Rule 5 of the increment workflow makes a requirement core when its subject has no link and it has none of its "
+    "own. No requirement carries a link at this revision, so all ten read as core. Phase 3 classes the HMI display as "
+    "content of every member of the governed scope and leaves open which of its content is common, so phase 9 decides "
+    "on a link of its system of interest and claims no member. Beyond the subject, REQ-HMI-001 and REQ-HMI-002 follow "
+    "the driving application through the scene, whose form is that of VisionPilot (visionPilot), and REQ-HMI-001, "
+    "REQ-HMI-008, REQ-HMI-009 and REQ-HMI-010 name the AAOS SDV guest through the IVI VM or the SDV Media VM "
+    "(guestAndroidSDV); phase 9 links them. The terms take only the form of the warning request, so REQ-HMI-003 to "
+    "REQ-HMI-007 name no variant.")
 
 #: the non-claim sentence of the header
 HEADER_NON_CLAIM = (
@@ -529,9 +707,8 @@ GUIDE_PARAGRAPHS = (
     "the last and `SC-HMI-012` asks it.",
     "No need states a number or names a drawing: Phase 5 derives the requirements and their limits, how the app in "
     "the IVI VM draws the scene is a choice of Phase 8, and no need asks for gear, set speed, speed limit or "
-    "another telltale. Comments about `NEED-HMI-001` and `NEED-HMI-003` keep for Phase 5 what the pinned "
-    "driver-assistance system builds and what the driver-assistance increment realizes from it: what the scene of "
-    "its visualization carries, and what the warning request asks for and carries.",
+    "another telltale. Phase 5 states in its requirements what the scene of the pinned driver-assistance system "
+    "carries and what the warning request asks for and carries.",
     "`SC-DRIVING-018` of the driver-assistance increment watches the collision warning in `SC-DRIVING-012` and "
     "`SC-DRIVING-013`, which `SC-HMI-010` watches too, for another subject: its need, `NEED-DRIVING-010`, asks the "
     "candidate to give the warning request, and `NEED-HMI-003` asks the display to give the warning from it.",
@@ -550,12 +727,12 @@ GUIDE_HOLDERS = {
 }
 #: the guide's status line
 STATUS = (
-    "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification and "
-    "Phase 4 stakeholder needs, proposal.**")
+    "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
+    "Phase 4 stakeholder needs and Phase 5 requirements, proposal.**")
 
 #: the guide's next obligation
 NEXT_OBLIGATION = (
-    "The next model obligation is **Phase 5**, the requirements.")
+    "The next model obligation is **Phase 6**, the functional architecture.")
 
 
 
@@ -822,31 +999,24 @@ def test_the_simulator_and_stale_content_appear_only_in_the_listed_sentences():
         assert set(allowed) <= set(named), "every listed sentence is in the model"
 
 
-def test_the_input_contracts_are_comments_for_phase_5():
+def test_the_input_contracts_of_phase_4_are_stated_by_the_requirements():
+    # Phase 4 kept two input contracts as comments about NEED-HMI-001 and NEED-HMI-003; phase 5 states them in
+    # the requirements and their rationales (test_hmi_display_requirements.py pins those), so the comments go.
     raw = _raw()
-    found = re.findall(r"\bcomment\s+(\w+)\s+about\s+(\w+)\s*/\*", raw)
-    assert found == [(name, need) for name, (need, _text) in CONTRACTS.items()]
-    for name, (need, text) in CONTRACTS.items():
-        match = re.search(rf"\bcomment\s+{name}\s+about\s+{need}\s*/\*(.*?)\*/", raw, re.S)
-        assert match, f"the input contract {name} is a comment about {need}"
-        assert _flat(match.group(1)) == text, name
-        assert not re.search(r"\d", ALLOWED_DIGITS.sub("", text)), (name, "a contract states no number")
-    scene = CONTRACTS["perceivedSceneContract"][1]
-    # the mark that AutoDrive alone gives is the system's own perception, and the planner plans on the closest object
-    assert "The planner plans on that closest object" in scene
-    assert ("NEED-HMI-001 asks for the closest object of the fusion that the planner plans on, not for that mark."
-            in scene)
-    # the lane-departure warnings follow from the lateral offset; only the collision warnings from the acceleration
-    assert "and the collision warnings of each plan follow from the acceleration that it plans." in scene
-    # the comment names its own contracts and no other comment: a free comment is no reviewed text
-    assert re.findall(r"(?m)^\s*comment\s+(\w+)", _code()) == list(CONTRACTS), "only the two input contracts"
-    assert "One plan holds at most one of the two." in CONTRACTS["warningRequestContract"][1]
+    for name in REMOVED_CONTRACTS:
+        assert name not in raw, name
+    assert re.findall(r"\bcomment\s+(\w+)\s+about\s+(\w+)\s*/\*", raw) == [], \
+        "no comment is about a need: the comments of phase 5 are about qualified gaps or their package"
+    # the package names its comments of phase 5 and no other comment: a free comment is no reviewed text
+    assert re.findall(r"(?m)^\s*comment\s+(\w+)", _code()) == PHASE_FIVE_COMMENTS
 
 
 def test_two_tables_frame_the_needs_concern_and_show_needs_and_planned_reviews():
     code = _code()
     concerns = re.findall(r"\bconcern\s+(\w+)\s*:\s*StakeholderNeedsConcern\b", code)
-    assert len(concerns) == 1 and re.findall(r"\bconcern\s+(\w+)\s*:", code) == concerns
+    assert concerns == ["hmiDisplayNeedsConcern"], "one needs concern"
+    # phase 5 adds the requirement trace concern; test_hmi_display_requirements.py pins it
+    assert re.findall(r"\bconcern\s+(\w+)\s*:", code) == [*concerns, "hmiDisplayRequirementTraceConcern"]
     concern = braced_body(code, f"concern {concerns[0]} : StakeholderNeedsConcern")
     lines = [line.strip() for line in concern.splitlines() if line.strip() and line.strip() != "doc"]
     assert lines[0] == "subject;", "the subject is the first parameter"
@@ -855,8 +1025,13 @@ def test_two_tables_frame_the_needs_concern_and_show_needs_and_planned_reviews()
     doc = re.search(r"\bdoc\s*/\*(.*?)\*/", braced_body(_raw(), f"concern {concerns[0]} : StakeholderNeedsConcern"),
                     re.S)
     assert doc and _flat(doc.group(1)) == NEEDS_CONCERN_DOC
-    views = re.findall(r"\bview\s+(\w+)\s*:\s*TVD::TableView\b", code)
-    assert len(views) == 2 and re.findall(r"(?m)^  view\s+(\w+)", code) == views, "two table views, no other"
+    tables = re.findall(r"\bview\s+(\w+)\s*:\s*TVD::TableView\b", code)
+    assert re.findall(r"(?m)^  view\s+(\w+)", code) == tables == [
+        "hmiDisplayNeedsView", "hmiDisplayNeedValidationView", "hmiDisplayRequirementsView"], "three table views"
+    # the tables that frame the needs concern: two, the needs and the planned reviews
+    views = [view for view in tables
+             if re.search(rf"\bframe\s+{concerns[0]}\s*;", braced_body(code, f"view {view} : TVD::TableView"))]
+    assert len(views) == 2, "two table views frame the needs concern"
     exposed = {}
     for view in views:
         body = braced_body(code, f"view {view} : TVD::TableView")
@@ -890,7 +1065,7 @@ def test_the_charter_lists_the_needs_package_after_the_classification():
     assert MODEL in charter_package_files(FRAMING, "hmiDisplayCharter")
 
 
-def test_the_guide_has_a_phase_4_section_and_names_phase_5_next():
+def test_the_guide_has_a_phase_4_section_and_names_the_next_obligation():
     guide = GUIDE.read_text(encoding="utf-8")
     assert guide.index("## Capability classification (Phase 3)") < guide.index("## Stakeholder needs (Phase 4)") \
         < guide.index("## What the framing already records as open")
@@ -925,6 +1100,7 @@ def test_the_guide_has_a_phase_4_section_and_names_phase_5_next():
     nxt = " ".join(guide.split("## Next obligation and execution limits", 1)[1].split("\n## ", 1)[0].split())
     assert nxt.count(NEXT_OBLIGATION) == 1
     assert "The next model obligation is **Phase 4**" not in flat
+    assert "The next model obligation is **Phase 5**" not in flat
 
 
 def test_the_guide_ends_with_exactly_one_newline():
@@ -936,12 +1112,13 @@ def test_the_header_states_its_non_claims_and_names_no_drawing():
     header = _flat(_header())
     assert HEADER_NON_CLAIM in header, "the header keeps its non-claims"
     assert HEADER_DRAWING in _header_paragraphs(), "the header paragraph on the drawing, pinned whole"
-    assert HEADER_PHASE_FIVE in header
+    assert HEADER_PHASE_FIVE not in header, "phase 5 replaced the paragraph that handed it the requirements"
     paragraphs = _header_paragraphs()
     paragraphs = [paragraphs[0].removeprefix("/*").strip(), *paragraphs[1:-1],
                   paragraphs[-1].removesuffix("/").strip()]
     assert paragraphs == [HEADER_TITLE, HEADER_INTRO, HEADER_REASONS, HEADER_DRAWING, DISPLAY_RULE_RECORD,
-                          HEADER_PHASE_FIVE, HEADER_NON_CLAIM], "the header, paragraph by paragraph, whole"
+                          HEADER_PHASE_FIVE_SET, HEADER_PHASE_FIVE_VARIABILITY, HEADER_NON_CLAIM], \
+        "the header, paragraph by paragraph, whole"
 
 
 def test_the_package_declares_no_name_that_another_model_package_declares():
