@@ -91,7 +91,12 @@ How the catalogue was restated:
   from outside, because the evaluator reads only the metadata an element owns.
 - **Descriptions.** The doc of a configuration is its Bill-of-Features'
   description, a `false` selection is a `[0]` redefinition, and an unlisted
-  feature is left unset.
+  feature is left unset. Every feature owns a doc, its description: one or
+  two plain sentences on what the feature means. The doc restates no scope
+  classification, which the governed scope owns, and no rule, which its
+  constraint owns. A test requires the doc on every feature
+  (`tests/test_feature_model_docs.py`), and the viewer's Feature Configurator
+  shows it.
 
 ## The closed world
 
