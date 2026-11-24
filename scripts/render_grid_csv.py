@@ -141,6 +141,12 @@ GRID_METADATA = {
         "requirements (requirement usages)",
         "system functions (action usages)",
     ),
+    "matrix-hmiDisplayFunctionMappingView": GridMetadata(
+        "HMI display function-to-logical-element mapping",
+        "Maps the five functions of the HMI display to the three logical elements that carry them.",
+        "system functions (action usages)",
+        "logical elements (part usages)",
+    ),
     "table-hmiDisplayStateTableView": GridMetadata(
         "HMI display states",
         "The states of each element of the HMI display and of the collision warning, and the functions whose "
