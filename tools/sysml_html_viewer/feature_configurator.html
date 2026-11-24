@@ -76,6 +76,32 @@
   @media (prefers-reduced-motion:reduce){
     .tab.active,.chip-mp,.gold-shine-text{animation:none !important}
   }
+  /* Lean paint mode: the public page runs in software-composited browsers
+     too (the Jetson disables GPU compositing), where backdrop blur and
+     infinite filter/text-shine animations cost more than they show. The
+     layout and the pearl look stay; only the per-frame effects stop. */
+  html[data-fx="lean"] .win{
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+    background:linear-gradient(180deg, rgba(38,74,166,.95) 0%, rgba(17,42,112,.96) 50%, rgba(9,24,72,.97) 100%);
+  }
+  html[data-fx="lean"] .orb.on,
+  html[data-fx="lean"] .logo,
+  html[data-fx="lean"] .tab.active,
+  html[data-fx="lean"] .sauto,
+  html[data-fx="lean"] .derived .sname,
+  html[data-fx="lean"] #list li.hi .nm,
+  html[data-fx="lean"] #list li.hi .cursor,
+  html[data-fx="lean"] #list li.equipped .nm,
+  html[data-fx="lean"] .gold-shine-text,
+  html[data-fx="lean"] #splash .press{
+    animation:none !important;
+  }
+  #btn-fx{
+    font-family:var(--pix);font-weight:700;font-size:11px;color:var(--text);cursor:pointer;
+    background:#0a1f52;border:1px solid var(--edge-light);border-radius:8px;padding:9px 11px;
+  }
+  #btn-fx:hover{background:#16347e;color:var(--gold)}
 
   /* ---------- layout ---------- */
   #app{
@@ -309,6 +335,7 @@
     <a class="back" href="index.html">← MODEL VIEWER</a>
     <a class="chip-mp" id="model-chip" href="https://sysml-api.de4sdv.org" target="_blank" rel="noopener">API · …</a>
     <div class="chip-mp">MP <b id="mp">0</b></div>
+    <button id="btn-fx">FX: FULL</button>
     <button id="btn-sound">♪ SOUND: ON</button>
   </header>
 
@@ -988,6 +1015,32 @@ $('#btn-sound').onclick=(e)=>{
   if(on){SFX.ensure();SFX.ok();}
 };
 $('#btn-sound').textContent = `♪ SOUND: ${SFX.muted?'OFF':'ON'}`;
+
+/* Lean paint mode: low-core or reduced-motion clients start with the
+   software-friendly look; the toggle makes the full FF effects opt-in. */
+const FX_KEY='de4sdv.fx';
+let fxMode=null;
+try{fxMode=localStorage.getItem(FX_KEY);}catch(_){}
+if(fxMode!=='lean' && fxMode!=='full'){
+  const lowCore=(navigator.hardwareConcurrency||8)<=6;
+  let reduced=false;
+  try{reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(_){}
+  fxMode=(lowCore||reduced)?'lean':'full';
+}
+function applyFx(mode){
+  document.documentElement.dataset.fx=mode;
+  const btn=$('#btn-fx');
+  if(btn) btn.textContent=`FX: ${mode.toUpperCase()}`;
+  try{localStorage.setItem(FX_KEY,mode);}catch(_){}
+}
+applyFx(fxMode);
+$('#btn-fx').onclick=(e)=>{
+  e.stopPropagation();
+  fxMode=fxMode==='lean'?'full':'lean';
+  applyFx(fxMode);
+  SFX.ok();
+};
+
 function startGame(){
   SFX.ensure();
   const sp=$('#splash');
