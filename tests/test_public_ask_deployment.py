@@ -467,6 +467,20 @@ def test_public_verifier_checks_identity_policy_and_live_grounding():
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
+            elif self.path == "/feature-configurator.html":
+                body = b"DE4SDV FEATURE CONFIGURATOR"
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            elif self.path == "/api/feature-model.json":
+                self._json(200, {
+                    "source": {"kind": "sysml-v2-api", "git_commit": model_sha},
+                    "feature_model": {
+                        "tree": {"short_name": "PL-DE4SDV"},
+                        "features": [{"path": "platformStack.autoware"}],
+                    },
+                })
             else:
                 body = b"<script>window.__DE4SDV_VIEWER_SERVER__=true;</script>"
                 self.send_response(200)

@@ -160,6 +160,29 @@ def verify_public_ask(
     if asset_code != 200 or b"function renderAskAnswer" not in asset:
         raise VerificationError("safe structured answer renderer is missing")
 
+    # The Feature Configurator tab and its API projection: the page is the
+    # deployed one and the data is the deployed model revision, not a copy.
+    configurator_code, configurator = _request(
+        f"{base_url}/feature-configurator.html"
+    )
+    if configurator_code != 200 or b"FEATURE CONFIGURATOR" not in configurator:
+        raise VerificationError("Feature Configurator page is missing")
+    model_code, model_data = _json_request(
+        f"{base_url}/api/feature-model.json"
+    )
+    if model_code != 200:
+        raise VerificationError(
+            f"Feature Configurator data returned HTTP {model_code}"
+        )
+    source = model_data.get("source")
+    if not isinstance(source, dict) or source.get("git_commit") != model_sha:
+        raise VerificationError(
+            "Feature Configurator data is not the deployed model revision"
+        )
+    feature_model = model_data.get("feature_model")
+    if not isinstance(feature_model, dict) or not feature_model.get("features"):
+        raise VerificationError("Feature Configurator data has no features")
+
     method_code, _ = _request(f"{base_url}/", method="BREW")
     if method_code != 405:
         raise VerificationError("unknown HTTP method was not rejected")

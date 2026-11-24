@@ -56,7 +56,7 @@ deployment/
   scripts/provision-server.sh   one-time host provisioning (Docker, ufw, secrets)
   scripts/deploy.py             fail-closed validated deployment (host-side)
   scripts/verify_public_api.py  external public verification
-  scripts/verify_public_ask.py  Ask identity, policy, and live-query verification
+  scripts/verify_public_ask.py  Ask identity, policy, live-query and Feature Configurator verification
   scripts/monitor_public_ask.py GET-only health and revision monitor
   status/                       runtime status dir on the host (${DEPLOY_DIR}/status)
 ```

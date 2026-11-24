@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DE4SDV · Feature Configurator</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDMincho:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-deep:#050d26;
+    --navy:#0a1a4a;
+    --navy-mid:#123072;
+    --edge-light:#7da2ff;
+    --edge-dark:#020820;
+    --text:#eaf0ff;
+    --gold:#f2dd9c;
+    --gold-hi:#fff4d3;
+    --gold-deep:#caa24e;
+    --gold-grad:linear-gradient(180deg,#fff6dd 0%,#f0d687 40%,#c9a24e 70%,#f6e6b4 100%);
+    --gold-shine:linear-gradient(100deg,#c9a24e 0%,#fff4d3 18%,#f0d687 30%,#fff9e6 42%,#c9a24e 55%,#f0d687 72%,#fff4d3 86%,#c9a24e 100%);
+    --gold-edge:repeating-linear-gradient(115deg,#9a7830 0 6px,#c9a24e 6px 12px,#f0d687 12px 16px,#fff4d3 16px 20px,#d9b45f 20px 28px,#8a6a20 28px 40px);
+    --ok:#5dff9a;
+    --warn:#ffd75e;
+    --err:#ff6b6b;
+    --dim:#9ab0e8;
+    --pix:"BIZ UDMincho", "Hiragino Mincho ProN", serif;
+    --term:"BIZ UDMincho", "Hiragino Mincho ProN", serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--term);
+    color:var(--text);
+    background:
+      radial-gradient(ellipse 110% 80% at 50% -10%, #1e439c 0%, transparent 60%),
+      radial-gradient(ellipse 130% 95% at 50% 115%, #0a1e58 0%, #040c26 100%);
+    overflow-x:hidden;
+    min-height:100vh;
+  }
+  #stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+  /* ---------- FF window chrome ---------- */
+  .win{
+    position:relative;
+    background:linear-gradient(180deg, rgba(38,74,166,.52) 0%, rgba(17,42,112,.58) 50%, rgba(9,24,72,.64) 100%);
+    backdrop-filter:blur(16px) saturate(1.8) brightness(1.08);
+    -webkit-backdrop-filter:blur(16px) saturate(1.8) brightness(1.08);
+    border:2px solid rgba(226,196,130,.85);
+    border-radius:14px;
+    box-shadow:
+      inset 0 0 0 2px rgba(3,10,34,.85),
+      inset 0 18px 32px rgba(110,150,255,.10),
+      inset 0 -14px 26px rgba(0,0,20,.35),
+      0 8px 28px rgba(0,0,0,.55);
+  }
+  .win::before{ /* Aero gloss: top reflection with Vista's hard falloff line */
+    content:"";position:absolute;inset:2px;border-radius:11px;pointer-events:none;
+    background:linear-gradient(180deg,
+      rgba(215,232,255,.20) 0%, rgba(190,215,255,.08) 30%, rgba(255,255,255,.015) 31%,
+      rgba(255,255,255,0) 55%, rgba(120,170,255,.05) 100%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
+  }
+  /* ---------- pixely golden glitter ---------- */
+  @keyframes goldedge{ to{ background-position:0 0, -280px 0; } }
+  @keyframes goldtext{ from{ background-position:0% 0; } to{ background-position:280% 0; } }
+  @keyframes goldblink{ from{ text-shadow:0 0 7px rgba(242,221,156,.95);} to{ text-shadow:0 0 1px rgba(242,221,156,.3);} }
+  @keyframes tabglow{ from{ text-shadow:0 0 6px rgba(242,221,156,.9);} to{ text-shadow:0 0 2px rgba(242,221,156,.35);} }
+  .gold-shine-text{
+    background:var(--gold-shine);background-size:280% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  @media (prefers-reduced-motion:reduce){
+    .tab.active,.chip-mp,.gold-shine-text{animation:none !important}
+  }
+
+  /* ---------- layout ---------- */
+  #app{
+    position:relative;z-index:1;
+    max-width:1180px;margin:0 auto;padding:14px 16px 22px;
+    display:grid;gap:14px;
+    grid-template-columns: 400px 1fr;
+    grid-template-areas:"head head" "equip menu" "info info";
+    grid-template-rows:auto auto 1fr;
+    min-height:calc(100vh - 20px);
+  }
+  #head {grid-area:head}
+  #equip{grid-area:equip}
+  #menu {grid-area:menu}
+  #info {grid-area:info}
+  @media (max-width:940px){
+    #app{grid-template-columns:1fr;grid-template-areas:"head" "menu" "equip" "info"}
+  }
+
+  /* ---------- header ---------- */
+  #head{
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    padding:12px 18px;
+  }
+  #head .logo{font-family:var(--pix);font-weight:700;font-size:17px;letter-spacing:1px;
+    background:var(--gold-shine);background-size:280% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:goldtext 3.2s steps(14) infinite;
+    filter:drop-shadow(2px 2px 0 rgba(0,0,0,.55))}
+  #head .sub{font-size:17px;color:var(--dim);margin-top:4px}
+  #head .spacer{flex:1}
+  #head .back{
+    font-family:var(--pix);font-weight:700;font-size:10px;color:var(--dim);text-decoration:none;
+    border:1px solid rgba(158,188,255,.35);border-radius:8px;padding:8px 9px;background:rgba(3,10,34,.55);
+  }
+  #head .back:hover{color:var(--gold);border-color:var(--edge-light)}
+  .chip-mp{font-family:var(--pix);font-weight:700;font-size:12px;color:var(--text);border-radius:8px;padding:8px 10px;
+  border:2px solid rgba(226,196,130,.85);background:#03102ecc;text-decoration:none}
+  .chip-mp b{color:var(--gold)}
+  #btn-sound{
+    font-family:var(--pix);font-weight:700;font-size:11px;color:var(--text);cursor:pointer;
+    background:#0a1f52;border:1px solid var(--edge-light);border-radius:8px;padding:9px 11px;
+  }
+  #btn-sound:hover{background:#16347e;color:var(--gold)}
+
+  /* ---------- window titles ---------- */
+  .win-title{
+    font-family:var(--pix);font-weight:700;font-size:11px;color:var(--gold);
+    padding:12px 16px 0;letter-spacing:1px;text-shadow:1px 1px 0 #00000099;
+  }
+  .win-title small{color:var(--dim);font-size:9.5px;font-weight:400}
+
+  /* ---------- equipped window ---------- */
+  #equip{padding-bottom:12px;display:flex;flex-direction:column}
+  #slots{list-style:none;margin:10px 14px 0}
+  #slots li{
+    display:flex;align-items:center;gap:12px;
+    padding:7px 8px;border-radius:8px;font-size:18px;line-height:1.15;
+  }
+  #slots li .slabel{width:140px;flex:none;font-family:var(--pix);font-weight:700;font-size:11.5px;color:var(--dim);letter-spacing:.5px}
+  #slots li .sname{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #slots li .sauto{font-size:13px;
+    background:var(--gold-shine);background-size:280% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:goldtext 2.8s steps(12) infinite;}
+  #slots li.empty .sname{color:#7288c4}
+  #slots li.derived .sname{
+    background:var(--gold-shine);background-size:280% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:goldtext 2.8s steps(12) infinite;}
+  .sep{border-top:1px dashed rgba(158,188,255,.35);margin:8px 16px}
+  .mini-line{margin:2px 22px;font-size:16px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mini-line b{color:var(--text);font-weight:normal}
+  #verdict{
+    margin:12px 14px 2px;padding:10px 12px;border-radius:10px;
+    border:1px solid rgba(158,188,255,.4);background:rgba(3,10,34,.6);
+    font-size:18px;line-height:1.35;min-height:46px;
+  }
+  #verdict .big{font-family:var(--pix);font-weight:700;font-size:11px;display:block;margin-bottom:6px}
+  #verdict.ok   {border-color:#5dff9a88} #verdict.ok .big{color:var(--ok)}
+  #verdict.warn {border-color:#ffd75e88} #verdict.warn .big{color:var(--warn)}
+  #verdict.bad  {border-color:#ff6b6baa} #verdict.bad .big{color:var(--err)}
+  #verdict.star{border:3px double rgba(226,196,130,.95);}
+  #verdict.star .big{color:var(--gold)}
+
+  /* ---------- materia orb : glassy pearl ---------- */
+  .orb{
+    --mc:#9aa7bd;
+    width:30px;height:30px;flex:none;border-radius:50%;position:relative;
+    background:
+      radial-gradient(circle at 31% 23%, #ffffff 0 12%, #ffffff44 24%, transparent 38%),
+      radial-gradient(ellipse 66% 38% at 50% 86%, color-mix(in srgb, var(--mc) 50%, white 50%) 0%, transparent 70%),
+      radial-gradient(circle at 70% 58%, #ffffff26 0 8%, transparent 42%),
+      radial-gradient(circle at 44% 40%, color-mix(in srgb, var(--mc) 70%, white 30%) 0%, var(--mc) 46%, color-mix(in srgb, var(--mc) 28%, #051024) 100%);
+    box-shadow:
+      inset 0 0 5px #ffffff30,
+      inset -3px -5px 9px #00000070,
+      inset 2px 3px 4px #ffffff1e,
+      0 3px 8px #00000088;
+  }
+  .orb.s24{width:24px;height:24px}
+  .orb.s20{width:20px;height:20px}
+  .orb.off{filter:grayscale(.7) brightness(.5) saturate(.8)}
+  .orb.on{
+    box-shadow:
+      inset 0 0 5px #ffffff40,
+      inset -3px -5px 9px #00000055,
+      0 0 14px color-mix(in srgb, var(--mc) 75%, transparent),
+      0 0 4px color-mix(in srgb, var(--mc) 85%, transparent),
+      0 3px 8px #000000aa;
+    animation:pearlglow 3.2s ease-in-out infinite alternate;
+  }
+  @keyframes pearlglow{from{filter:brightness(1)}to{filter:brightness(1.13) saturate(1.05)}}
+  .orb.locked::after{
+    content:"⛓";position:absolute;right:-6px;bottom:-6px;font-size:12px;color:var(--gold);
+    text-shadow:1px 1px 0 #000;
+  }
+
+  /* ---------- menu window ---------- */
+  #menu{display:flex;flex-direction:column;padding-bottom:12px;min-height:430px}
+  #tabs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 14px 4px}
+  .tab{
+    font-family:var(--pix);font-weight:700;font-size:10px;letter-spacing:0;cursor:pointer;
+    color:var(--dim);background:rgba(3,10,34,.55);border:1px solid rgba(158,188,255,.35);
+    border-radius:8px;padding:8px 9px 7px;
+  }
+  .tab:hover{color:var(--text);border-color:var(--edge-light)}
+  .tab.active{
+    color:var(--gold-hi);border:2px solid rgba(226,196,130,.85);
+    background:rgba(60,90,180,.42);
+    animation:tabglow 1.6s steps(2) infinite alternate;
+    box-shadow:0 0 12px rgba(242,221,156,.28);
+  }
+  #list{list-style:none;margin:8px 10px 0;flex:1}
+  #list li{
+    display:flex;align-items:center;gap:12px;
+    padding:8px 12px;border-radius:9px;cursor:pointer;
+    font-size:19px;line-height:1.1;
+  }
+  #list li .cursor{width:22px;flex:none;color:var(--gold);font-size:19px;opacity:0}
+  #list li.hi{
+    position:relative;overflow:hidden;
+    background:linear-gradient(180deg, rgba(242,221,156,.16), rgba(201,162,78,.07) 60%, rgba(120,160,255,.10));
+    box-shadow:inset 0 0 0 2px rgba(242,221,156,.8), inset 0 0 0 4px rgba(3,10,34,.75), 0 0 14px rgba(242,221,156,.22);
+  }
+  #list li.hi .nm{
+    background:var(--gold-shine);background-size:280% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:goldtext 1.4s steps(9) infinite;
+  }
+  #list li.hi .cursor{opacity:1;color:var(--gold-hi);animation:bob 1s ease-in-out infinite, goldblink 1s steps(2) infinite}
+  @keyframes bob{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+  #list li .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #list li.equipped .nm{
+    background:var(--gold-shine);background-size:280% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:goldtext 2.8s steps(12) infinite;
+  }
+  #list li .tag{font-size:13px;color:var(--dim);letter-spacing:.5px;white-space:nowrap}
+  #list li .mp{width:56px;flex:none;text-align:right;font-size:15px;color:var(--dim)}
+  #list li .eqbadge{font-size:13px;color:var(--ok);width:88px;flex:none;white-space:nowrap;text-align:right}
+  #list li.blocked{opacity:.5}
+  #list li .ref{font-size:12px;padding:1px 6px;border-radius:6px;border:1px solid;margin-left:6px}
+  .ref.admitted{color:#f2dd9c;border-color:#f2dd9c88}
+  .ref.refonly{color:#8fa3d8;border-color:#8fa3d866}
+  .ref.deferred{color:#ffb26b;border-color:#ffb26b66}
+  .ref.excluded{color:#ff8d8d;border-color:#ff8d8d66}
+  .ref.nosysml{color:#d89aa8;border-color:#d89aa866}
+  .ref.common{color:#5dff9a;border-color:#5dff9a66}
+  .hint{margin:10px 16px 0;font-size:16px;color:#7288c4}
+  .hint kbd{font-family:var(--term);color:var(--dim);border:1px solid #3a5aa8;border-radius:4px;padding:0 5px;background:#0a1f52;font-size:14px}
+
+  /* charter rows */
+  #list li .minirow{display:flex;gap:5px;align-items:center;flex:none}
+  #list li.preset .nm{font-size:18px}
+  #list li.preset .mem{font-size:13px;color:var(--gold)}
+
+  /* ---------- info window ---------- */
+  #info{padding:12px 18px 14px;display:grid;grid-template-columns:1fr 340px;gap:18px}
+  @media (max-width:940px){#info{grid-template-columns:1fr}}
+  #desc h3{font-family:var(--pix);font-weight:700;font-size:13px;color:var(--gold);margin-bottom:2px}
+  #desc .idline{font-size:16px;color:var(--dim);margin-bottom:8px}
+  #desc .body{font-size:18px;line-height:1.45;max-width:70ch;white-space:pre-line}
+  #desc .chips{margin-top:10px;display:flex;flex-wrap:wrap;gap:7px}
+  .rulechip{
+    font-size:15px;padding:3px 9px;border-radius:8px;border:1px solid rgba(158,188,255,.5);
+    background:rgba(3,10,34,.5);color:var(--text);
+  }
+  .rulechip b{color:var(--edge-light);font-weight:normal}
+  .rulechip.x{border-color:#ff6b6b88}.rulechip.x b{color:var(--err)}
+  .rulechip.g{border-color:#5dff9a88}.rulechip.g b{color:var(--ok)}
+  #log{font-size:16px;line-height:1.55;color:var(--dim);border-left:2px solid rgba(158,188,255,.35);padding-left:14px;min-height:120px}
+  #log .t{color:#5d76b8}
+  #log .e{color:var(--gold)}
+  #log .x{color:var(--err)}
+  #log .c{color:var(--ok)}
+
+  /* ---------- splash ---------- */
+  #splash{
+    position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at center, #0a1a4acc 0%, #020614f2 100%);
+    cursor:pointer;transition:opacity .5s;
+  }
+  #splash.gone{opacity:0;pointer-events:none}
+  #splash .box{padding:44px 56px;text-align:center;max-width:720px}
+  #splash h1{font-family:var(--pix);font-weight:700;font-size:34px;margin-bottom:16px;
+    background:var(--gold-shine);background-size:280% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:goldtext 3.2s steps(14) infinite;
+    filter:drop-shadow(3px 3px 0 rgba(0,0,0,.6))}
+  #splash h2{font-family:var(--pix);font-weight:700;font-size:13px;color:var(--text);letter-spacing:2px;margin-bottom:24px}
+  #splash p{font-size:18px;color:var(--dim);line-height:1.55;margin-bottom:28px}
+  #splash .press{font-family:var(--pix);font-weight:700;font-size:12px;color:var(--edge-light);animation:blink 1.2s steps(2) infinite}
+  #splash .press.err{color:var(--err);animation:none;font-size:11px;max-width:640px;margin:0 auto;line-height:1.6}
+  #splash .press.loading{color:var(--warn);animation:blink 1.2s steps(2) infinite}
+  @keyframes blink{50%{opacity:.15}}
+  #foot{grid-column:1/-1;text-align:center;font-size:15px;color:#4d639f;padding-top:2px}
+  #foot a{color:#7da2ff;text-decoration:none}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<div id="app">
+  <header id="head" class="win">
+    <div>
+      <div class="logo">DE4SDV ⚙ FEATURE CONFIGURATOR</div>
+      <div class="sub">Equip the SDV product line — read live from the SysML v2 API</div>
+    </div>
+    <div class="spacer"></div>
+    <a class="back" href="index.html">← MODEL VIEWER</a>
+    <a class="chip-mp" id="model-chip" href="https://sysml-api.de4sdv.org" target="_blank" rel="noopener">API · …</a>
+    <div class="chip-mp">MP <b id="mp">0</b></div>
+    <button id="btn-sound">♪ SOUND: ON</button>
+  </header>
+
+  <section id="equip" class="win">
+    <div class="win-title">EQUIPPED <small>— configured member product</small></div>
+    <ul id="slots"></ul>
+    <div class="sep"></div>
+    <div class="mini-line" id="sensors-line"></div>
+    <div class="mini-line" id="caps-line"></div>
+    <div id="verdict"></div>
+  </section>
+
+  <aside id="menu" class="win">
+    <div class="win-title">FEATURE BAY <small>— pearl catalogue</small></div>
+    <nav id="tabs"></nav>
+    <ul id="list"></ul>
+    <div class="hint"><kbd>↑↓</kbd> move · <kbd>←→</kbd> tab · <kbd>↵</kbd> equip / unequip · <kbd>1–9</kbd> charter presets</div>
+  </aside>
+
+  <section id="info" class="win">
+    <div id="desc">
+      <h3>WELCOME, ENGINEER</h3>
+      <div class="idline">SELECT A FEATURE PEARL</div>
+      <div class="body">Every pearl is a feature of the DE4SDV SDV product-line feature model,
+        read from the deployed SysML v2 API revision — not from a copy in this page.
+        Equipping one applies the model's rules by itself: required pearls snap in on
+        their own, forbidden pairs refuse to be equipped. The
+        <b style="color:var(--gold)">adapter</b> slot is never chosen: the derivation
+        rules of the model derive it from application × middleware.</div>
+      <div class="chips"></div>
+    </div>
+    <div id="log"><span class="t">» SYSTEM LOG</span></div>
+  </section>
+
+  <div id="foot">Feature model, constraints, derivation rules, governed scope and
+    configurations read from the <a href="https://sysml-api.de4sdv.org" target="_blank" rel="noopener">DE4SDV SysML v2 API</a>
+    · Apache-2.0 · product names belong to their owners · sounds synthesized, no copyrighted audio</div>
+</div>
+
+<div id="splash">
+  <div class="box win">
+    <h1>DE4SDV</h1>
+    <h2>SDV PRODUCT LINE · FEATURE CONFIGURATOR</h2>
+    <p>One model. Many stacks. Configure your vehicle platform by equipping feature pearls —
+    the compatibility rules of the feature model cast their spells automatically.</p>
+    <div class="press loading" id="splash-status">READING THE FEATURE MODEL FROM THE SYSML V2 API…</div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ================================================================
+   PRESENTATION — labels, colours, game stats and the tab/slot layout.
+   Nothing here is model content: the catalogue, its docs, its rules,
+   its classifications and its configurations arrive from
+   api/feature-model.json, projected from the deployed SysML v2 API.
+   ================================================================ */
+const C = { // materia colors per layer family
+  app:'#3ee06f', mw:'#4aa8ff', os:'#ff5a5a', hv:'#f2d789',
+  gos:'#b47aff', gmw:'#ff7ad9', sensor:'#e8f0ff', cap:'#eec96e', none:'#8494b8'
+};
+const LABELS = {
+  'F-PLATFORM-STACK':'Platform stack',
+  'F-PLATFORM-VEHICLE-APPLICATION':'Vehicle application',
+  'F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE':'Autoware',
+  'F-PLATFORM-VEHICLE-APPLICATION-OPENPILOT':'Openpilot',
+  'F-PLATFORM-VEHICLE-APPLICATION-APOLLO':'Apollo',
+  'F-PLATFORM-VEHICLE-APPLICATION-AUTOE2E':'AutoE2E',
+  'F-PLATFORM-VEHICLE-APPLICATION-VISIONPILOT':'VisionPilot',
+  'F-PLATFORM-MIDDLEWARE':'Middleware',
+  'F-PLATFORM-MIDDLEWARE-ECLIPSE-SCORE':'Eclipse S-CORE',
+  'F-PLATFORM-MIDDLEWARE-ANDROID-SDV':'AAOS SDV',
+  'F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE':'AUTOSAR Adaptive',
+  'F-PLATFORM-MIDDLEWARE-NONE':'— None —',
+  'F-PLATFORM-OS':'Operating system',
+  'F-PLATFORM-OS-LINUX':'Linux',
+  'F-PLATFORM-OS-ANDROID':'Android HLOS',
+  'F-PLATFORM-OS-QNX':'QNX',
+  'F-PLATFORM-HYPERVISOR':'Hypervisor',
+  'F-PLATFORM-HYPERVISOR-QVM':'QNX QVM',
+  'F-PLATFORM-HYPERVISOR-ACRN':'ACRN',
+  'F-PLATFORM-HYPERVISOR-KVM':'KVM',
+  'F-PLATFORM-HYPERVISOR-NONE':'— None —',
+  'F-PLATFORM-GUEST-OS':'Guest OS',
+  'F-PLATFORM-GUEST-OS-ANDROID':'Android (guest)',
+  'F-PLATFORM-GUEST-OS-NONE':'— No guest —',
+  'F-PLATFORM-GUEST-MIDDLEWARE':'Guest middleware',
+  'F-PLATFORM-GUEST-MIDDLEWARE-ANDROID-SDV':'AAOS SDV (guest)',
+  'F-PLATFORM-GUEST-MIDDLEWARE-NONE':'— None —',
+  'F-SENSING':'Sensing boundary',
+  'F-SENSING-PERCEPTION':'Perception sensors',
+  'F-SENSING-PERCEPTION-LIDAR':'LiDAR',
+  'F-SENSING-PERCEPTION-RADAR':'Radar',
+  'F-SENSING-PERCEPTION-CAMERA':'Camera',
+  'F-CAPABILITIES':'Capabilities',
+  'F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION':'Pedestrian Detection',
+  'F-CAPABILITY-AEBS-BICYCLE-DETECTION':'Bicycle Detection',
+  'F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL':'Adaptive Cruise Ctrl',
+  'F-CAPABILITY-LANE-KEEP-ASSIST':'Lane Keep Assist',
+  'F-CAPABILITY-HMI-DISPLAY':'HMI Display'
+};
+// game-only "cost"; it is not a model property
+const MP = {
+  'F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE':40,
+  'F-PLATFORM-VEHICLE-APPLICATION-OPENPILOT':30,
+  'F-PLATFORM-VEHICLE-APPLICATION-APOLLO':35,
+  'F-PLATFORM-VEHICLE-APPLICATION-AUTOE2E':45,
+  'F-PLATFORM-VEHICLE-APPLICATION-VISIONPILOT':30,
+  'F-PLATFORM-MIDDLEWARE-ECLIPSE-SCORE':30,
+  'F-PLATFORM-MIDDLEWARE-ANDROID-SDV':30,
+  'F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE':40,
+  'F-PLATFORM-MIDDLEWARE-NONE':0,
+  'F-PLATFORM-OS-LINUX':20,
+  'F-PLATFORM-OS-ANDROID':25,
+  'F-PLATFORM-OS-QNX':50,
+  'F-PLATFORM-HYPERVISOR-KVM':15,
+  'F-PLATFORM-HYPERVISOR-QVM':45,
+  'F-PLATFORM-HYPERVISOR-ACRN':25,
+  'F-PLATFORM-HYPERVISOR-NONE':0,
+  'F-PLATFORM-GUEST-OS-ANDROID':20,
+  'F-PLATFORM-GUEST-OS-NONE':0,
+  'F-PLATFORM-GUEST-MIDDLEWARE-ANDROID-SDV':20,
+  'F-PLATFORM-GUEST-MIDDLEWARE-NONE':0,
+  'F-SENSING-PERCEPTION-LIDAR':30,
+  'F-SENSING-PERCEPTION-RADAR':15,
+  'F-SENSING-PERCEPTION-CAMERA':10,
+  'F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION':10,
+  'F-CAPABILITY-AEBS-BICYCLE-DETECTION':10,
+  'F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL':15,
+  'F-CAPABILITY-LANE-KEEP-ASSIST':15,
+  'F-CAPABILITY-HMI-DISPLAY':5
+};
+const GROUP_STYLE = {
+  'platformStack.vehicleApplication':{label:'DRIVING APP', color:C.app, tab:'app'},
+  'platformStack.middleware':{label:'MIDDLEWARE', color:C.mw, tab:'mw'},
+  'platformStack.operatingSystem':{label:'MAIN OS', color:C.os, tab:'platform'},
+  'platformStack.hypervisor':{label:'HYPERVISOR', color:C.hv, tab:'platform'},
+  'platformStack.guestOperatingSystem':{label:'GUEST OS', color:C.gos, tab:'guest'},
+  'platformStack.guestMiddleware':{label:'GUEST MW', color:C.gmw, tab:'guest'},
+  'sensingBoundary.perceptionSensors':{label:'SENSING', color:C.sensor, tab:'sensor'},
+  'capabilities':{label:'ABILITIES', color:C.cap, tab:'cap'}
+};
+const TAB_LAYOUT = [
+  {id:'app',      label:'DRIVING',    groups:['platformStack.vehicleApplication']},
+  {id:'mw',       label:'MIDDLEWARE', groups:['platformStack.middleware']},
+  {id:'platform', label:'PLATFORM',   groups:['platformStack.operatingSystem','platformStack.hypervisor']},
+  {id:'guest',    label:'GUEST',      groups:['platformStack.guestOperatingSystem','platformStack.guestMiddleware']},
+  {id:'sensor',   label:'SENSING',    groups:['sensingBoundary.perceptionSensors']},
+  {id:'cap',      label:'ABILITIES',  groups:[], free:['capabilities']},
+  {id:'charter',  label:'CHARTER'}
+];
+const SLOT_LAYOUT = [
+  {group:'platformStack.vehicleApplication', label:'DRIVING APP'},
+  {group:'platformStack.middleware', label:'MIDDLEWARE'},
+  {derived:true, label:'ADAPTER'},
+  {group:'platformStack.operatingSystem', label:'MAIN OS'},
+  {group:'platformStack.hypervisor', label:'HYPERVISOR'},
+  {group:'platformStack.guestOperatingSystem', label:'GUEST OS'},
+  {group:'platformStack.guestMiddleware', label:'GUEST MW'}
+];
+const STATUS_TAG = {admitted:'ADMITTED', common:'COMMON', refonly:'REF-ONLY', deferred:'DEFERRED', excluded:'EXCLUDED', nosysml:'NOT IN SCOPE'};
+// presentation titles for the configurations the repository ships; any new
+// configuration falls back to its model name, prettified.
+const CONFIG_LABELS = {
+  aebsAutowareLinuxLidarCamera:'STANDALONE AEBS',
+  middlewareAutowareAAOSSDVReference:'AAOS INTEGRATED',
+  middlewareAutowareSCOREReference:'S-CORE INTEGRATED',
+  apolloQNXQVMVariant:'APOLLO QNX QVM',
+  closedLoopDrivingAutoE2ESCOREReference:'AUTO E2E S-CORE',
+  driverAssistanceVisionPilotSCOREReference:'VISIONPILOT S-CORE'
+};
+
+/* ================================================================
+   SOUND — small WebAudio synth, FF-menu flavored (original blips)
+   ================================================================ */
+const SFX = (()=>{
+  let ctx=null, gain=null, muted = localStorage.getItem('de4sdv.mute')==='1';
+  function ensure(){
+    if(!ctx){
+      ctx = new (window.AudioContext||window.webkitAudioContext)();
+      gain = ctx.createGain(); gain.gain.value = muted?0:0.16; gain.connect(ctx.destination);
+    }
+    if(ctx.state==='suspended') ctx.resume();
+  }
+  function tone(freq, t0, dur, type='square', vol=1, slideTo=null, hold=0){
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,ctx.currentTime+t0);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo,ctx.currentTime+t0+dur);
+    g.gain.setValueAtTime(0.0001,ctx.currentTime+t0);
+    g.gain.exponentialRampToValueAtTime(vol,ctx.currentTime+t0+0.012);   // fast attack
+    if(hold>0) g.gain.setValueAtTime(vol,ctx.currentTime+t0+Math.min(hold,dur*0.9)); // sustain plateau
+    g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+t0+dur);  // then decay
+    o.connect(g); g.connect(gain);
+    o.start(ctx.currentTime+t0); o.stop(ctx.currentTime+t0+dur+0.02);
+  }
+  const guard = fn => (...a)=>{ if(muted) return; try{ensure(); fn(...a);}catch(e){} };
+  return {
+    move:   guard(()=>{tone(1033,0,.13,'square',.38,null,.055)}),
+    ok:     guard(()=>{tone(2349,0,.19,'square',.42,null,.07)}),
+    cancel: guard(()=>{tone(659,0,.15,'square',.4,null,.05)}),
+    equip:  guard(()=>{tone(1046,0,.09,'square',.4,null,.04);tone(1568,.09,.12,'square',.4,null,.05)}),
+    auto:   guard(()=>{tone(1568,0,.09,'square',.4,null,.04);tone(2093,.09,.12,'square',.38,null,.05)}),
+    err:    guard(()=>{tone(160,0,.07,'square',.6);tone(110,.09,.12,'square',.6)}),
+    star:   guard(()=>{[392,523,659,784].forEach((f,i)=>tone(f,i*.09,.14,'square',.45));tone(1046,.36,.3,'triangle',.4)}),
+    toggle(on){ muted=!on; localStorage.setItem('de4sdv.mute', on?'0':'1'); if(gain) gain.gain.value = muted?0:0.16; },
+    get muted(){return muted}, ensure
+  };
+})();
+
+/* ================================================================
+   MODEL — projected from the SysML v2 API at page load.
+   ================================================================ */
+let API=null;                 // the whole projection document
+let FM=null;                  // the PL-DE4SDV feature model inside it
+let FEATURES=[], F={};        // catalogue by path
+let GROUPS={}, NONE_IN_GROUP={};
+let REQUIRES={}, REQUIRED_BY={}, EXCL={};
+let CONFIGS=[], DERIVATION=null;
+let TABS=[], SLOTS=[];
+let splashReady=false, splashError=false;
+
+const state = {
+  sel: new Set(),          // equipped feature paths
+  origin: {},              // path -> 'auto' | 'manual'
+  tab: 'app',
+  cursor: 0,
+  log: [],
+};
+function esc(v){
+  return String(v==null?'':v).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function pretty(name){
+  const s=String(name||'');
+  return s.replace(/([a-z0-9])([A-Z])/g,'$1 $2').replace(/^./,c=>c.toUpperCase());
+}
+function labelOf(f){ return LABELS[f.short_name] || pretty(f.name); }
+function colorOf(f){
+  if(f.group && GROUP_STYLE[f.group]) return GROUP_STYLE[f.group].color;
+  const style=Object.values(GROUP_STYLE).find(s=>s.tab==='cap');
+  return f.role==='free' && style ? style.color : '#9aa7bd';
+}
+function groupLabel(f){
+  if(f.group && GROUP_STYLE[f.group]) return GROUP_STYLE[f.group].label;
+  const owner=GROUP_STYLE[f.owner];
+  return owner ? owner.label : (f.group||f.owner||'FEATURE');
+}
+function groupStyle(g){ return GROUP_STYLE[g] || {label:pretty(g.split('.').pop()), color:'#9aa7bd'}; }
+
+function buildModel(doc){
+  API=doc;
+  FM=doc.feature_model;
+  FEATURES=FM.features.map(f=>({
+    ...f,
+    id:f.path,
+    label:labelOf(f),
+    color:colorOf(f),
+    mp:MP[f.short_name] ?? 10,
+    doc:f.doc || '',
+    tag:STATUS_TAG[f.status] || ''
+  }));
+  F=Object.fromEntries(FEATURES.map(f=>[f.id,f]));
+
+  GROUPS={};
+  NONE_IN_GROUP={};
+  for(const f of FEATURES){
+    if(f.role!=='group') continue;
+    const style=groupStyle(f.path);
+    GROUPS[f.path]={path:f.path, label:style.label, kind:(f.multiplicity.upper===1?'alt':'multi'),
+      lower:f.multiplicity.lower, upper:f.multiplicity.upper, members:f.members.slice()};
+    const none=f.members.map(p=>F[p]).find(m=>m && /-NONE$/.test(m.short_name||''));
+    if(none) NONE_IN_GROUP[f.path]=none.path;
+  }
+
+  REQUIRES={}; REQUIRED_BY={}; EXCL={};
+  for(const c of FM.constraints||[]){
+    const label=c.label || c.name || c.element_id;
+    const aList=c.operand_a||[], bList=c.operand_b||[];
+    if(c.kind==='requires' || c.kind==='implies'){
+      for(const a of aList) for(const b of bList){
+        if(!F[a] || !F[b]) continue;
+        (REQUIRES[a] ??= []).push([b,label]);
+        (REQUIRED_BY[b] ??= []).push([a,label]);
+      }
+    } else if(c.kind==='xor'){
+      for(const a of aList) for(const b of bList){
+        if(a===b || !F[a] || !F[b]) continue;
+        (EXCL[a] ??= []).push([b,label]);
+        (EXCL[b] ??= []).push([a,label]);
+      }
+    }
+  }
+
+  DERIVATION=(FM.derivations||[]).find(d=>d.derived_variation==='applicationMiddlewareAdapter') || (FM.derivations||[])[0] || null;
+
+  CONFIGS=(FM.configurations||[]).map(c=>({
+    ...c,
+    id:c.name,
+    title:CONFIG_LABELS[c.name] || pretty(c.name),
+    selected:c.selected_choices.slice(),
+    admitted:!!(c.admission && c.admission.admitted),
+    alternative:(c.admission && c.admission.alternative) || null
+  })).sort((a,b)=>(b.admitted-a.admitted)||((b.valid?1:0)-(a.valid?1:0))||a.name.localeCompare(b.name));
+
+  TABS=TAB_LAYOUT.filter(t=>{
+    if(t.id==='charter') return true;
+    return (t.groups||[]).every(g=>GROUPS[g])
+      && (t.free||[]).every(owner=>FEATURES.some(f=>f.owner===owner && f.selectable));
+  });
+  SLOTS=SLOT_LAYOUT.filter(s=>s.derived || GROUPS[s.group]);
+
+  const src=doc.source||{};
+  const chip=document.getElementById('model-chip');
+  chip.textContent=`API · ${String(src.git_commit||'').slice(0,7)} · ${src.served_element_count||src.element_count||''} EL`;
+  chip.title=`SysML v2 API revision ${src.git_commit||'unknown'} · semantic authority ${src.semantic_authority||'unknown'} · served model ${src.served_model||'unknown'}`;
+  document.getElementById('foot').innerHTML=
+    `Feature model, constraints, derivation rules, governed scope and configurations read from the `+
+    `<a href="https://sysml-api.de4sdv.org" target="_blank" rel="noopener">DE4SDV SysML v2 API</a> `+
+    `at revision <b>${esc(String(src.git_commit||'').slice(0,12))}</b> — ${esc(FM.tree.name)} `+
+    `(${FEATURES.length} features · ${CONFIGS.length} configurations). Apache-2.0 · product names belong to their owners.`;
+}
+
+function selGroup(g){ return FEATURES.filter(f=>f.group===g && state.sel.has(f.id)); }
+function isNone(id){ return Object.values(NONE_IN_GROUP).includes(id); }
+function log(msg, cls='e'){ state.log.push({msg,cls}); if(state.log.length>6) state.log.shift(); }
+
+// Repairs the selection after a mutation. Policy:
+//  - the just-clicked pearl wins: it may replace a "none" option in
+//    another slot if it is required (rule fires, ✦ auto);
+//  - if a "none" option was just swapped in, its requirers cascade off (⚡);
+//  - otherwise an unsatisfiable requirement refuses the whole change (✕);
+//  - missing required with an open group auto-equips (✦), unless it was
+//    itself just dropped by the cascade (then the requirer yields too);
+//  - groups emptied by a cascade fall back to their "none" (✧);
+//  - exclusions are hard: any surviving xor pair reverts everything.
+function resolve(justClicked){
+  const justRemoved = new Set();
+  const chain = new Set(justClicked?[justClicked]:[]);
+  for(let guard=0; guard<32; guard++){
+    let acted=false;
+    outer:
+    for(const a of [...state.sel]){
+      for(const [bid,rule] of (REQUIRES[a]||[])){
+        if(state.sel.has(bid)) continue;
+        const target=F[bid];
+        if(!target){ continue; }
+        const g = target.group;
+        if(!g){
+          state.sel.add(bid); state.origin[bid]='auto'; chain.add(bid);
+          log(`✦ auto-equip ${target.label} — required by ${F[a].label} (${rule})`,'c'); SFX.auto();
+          acted=true; break outer;
+        }
+        const group=GROUPS[g];
+        const occupant = selGroup(g)[0];
+        if(occupant && group.upper===1 && NONE_IN_GROUP[g]===occupant.id && chain.has(a)){
+          state.sel.delete(occupant.id); delete state.origin[occupant.id];
+          state.sel.add(bid); state.origin[bid]='auto'; chain.add(bid);
+          log(`✦ ${group.label} switched to ${target.label} — required by ${F[a].label} (${rule})`,'c'); SFX.auto();
+        } else if(occupant && group.upper===1){
+          if(chain.has(a))
+            return {err:`${rule}: ${F[a].label} needs ${target.label}, but ${F[occupant.id].label} holds that slot.`};
+          if(a===justClicked){
+            return {err:`${rule}: ${F[a].label} needs ${target.label}, but ${F[occupant.id].label} holds that slot.`};
+          }
+          if(isNone(a)){
+            state.sel.delete(a); justRemoved.add(a);
+            log(`⚡ ${F[a].label} yields — a guest domain now occupies the guest OS slot (${rule})`,'x'); SFX.cancel();
+          } else {
+            state.sel.delete(a); justRemoved.add(a);
+            log(`⚡ ${F[a].label} unequipped — its ${target.label} is gone (${rule})`,'x'); SFX.cancel();
+          }
+        } else if(justRemoved.has(bid)){
+          state.sel.delete(a); justRemoved.add(a);
+          log(`⚡ ${F[a].label} unequipped — its ${target.label} is gone (${rule})`,'x'); SFX.cancel();
+        } else {
+          state.sel.add(bid); state.origin[bid]='auto'; chain.add(bid);
+          log(`✦ auto-equip ${target.label} — required by ${F[a].label} (${rule})`,'c'); SFX.auto();
+        }
+        acted=true; break outer;
+      }
+    }
+    if(!acted) break;
+  }
+  // groups emptied by the cascade settle on their "none"
+  if(justRemoved.size){
+    for(const [g,nid] of Object.entries(NONE_IN_GROUP)){
+      if(justRemoved.has(nid)) continue;          // user-side removal: leave it open
+      if(!state.sel.has(nid) && selGroup(g).length===0){
+        state.sel.add(nid); state.origin[nid]='auto';
+        log(`✧ ${GROUPS[g].label} settles on ${F[nid].label} — slot left by the cascade`,'c');
+      }
+    }
+  }
+  // exclusion check (hard)
+  for(const a of state.sel) for(const [bid,rule] of (EXCL[a]||[])){
+    if(state.sel.has(bid))
+      return {err:`${rule}: ${F[a].label} ✕ ${F[bid].label} cannot coexist.`};
+  }
+  return null;
+}
+
+function toggle(fid){
+  const f=F[fid]; const before={sel:new Set(state.sel),origin:{...state.origin}};
+  let msg=null;
+  if(state.sel.has(fid)){
+    const neededBy=(REQUIRED_BY[fid]||[]).filter(([a])=>state.sel.has(a));
+    if(neededBy.length){
+      const [a,rule]=neededBy[0];
+      reject(`${rule}: ${F[a].label} needs ${f.label}. Unequip ${F[a].label} first.`); return;
+    }
+    if(f.group && GROUPS[f.group].upper!==1 && selGroup(f.group).length<=GROUPS[f.group].lower){
+      reject(`${GROUPS[f.group].label} needs at least ${GROUPS[f.group].lower} — the model declares [${GROUPS[f.group].lower}..${GROUPS[f.group].upper===null?'*':GROUPS[f.group].upper}].`); return;
+    }
+    state.sel.delete(fid); delete state.origin[fid];
+    msg=`− ${f.label} unequipped`;
+  } else {
+    if(f.group && GROUPS[f.group].upper===1){
+      for(const old of selGroup(f.group)){
+        state.sel.delete(old.id); delete state.origin[old.id];
+        msg=`↺ ${old.label} → ${f.label}`;
+      }
+    }
+    state.sel.add(fid); state.origin[fid]='manual';
+  }
+  const bad = resolve(fid);
+  if(bad){
+    state.sel=before.sel; state.origin=before.origin;
+    log(`✕ ${bad.err}`,'x'); SFX.err(); render(); return;
+  }
+  if(msg) log(msg); else log(`+ ${f.label} equipped`);
+  for(const id of state.sel){
+    if(state.origin[id]==='auto' && !(REQUIRED_BY[id]||[]).some(([a])=>state.sel.has(a)))
+      state.origin[id]='manual';
+  }
+  SFX.equip(); render();
+  function reject(e){ state.sel=before.sel; state.origin=before.origin; log(`✕ ${e}`,'x'); SFX.err(); render(); }
+}
+function loadPreset(cid){
+  const p=CONFIGS.find(c=>c.id===cid);
+  if(!p) return;
+  state.sel=new Set(p.selected); state.origin={};
+  for(const id of p.selected) state.origin[id]='manual';
+  const bad=resolve();
+  if(bad){ state.sel=new Set(p.selected); log(`✕ ${bad.err}`,'x'); SFX.err(); }
+  else { log(`★ configuration loaded: ${p.title}`,'e'); if(p.admitted) SFX.star(); }
+  render();
+}
+function adapter(){
+  const app=selGroup('platformStack.vehicleApplication')[0],
+        mw=selGroup('platformStack.middleware')[0];
+  if(!app||!mw) return null;
+  const agreement=(FM.agreement||[]).find(a=>a.derived_variation==='applicationMiddlewareAdapter');
+  const row=agreement && (agreement.rows||[]).find(r=>r.pair[0]===app.id && r.pair[1]===mw.id);
+  if(!row || !row.rules || row.rules.length!==1)
+    return {name:'— ??? —',note:'no derivation rule for this pair'};
+  const rule=(DERIVATION && (DERIVATION.rules||[]).find(r=>r.rule===row.rules[0]));
+  const result=rule?rule.result:'?';
+  return result==='none'
+    ? {name:'— none —',note:'the model derives no adapter when no vehicle middleware'}
+    : {name:result,note:`derived by ${row.rules[0]} (${DERIVATION?DERIVATION.derived_variation:'derivation'})`};
+}
+function sameSelection(a,b){
+  if(a.length!==b.length) return false;
+  const x=[...a].sort(), y=[...b].sort();
+  return x.every((v,i)=>v===y[i]);
+}
+function matchingConfig(){
+  const selected=[...state.sel];
+  return CONFIGS.find(c=>sameSelection(c.selected,selected)) || null;
+}
+function reasonText(r){
+  if(typeof r==='string') return r;
+  if(r && typeof r==='object') return r.detail || r.code || JSON.stringify(r);
+  return String(r);
+}
+function evaluate(){
+  const problems=[];
+  for(const g of Object.values(GROUPS)){
+    const n=selGroup(g.path).length;
+    if(g.lower>=1 && n<g.lower) problems.push(`${g.label} needs at least ${g.lower}`);
+    if(g.upper!==null && g.upper===1 && n>1) problems.push(`${g.label} admits one option`);
+  }
+  if(problems.length) return {level:'bad', big:'⚠ CONFIG INCOMPLETE', text:problems.join(' · ')};
+
+  const match=matchingConfig();
+  if(match){
+    if(!match.valid)
+      return {level:'bad', big:`✕ INVALID CONFIGURATION — ${match.title}`,
+              text:(match.reasons||[]).map(reasonText).join(' · ') || 'The model rejects this configuration.'};
+    if(match.admitted)
+      return {level:'star', big:`★ ADMITTED — ${String(match.alternative||'governed').toUpperCase()} MEMBER`,
+              text:`configuration ${match.title}. ${match.description||''}`.trim()};
+    return {level:'warn', big:`✓ VALID · NOT ADMITTED — ${match.title}`,
+            text:((match.admission&&match.admission.reasons)||[]).join(' · ') || 'The configuration is valid but outside the governed scope.'};
+  }
+
+  const out=[];
+  for(const id of state.sel){
+    const f=F[id]; if(!f) continue;
+    if(f.status==='refonly') out.push(`${f.label} is reference-only`);
+    if(f.status==='deferred') out.push(`${f.label} is deferred variability`);
+    if(f.status==='excluded') out.push(`${f.label} is excluded content`);
+    if(f.status==='nosysml') out.push(`${f.label} has no governed-scope element`);
+  }
+  if(out.length)
+    return {level:'warn', big:'✓ SELECTION COMPLETE · OUTSIDE THE GOVERNED SCOPE',
+            text:`${out.join(' · ')}. Valid ≠ admitted — no committed configuration matches this selection, so the model decides no verdict for it.`};
+  return {level:'warn', big:'✓ SELECTION COMPLETE · NO COMMITTED CONFIGURATION',
+          text:'The selection follows the model constraints, but no feature configuration of this API revision has exactly this selection. Validity and admission are decided by the model, not by this page.'};
+}
+
+/* ================================================================
+   RENDER
+   ================================================================ */
+const $=s=>document.querySelector(s);
+let lastVerdictLevel=null;
+function orbHTML(fid, size=''){
+  const f=F[fid];
+  return `<span class="orb ${size} on" style="--mc:${f.color}"></span>`;
+}
+function render(){
+  let mp=0; for(const id of state.sel) mp+=(F[id]?F[id].mp:0);
+  $('#mp').textContent=mp;
+  const ul=$('#slots'); ul.innerHTML='';
+  for(const s of SLOTS){
+    const li=document.createElement('li');
+    if(s.derived){
+      const a=adapter();
+      li.className = a?'derived':'empty';
+      li.innerHTML=`<span class="slabel">${esc(s.label)}</span>
+        <span class="orb s24 on locked" style="--mc:#f2dd9c"></span>
+        <span class="sname">${a?esc(a.name):'— awaiting pair —'}</span><span class="sauto">DERIVED</span>`;
+      li.title = a?a.note:'';
+    } else {
+      const cur=selGroup(s.group)[0];
+      if(cur){
+        li.innerHTML=`<span class="slabel">${esc(s.label)}</span>${orbHTML(cur.id,'s24')}
+          <span class="sname">${esc(cur.label)}</span>${state.origin[cur.id]==='auto'?'<span class="sauto">✦ auto</span>':''}`;
+      } else {
+        li.className='empty';
+        li.innerHTML=`<span class="slabel">${esc(s.label)}</span><span class="orb s24 off"></span><span class="sname">— open —</span>`;
+      }
+    }
+    ul.appendChild(li);
+  }
+  const sensors=selGroup('sensingBoundary.perceptionSensors').map(f=>f.label).join(', ')||'none';
+  $('#sensors-line').innerHTML=`<b>SENSING</b> · ${esc(sensors)} · <i style="opacity:.7">motion sensors are common content</i>`;
+  const caps=FEATURES.filter(f=>f.owner==='capabilities' && f.selectable && state.sel.has(f.id)).map(f=>f.label).join(', ')||'none';
+  $('#caps-line').innerHTML=`<b>ABILITIES</b> · ${esc(caps)}`;
+  const v=evaluate();
+  const box=$('#verdict');
+  box.className=v.level;
+  box.innerHTML=`<span class="big">${esc(v.big)}</span>${esc(v.text)}`;
+  if(v.level==='star' && lastVerdictLevel!=='star') SFX.star();
+  lastVerdictLevel=v.level;
+  const tn=$('#tabs'); tn.innerHTML='';
+  TABS.forEach(t=>{
+    const b=document.createElement('span');
+    b.className='tab'+(state.tab===t.id?' active':'');
+    b.textContent=t.label;
+    b.onclick=()=>{state.tab=t.id;state.cursor=0;SFX.move();render();};
+    tn.appendChild(b);
+  });
+  renderList();
+  $('#log').innerHTML='<span class="t">» SYSTEM LOG</span><br>'+state.log.map(l=>`<span class="${esc(l.cls)}">${esc(l.msg)}</span>`).join('<br>');
+}
+function tabFeatures(){
+  const t=TABS.find(x=>x.id===state.tab);
+  if(!t || t.id==='charter') return [];
+  const out=[];
+  for(const g of (t.groups||[])){
+    const group=GROUPS[g];
+    if(!group) continue;
+    if(group.upper===1){
+      for(const p of group.members){ const f=F[p]; if(f) out.push(f); }
+    } else {
+      for(const p of group.members){ const f=F[p]; if(f) out.push(f); }
+    }
+  }
+  for(const owner of (t.free||[])){
+    for(const f of FEATURES){
+      if(f.owner===owner && f.selectable) out.push(f);
+    }
+  }
+  return out;
+}
+function renderList(){
+  const ul=$('#list'); ul.innerHTML='';
+  if(state.tab==='charter'){
+    CONFIGS.forEach((p,i)=>{
+      const li=document.createElement('li');
+      li.className='preset'+(state.cursor===i?' hi':'');
+      const mini=p.selected.slice(0,6).map(id=>F[id]?orbHTML(id,'s20'):'').join('');
+      const stateText=p.admitted?'★ admitted':(p.valid?'✓ valid · not admitted':'✕ invalid');
+      li.innerHTML=`<span class="cursor">☞</span>
+        <span class="minirow">${mini}</span>
+        <span class="nm">${esc(p.title)}<br><span class="mem">${esc(stateText)}</span></span>
+        <span class="mp">#${i+1}</span>`;
+      li.onmouseenter=()=>{if(state.cursor!==i){state.cursor=i;SFX.move();renderList();}};
+      li.onclick=()=>{state.cursor=i;loadPreset(p.id);};
+      ul.appendChild(li);
+    });
+    return;
+  }
+  const items=tabFeatures();
+  if(state.cursor>=items.length) state.cursor=items.length-1;
+  if(state.cursor<0) state.cursor=0;
+  items.forEach((f,i)=>{
+    const eq=state.sel.has(f.id);
+    const li=document.createElement('li');
+    li.className=(state.cursor===i?'hi ':'')+(eq?'equipped':'');
+    const tag = STATUS_TAG[f.status]?`<span class="ref ${esc(f.status)}">${STATUS_TAG[f.status]}</span>`:'';
+    li.innerHTML=`<span class="cursor">☞</span>
+      ${orbHTML(f.id, eq?'s24':'s24 ')}
+      <span class="nm" style="${eq?'':'--x:1'}">${esc(f.label)}${tag}</span>
+      <span class="eqbadge">${eq?(state.origin[f.id]==='auto'?'✦ auto':'✔ equipped'):'&nbsp;'}</span>
+      <span class="mp">${f.mp? 'MP '+f.mp:'—'}</span>`;
+    if(!eq) li.querySelector('.orb').classList.add('off');
+    li.onmouseenter=()=>{ if(state.cursor!==i){state.cursor=i;SFX.move();showDesc(f);renderList();} };
+    li.onclick=()=>{state.cursor=i;showDesc(f);toggle(f.id);};
+    ul.appendChild(li);
+  });
+  const cur=items[state.cursor]; if(cur) showDesc(cur);
+}
+function showDesc(f){
+  const d=$('#desc');
+  const chips=[];
+  for(const [bid,r] of (REQUIRES[f.id]||[])) chips.push(`<span class="rulechip g"><b>${esc(r)}</b> requires ${esc(F[bid]?F[bid].label:bid)} ✦</span>`);
+  for(const [a,r] of (REQUIRED_BY[f.id]||[])) chips.push(`<span class="rulechip"><b>${esc(r)}</b> required by ${esc(F[a]?F[a].label:a)}</span>`);
+  for(const [bid,r] of (EXCL[f.id]||[])) chips.push(`<span class="rulechip x"><b>${esc(r)}</b> ✕ ${esc(F[bid]?F[bid].label:bid)}</span>`);
+  const st=STATUS_TAG[f.status]?`<span class="rulechip">scope: ${STATUS_TAG[f.status]}</span>`:'';
+  const scope=(f.classifications||[]).map(c=>`${c.classification} ${c.governed}`).join(' · ');
+  const mult=`[${f.multiplicity.lower}..${f.multiplicity.upper===null?'*':f.multiplicity.upper}]`;
+  d.innerHTML=`<h3>${esc(f.label)} ${state.sel.has(f.id)?'✔':''}</h3>
+    <div class="idline">${esc(f.short_name||f.path)} · ${esc(groupLabel(f))} · ${mult}${f.mp?' · MP '+f.mp:''}</div>
+    <div class="body">${f.doc?esc(f.doc):'The model declares no documentation for this feature.'}</div>
+    <div class="chips">${chips.join('')}${st}${scope?`<span class="rulechip">governed: ${esc(scope)}</span>`:''}</div>`;
+}
+
+/* ================================================================
+   INPUT + BOOT
+   ================================================================ */
+function moveCursor(dx){
+  const n = state.tab==='charter' ? CONFIGS.length : tabFeatures().length;
+  if(!n) return;
+  state.cursor=(state.cursor+dx+n)%n; SFX.move(); renderList();
+  if(state.tab!=='charter'){ const f=tabFeatures()[state.cursor]; if(f) showDesc(f); }
+}
+function switchTab(dx){
+  const i=TABS.findIndex(t=>t.id===state.tab);
+  if(i<0) return;
+  const t=TABS[(i+dx+TABS.length)%TABS.length];
+  state.tab=t.id; state.cursor=0; SFX.move(); render();
+}
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('splash').classList.contains('gone')){
+    if(splashReady && (e.key==='Enter'||e.key===' ')) startGame();
+    return;
+  }
+  const k=e.key;
+  if(k==='ArrowDown'){e.preventDefault();moveCursor(1)}
+  else if(k==='ArrowUp'){e.preventDefault();moveCursor(-1)}
+  else if(k==='ArrowRight'){e.preventDefault();switchTab(1)}
+  else if(k==='ArrowLeft'){e.preventDefault();switchTab(-1)}
+  else if(k==='Enter'||k===' '){
+    e.preventDefault();
+    if(state.tab==='charter'){ const p=CONFIGS[state.cursor]; if(p) loadPreset(p.id); }
+    else{const f=tabFeatures()[state.cursor]; if(f){showDesc(f);toggle(f.id);}}
+  }
+  else if(/^[1-9]$/.test(k)){
+    const p=CONFIGS[+k-1];
+    if(p){ state.tab='charter'; state.cursor=+k-1; render(); loadPreset(p.id); }
+  }
+});
+$('#btn-sound').onclick=(e)=>{
+  e.stopPropagation();
+  const on=SFX.muted; SFX.toggle(on); $('#btn-sound').textContent=`♪ SOUND: ${on?'ON':'OFF'}`;
+  if(on){SFX.ensure();SFX.ok();}
+};
+$('#btn-sound').textContent = `♪ SOUND: ${SFX.muted?'OFF':'ON'}`;
+function startGame(){
+  SFX.ensure();
+  const sp=$('#splash');
+  if(sp.classList.contains('gone')) return;
+  sp.classList.add('gone'); SFX.ok();
+}
+$('#splash').addEventListener('click',()=>{ if(splashReady) startGame(); });
+
+function splashStatus(msg, cls){
+  const el=document.getElementById('splash-status');
+  el.textContent=msg;
+  el.className='press'+(cls?' '+cls:'');
+}
+async function loadModel(attempt){
+  try{
+    const res=await fetch('api/feature-model.json',{cache:'no-store'});
+    if(res.status===503){
+      let detail='the deployed SysML v2 API model is still loading';
+      try{ const body=await res.json(); if(body && body.detail) detail=body.detail; }catch(_){}
+      splashStatus(`READING THE FEATURE MODEL FROM THE SYSML V2 API… (${detail})`,'loading');
+      setTimeout(()=>loadModel(attempt+1), 4000);
+      return;
+    }
+    if(!res.ok) throw new Error(`HTTP ${res.status} — ${(await res.text()).slice(0,240)}`);
+    const doc=await res.json();
+    buildModel(doc);
+    const start=CONFIGS.find(c=>c.admitted)||CONFIGS[0];
+    if(start){
+      state.sel=new Set(start.selected);
+      state.origin={};
+      for(const id of start.selected) state.origin[id]='manual';
+      log(`★ starting charter: ${start.title}`,'e');
+    }
+    splashReady=true;
+    splashStatus('— PRESS ENTER —');
+    render();
+  }catch(err){
+    splashError=true; splashReady=false;
+    splashStatus(`THE SYSML V2 API IS UNREACHABLE — ${err.message}. Retrying…`,'err');
+    setTimeout(()=>loadModel(attempt+1), 8000);
+  }
+}
+
+// starfield
+(function(){
+  const cv=$('#stars'),x=cv.getContext('2d');
+  let w,h,stars=[];
+  function rs(){w=cv.width=innerWidth;h=cv.height=innerHeight;
+    stars=Array.from({length:90},()=>({x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.6+.3,s:Math.random()*.2+.05,p:Math.random()*6}));}
+  rs(); addEventListener('resize',()=>{rs();draw();});
+  function draw(){  /* static sky — no animation */
+    x.clearRect(0,0,w,h);
+    for(const s of stars){
+      x.fillStyle=`rgba(190,215,255,${.35+.3*Math.sin(s.p)})`;
+      x.beginPath();x.arc(s.x,s.y,s.r,0,7);x.fill();
+    }
+  }
+  draw();
+})();
+
+loadModel(0);
+</script>
+</body>
+</html>
