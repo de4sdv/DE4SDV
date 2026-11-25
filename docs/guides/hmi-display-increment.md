@@ -13,8 +13,9 @@ both, and holds what it shows against what the application gives.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase
 3 capability classification, Phase 4 stakeholder needs, Phase 5 requirements,
-Phase 6 functional architecture, Phase 7 logical architecture and Phase 8
-physical and software realization, proposal.**
+Phase 6 functional architecture, Phase 7 logical architecture, Phase 8
+physical and software realization and Phase 9 variability and configuration,
+proposal.**
 No implementation, run, result, product-line admission or compliance is
 claimed.
 
@@ -38,6 +39,8 @@ claimed.
   the Phase 7 logical architecture of the HMI display.
 - [SysML physical and software realization](../../textual-notation-of-model/packages/features/hmi/hmi_display_physical_software_realization.sysml):
   the Phase 8 physical and software realization of the HMI display.
+- [SysML variability and configuration](../../textual-notation-of-model/packages/features/hmi/hmi_display_variability_configuration.sysml):
+  the Phase 9 configured product of the HMI display.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/hmi/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/hmi/upstream.md)
@@ -743,6 +746,53 @@ frames `hmiRendererPathConcern`. They are listed in
 their ports and paths, the allocations, the mappings, the views and this
 section.
 
+## Variability and configuration (Phase 9)
+
+[`hmi_display_variability_configuration.sysml`](../../textual-notation-of-model/packages/features/hmi/hmi_display_variability_configuration.sysml)
+answers which configured product the HMI display belongs to, and with which
+selections. Phase 3 recorded no feature-model delta and placed the display in
+the VisionPilot configuration, so Phase 9 adds no feature, constraint, shared
+asset, configuration, receipt or projection.
+
+- **The configuration.** The framing names the display of the VisionPilot
+  configuration of the driver-assistance increment (owner decision of
+  2026-11-17), so the configured product reuses that configuration,
+  `driverAssistanceVisionPilotSCOREReference`: VisionPilot, Eclipse S-CORE,
+  Linux and KVM on the main side, Android with the AAOS SDV middleware in the
+  guest, the camera and the HMI display. It also selects adaptive cruise
+  control and lane-keep assist, which this increment does not judge (Phase 3);
+  they come with the configuration, and this increment claims nothing of them.
+  The receipt records the configuration as **valid, and the governed scope does
+  not admit it**, for the reasons that the driver-assistance increment states.
+  The same configuration configures DRIVING-CONFIG-002: a configuration can
+  configure more than one configured product. No feature model, configuration,
+  receipt or projection changes, so the privileged PLE authority run does not
+  start.
+- **The configured product.** `HMI-CONFIG-001` types its platform stack by the
+  projection `DriverAssistanceVisionPilotSCOREReference` and composes the Phase
+  8 realization `HmiDisplayPhysicalSystem`. Two bindings make the platform and
+  the hypervisor of the central computer, which Phase 8 references, the
+  selected Linux and KVM: KVM runs in the kernel of the main-side operating
+  system. The operating system of the SDV Media VM stays unbound: no source
+  that DE4SDV keeps names it, and the stack has no layer for a VM of the guest.
+  The guest layers of the realization stay owned: Android in the SDV Core VM
+  and in the IVI VM, and the AAOS SDV middleware in the SDV Core VM, beside the
+  guest operating system and the guest middleware of the stack. So the stack is
+  not their only owner, and a test keeps them typed by the definitions of the
+  selected variants. The identity binds the SHA-256 of the receipt, and Phase
+  10 evidence binds the identity. Dependencies record the trace to the Phase 8
+  usage and the three open gaps of Phase 8 that the product inherits,
+  GAP-HMI-001, GAP-HMI-003 and GAP-HMI-004; GAP-HMI-002 is a gap of the bench.
+  The definition specializes no member-product type.
+
+Two views answer the phase's questions, both trees: the selections of the
+projection (Product Line Configuration viewpoint) and the assembly of the
+product with its two parts, its two bindings and the configured-product usage
+(Product Model Assembly viewpoint). Their diagrams come from the licensed
+Syside run;
+[`VIEWS.md`](../../textual-notation-of-model/packages/features/hmi/VIEWS.md)
+lists the views.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -842,10 +892,10 @@ Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. Phase 3, the capability classification,
 records no feature-model delta, and review judges it: its one blocking check
 has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, with a
-prompt for review. The next model obligation is **Phase 9**: the configuration,
-which makes the realization of the increment a configured product; its first
-gate is `incrementHasConfiguredProduct`. On 2026-11-21 the owner decided that
-the increment goes on without waiting for Phase 10 of the driver-assistance
+prompt for review. The next model obligation is **Phase 10**: the verification
+cases, one or more for each requirement of the increment; its first gate is
+`verificationCaseVerifiesRequirement`. On 2026-11-21 the owner decided that the
+increment goes on without waiting for Phase 10 of the driver-assistance
 increment. Phase 3 and later phases waited for the revision of the governed
 scope, which the model now holds, so they go on. On 2026-11-17 the owner
 decided that the readiness probe of the high availability renderer runs with
@@ -865,7 +915,8 @@ Run `sysand sync`, `python scripts/check_repo.py`,
 `python -m pytest tests/test_hmi_display_framing.py
 tests/test_hmi_display_functional_architecture.py
 tests/test_hmi_display_logical_architecture.py
-tests/test_hmi_display_physical_software_realization.py -q`. These are
+tests/test_hmi_display_physical_software_realization.py
+tests/test_hmi_display_variability_configuration.py -q`. These are
 repository and lexical checks, not SysML semantic validation and not runtime
 verification. Use `python scripts/validate_sysml.py` where a licensed validator
 is available, or request the maintainer-run **Privileged Syside Validation** on

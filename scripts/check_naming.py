@@ -376,7 +376,7 @@ _EXTERNAL_ID_NAMES = {
 # naming-conventions.md section 5. `<SUBJECT>-` here is a registered subject
 # namespace, so the generic strict-prefix scan would misread them.
 _CONFIG_IDENTITY = re.compile(
-    r"(?<![A-Za-z0-9-])(AEBS|MW)-CONFIG-[0-9]+(?:-[0-9]+)?\b"
+    r"(?<![A-Za-z0-9-])(AEBS|MW|HMI)-CONFIG-[0-9]+(?:-[0-9]+)?\b"
 )
 
 # Subject-namespace registry (docs/naming/naming-conventions.md section 6).
