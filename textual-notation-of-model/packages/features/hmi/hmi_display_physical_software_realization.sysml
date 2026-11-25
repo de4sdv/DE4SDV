@@ -1039,10 +1039,10 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
      * renderer, and nothing leads back. Each edge between the VMs and the
      * central computer is labelled with the ports at its ends, and each port
      * definition carries the one item that its exchange moves. The platform of
-     * the SDV Core VM is listed by name only; where a path enters it, its
-     * binds and connections are drawn as boxes that name their two ends. The
-     * hypervisor interfaces are drawn in no view of this phase; the structure
-     * tree shows the hypervisor and each VM's operating system.
+     * the SDV Core VM is listed by name only; where a path enters or leaves it,
+     * its binds and connections are drawn as boxes that name their two ends.
+     * The hypervisor interfaces are drawn in no view of this phase; the
+     * structure tree shows the hypervisor and each VM's operating system.
      */
     viewpoint selectedPhysicalInternalExchangeViewpoint : PhysicalInternalExchangeViewpoint {
       frame hmiRendererPathConcern;
