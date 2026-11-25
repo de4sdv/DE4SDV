@@ -715,15 +715,17 @@ COVESA VSS at its ports, and the warning request keeps the payload of the
 driver-assistance increment. Every other item says in its mapping record
 why it is no vehicle signal. There are eight mappings.
 
-Three gaps of the realization state what is not settled: the renderer's
-judging of the scene by the term current
-(`gapHmiRendererJudgesSceneCurrency`), the bench's feed of the speed into
-the SDV Core VM (`gapHmiBenchSpeedFeed`) and the tolerance of a drawn
-position (`gapHmiDrawingToleranceUnset`). Comments on the framing's gaps say
-what this phase placed: the path to the renderer, the heartbeats, the
-composition and the chime are placed and not observed on the bench. The
-changes to the projects of the renderer and of the candidate stay gaps, and
-nothing is written to their maintainers.
+Four gaps of the realization state what is not settled: the renderer's judging
+of the scene by the term current (`gapHmiRendererJudgesSceneCurrency`), the
+bench's feed of the speed into the SDV Core VM (`gapHmiBenchSpeedFeed`), the
+tolerance of a drawn position (`gapHmiDrawingToleranceUnset`), and the display
+identity, which does not name the builds of the vehicle data publisher, of the
+identity recording service and of the composition, nor the image of the SDV
+Core VM (`gapHmiIdentityMissesPhase8Elements`). Comments on the framing's gaps
+say what this phase placed: the path to the renderer, the heartbeats, the
+composition and the chime are placed and not observed on the bench. The changes
+to the projects of the renderer and of the candidate stay gaps, and nothing is
+written to their maintainers.
 
 Three alternatives were not selected: the recorder inside the SDV Core VM,
 the app streaming its drawn frames to the renderer, and the speed on the

@@ -927,6 +927,21 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
      */
   }
 
+  part <'GAP-HMI-004'> gapHmiIdentityMissesPhase8Elements : IncrementGap {
+    doc /*
+     * The display identity of the requirements names the builds of the
+     * renderer and of the scene drawing app and the images of the IVI and SDV
+     * Media VMs. Phase 8 places three more elements inside the display whose
+     * builds it does not name: the vehicle data publisher in the SDV Core VM,
+     * and the identity recording service and the composition on the central
+     * computer. Nor does it name the image of the SDV Core VM, whose platform
+     * carries the scene on to the IVI VM and the other inputs to the
+     * publisher. A change to one of them records the same display identity, so
+     * REQ-HMI-010 is not met as worded until the term names them, before phase
+     * 10.
+     */
+  }
+
   /* ───────────── Concerns and views of the phase ───────────── */
 
   concern hmiDisplayPhysicalStructureConcern : PhysicalStructureConcern {
