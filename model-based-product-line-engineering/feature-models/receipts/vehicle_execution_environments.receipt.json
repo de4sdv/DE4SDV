@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "12f092602453d46ad4e3118763a9e08368993f3479faf92704b75978a1552dde",
+    "content_sha256": "35d139e8bfa204765bb7447be462e3033652235001e4b3ee884f1287c2cb491d",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "9ddda470ee182cc9ef7543b94f1c50f357aa6f255d836afadfa709c4623f71bd"
+    "sha256": "c3f14b22213120fa0bd9b5256b58ac04d483cbbdd7d2d483775bc41f550a40e1"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -495,8 +495,8 @@
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "333614ea488880ab3e17aa559c3d48dde5779f50",
-    "executor_revision": "333614ea488880ab3e17aa559c3d48dde5779f50"
+    "bundle_git_commit": "cc0dc89b8a0bb7a6ed9f0926d0f7cdac39a7e958",
+    "executor_revision": "cc0dc89b8a0bb7a6ed9f0926d0f7cdac39a7e958"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v2",
@@ -677,20 +677,20 @@
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml",
-      "sha256": "389d5cd4f7ae7e834b3a6705213d2b814255f17b5d8922b7e67244ae800ed1ef",
-      "size": 9122
+      "sha256": "7b341212131d2666656156a3dbb0d9e9f4c35a7a0d2c9002542cbd3318341d67",
+      "size": 10445
     },
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
-      "sha256": "a9454920e3c088d54841f4cff129cf9f9ff0561ad98f4e384cd1ec777f85457e",
-      "size": 38231
+      "sha256": "fba5a3eeb598f1e0764d15fc1256548c48db18e66f0c8e76bffdfa820201429f",
+      "size": 42484
     },
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml",
-      "sha256": "638ad3ead7b6f1a4006a3ccd4b5c693d1ac946407a0794f3234538dfd6dfb79b",
-      "size": 7778
+      "sha256": "5eca98314b25467e717b75cba46ec6a374885fc19579a2713ae6512b2d6f0026",
+      "size": 8583
     },
     {
       "authority": "reviewed",

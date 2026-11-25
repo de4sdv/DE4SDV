@@ -134,7 +134,7 @@ package DE4SDV_DriverAssistanceVariabilityConfiguration {
      * Configuration evidence only. This usage proves no candidate, adapter,
      * gateway or presentation behavior and no requirement satisfaction.
      */
-    attribute receiptSha256 : ScalarValues::String = "50cab825ea8ad7ade74173a7b4c1e7db47d68adf0b25867b8441c1387a63f357";
+    attribute receiptSha256 : ScalarValues::String = "0447e4a561240dcdc0cc1860eb9a707e0cc5ca965af40c9a6c26b9534458c4db";
   }
 
   dependency configuredAssistanceSoftwareTrace

@@ -544,14 +544,17 @@ CONCERN_DOCS = {
         "phase 8.",
 }
 
-#: The guide: its Status line and the next obligation, which phase 6 moves.
+#: The guide: its Status line and the next obligation, as phase 8 moved them.
 GUIDE_STATUS = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs, Phase 5 requirements and Phase 6 functional architecture, proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical architecture "
+    "and Phase 8 physical and software realization, proposal.**")
 GUIDE_STATUS_PHASE_5 = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
     "Phase 4 stakeholder needs and Phase 5 requirements, proposal.**")
-GUIDE_NEXT = "The next model obligation is **Phase 7**, the logical architecture."
+GUIDE_NEXT = (
+    "The next model obligation is **Phase 9**: the configuration, which makes the realization of the increment a "
+    "configured product; its first gate is `incrementHasConfiguredProduct`.")
 GUIDE_HEADING = "## Functional architecture (Phase 6)"
 GUIDE_LINK = "../../textual-notation-of-model/packages/features/hmi/hmi_display_functional_architecture.sysml"
 GUIDE_FRAME_LINE = (f"- [SysML functional architecture]({GUIDE_LINK}): the Phase 6 functional architecture of the HMI "
@@ -1334,7 +1337,7 @@ def test_no_text_of_phase_6_carries_the_excluded_word():
         assert EXCLUDED_WORD_SHA256 not in {hashlib.sha256(word.encode()).hexdigest() for word in words}
 
 
-def test_the_guide_has_a_phase_6_section_and_names_phase_7_next():
+def test_the_guide_has_a_phase_6_section_and_names_the_next_obligation():
     guide = _guide()
     assert guide.count(GUIDE_HEADING + "\n") == 1
     assert guide.index("## Requirements (Phase 5)") < guide.index(GUIDE_HEADING) \
@@ -1382,5 +1385,7 @@ def test_the_guide_has_a_phase_6_section_and_names_phase_7_next():
     nxt = " ".join(guide.split("## Next obligation and execution limits", 1)[1].split("\n## ", 1)[0].split())
     assert nxt.count(GUIDE_NEXT) == 1
     assert "The next model obligation is **Phase 6**" not in flat
+    assert "The next model obligation is **Phase 7**" not in flat
+    assert "The next model obligation is **Phase 8**" not in flat
     check = " ".join(guide.split("## Check the framing change", 1)[1].split())
     assert "tests/test_hmi_display_functional_architecture.py" in check

@@ -13,9 +13,9 @@ properties that the model asks of the command paths of earlier increments. It
 judges two routes: through a zone controller, and over a direct link.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
-Phase 3 capability classification, Phase 4 stakeholder needs and Phase 5
-requirements, proposal.** No implementation, run, result, product-line
-admission or compliance is claimed.
+Phase 3 capability classification, Phase 4 stakeholder needs, Phase 5
+requirements and Phase 6 functional architecture, proposal.** No
+implementation, run, result, product-line admission or compliance is claimed.
 
 ## Authoritative frame
 
@@ -358,6 +358,42 @@ check that each requirement has a statement, one subject, a derivation from a
 need and one verification method. Review judges whether the requirements are
 the right ones.
 
+## Functional architecture (Phase 6)
+
+Phase 6 breaks the vehicle network into five functions in
+DE4SDV_EEArchitectureFunctionalArchitecture: recordNetworkIdentity,
+takeDrivingCommand, carryDrivingCommand, checkDrivingCommand and
+applyDrivingCommand. Eight of the ten requirements of Phase 5 are allocated to
+them. takeDrivingCommand carries REQ-EE-002; carryDrivingCommand carries
+REQ-EE-004, REQ-EE-005 and REQ-EE-007; checkDrivingCommand and
+applyDrivingCommand share REQ-EE-006 and REQ-EE-008; applyDrivingCommand
+carries REQ-EE-009; and recordNetworkIdentity carries REQ-EE-010. REQ-EE-001
+and REQ-EE-003 constrain the structure that realizes the functions, so Phases
+7 and 8 carry them by the elements that they place.
+
+The functions do not depend on the route. The stop response is a state of
+applyDrivingCommand and leaves on the same output as the applied command, as
+the operational context of Phase 2 says: the actuation ECU gives it itself, as
+INC-DRIVING-001 does at its own actuation. checkDrivingCommand stands apart
+from the application because Phase 5 leaves open which element detects and
+rejects a command; Phase 7 gives each function to a logical element.
+
+EEVehicleNetworkSystemProcess runs the network between the parts of the Phase
+2 context: the command source, the Eclipse S-CORE path and the vehicle, bound
+by reference. Its documentation holds the sequence from a fault to the stop
+response, which answers eeNetworkFaultResponseConcern. EEActuationStates holds
+the three states of the actuation ECU in a run. The boundary has one input
+port, whose item specializes the driving command of the driver-assistance
+increment, and one output port, which carries only the steering angle and the
+acceleration.
+
+Five views show it: the function breakdown, the requirement by function
+matrix, the system process, the state table and the functional interfaces.
+Left open for Phases 7 and 8: which element checks a command and where each
+element takes the simulation time. Left to Phase 8, which chooses the
+technology: how a zone controller repacks the command, whether the command
+fits a CAN frame, and the medium of the direct link.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -467,10 +503,10 @@ blocking check has nothing to evaluate, so the Method Check lists Phase 3 as
 vacuous, with a prompt for review. The owner decided on 2026-11-18 to carry
 out Phases 1 to 3 of this increment before the baseline of the
 driver-assistance increment, whose driving command it carries. After that
-baseline, the owner decided on 2026-11-21 to start Phase 4 and on 2026-11-22
-to go on with Phase 5. The next model obligation is **Phase 6**, the
-functional architecture. The testbed with its readiness probe waits for a
-further decision of the owner.
+baseline, the owner decided on 2026-11-21 to start Phase 4, on 2026-11-22 to
+go on with Phase 5 and on 2026-11-24 to go on with Phase 6. The next model
+obligation is **Phase 7**, the logical architecture. The testbed with its
+readiness probe waits for a further decision of the owner.
 
 The testbed is chosen after a readiness probe. Before a paid cloud run,
 refresh the regional price, the capacity and the available credit, obtain the
@@ -484,9 +520,10 @@ Run `sysand sync`, `python scripts/check_repo.py`, `python
 scripts/smoke_test.py` and `python -m pytest
 tests/test_ee_architecture_framing.py
 tests/test_ee_architecture_needs_requirements.py
-tests/test_ee_architecture_requirements.py -q`. These are repository and
-lexical checks, not SysML semantic validation and not runtime verification.
-Use `python scripts/validate_sysml.py` where a licensed validator is
-available, or request the maintainer-run **Privileged Syside Validation** on
-the reviewed head. The framing view and its published diagram come from that
-Syside run.
+tests/test_ee_architecture_requirements.py
+tests/test_ee_architecture_functional_architecture.py -q`. These are
+repository and lexical checks, not SysML semantic validation and not runtime
+verification. Use `python scripts/validate_sysml.py` where a licensed
+validator is available, or request the maintainer-run **Privileged Syside
+Validation** on the reviewed head. The framing view and its published diagram
+come from that Syside run.

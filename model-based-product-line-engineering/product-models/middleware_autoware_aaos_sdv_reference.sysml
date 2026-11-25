@@ -6,12 +6,12 @@
  * Shared-assets model: textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml
  * Shared-assets model SHA-256: a4a16a7b446117334295e3bf7da3f72591c1d04320109dcb3cf68a53224770ea
  * Receipt: model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json
- * Receipt SHA-256: 50cab825ea8ad7ade74173a7b4c1e7db47d68adf0b25867b8441c1387a63f357
- * Elements SHA-256: 9ddda470ee182cc9ef7543b94f1c50f357aa6f255d836afadfa709c4623f71bd
+ * Receipt SHA-256: 0447e4a561240dcdc0cc1860eb9a707e0cc5ca965af40c9a6c26b9534458c4db
+ * Elements SHA-256: c3f14b22213120fa0bd9b5256b58ac04d483cbbdd7d2d483775bc41f550a40e1
  * Feature configuration: model-based-product-line-engineering/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml (middlewareAutowareAAOSSDVReference)
  * Feature configuration SHA-256: 91ce409bf1c0846679d0fdf4a2cdcfaaa30afb0a7b88f082fd4f423237f16648
  * PLEML feature model: model-based-product-line-engineering/feature-models/sdv_product_line.sysml
- * PLEML feature model SHA-256: a9454920e3c088d54841f4cff129cf9f9ff0561ad98f4e384cd1ec777f85457e
+ * PLEML feature model SHA-256: fba5a3eeb598f1e0764d15fc1256548c48db18e66f0c8e76bffdfa820201429f
  */
 
 private import DE4SDV_SDVPlatformStack::SDVPlatformStack;

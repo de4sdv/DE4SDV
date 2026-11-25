@@ -30,8 +30,12 @@ package DE4SDV_VehicleTargetExecutionEnvironmentFeatureModel {
             doc /* A mandatory grouping feature that holds the compute,
                  * operating-system and runtime alternative groups. */
 
-            #feature occurrence <'F-VEHICLE-COMPUTE'> computeNode[1];
+            #feature occurrence <'F-VEHICLE-COMPUTE'> computeNode[1] {
+                doc /* The compute hardware of the vehicle target. */
+            }
             #feature occurrence <'F-VEHICLE-COMPUTE-NXP-CANDIDATE'> nxpVehicleCompute[0..1] :> computeNode default null {
+                doc /* An NXP vehicle computer. The exact board and SoC are
+                     * not chosen yet. */
                 assert constraint <'C-VEHICLE-NXP-REQUIRES-ZEPHYR'> nxpRequiresZephyr :> requiresFeatures {
                     doc /* This candidate configuration pairs the unresolved NXP
                          * target with Zephyr. */
@@ -44,6 +48,7 @@ package DE4SDV_VehicleTargetExecutionEnvironmentFeatureModel {
                 }
             }
             #feature occurrence <'F-VEHICLE-COMPUTE-NONE'> noConcreteComputeNode[0..1] :> computeNode default null {
+                doc /* No concrete compute target is chosen yet. */
                 assert constraint <'C-VEHICLE-NO-COMPUTE-REQUIRES-NO-OS'> noComputeRequiresNoOperatingSystem :> requiresFeatures {
                     doc /* An unresolved target must not imply a realized operating
                          * system. */
@@ -55,24 +60,35 @@ package DE4SDV_VehicleTargetExecutionEnvironmentFeatureModel {
                 }
             }
 
-            #feature occurrence <'F-VEHICLE-OS'> operatingSystem[1];
+            #feature occurrence <'F-VEHICLE-OS'> operatingSystem[1] {
+                doc /* The operating system of the vehicle target. */
+            }
             #feature occurrence <'F-VEHICLE-OS-ZEPHYR-CANDIDATE'> zephyr[0..1] :> operatingSystem default null {
+                doc /* Zephyr, an open-source real-time operating system. */
                 assert constraint <'C-VEHICLE-ZEPHYR-REQUIRES-NXP'> zephyrRequiresNXP :> requiresFeatures {
                     doc /* No other Zephyr-capable vehicle compute target is
                          * currently modeled. */
                     in occurrence constrainedFeatures = new FeatureOperand(that, nxpVehicleCompute);
                 }
             }
-            #feature occurrence <'F-VEHICLE-OS-NONE'> noConcreteOperatingSystem[0..1] :> operatingSystem default null;
+            #feature occurrence <'F-VEHICLE-OS-NONE'> noConcreteOperatingSystem[0..1] :> operatingSystem default null {
+                doc /* No concrete operating system is chosen yet. */
+            }
 
-            #feature occurrence <'F-VEHICLE-RUNTIME'> executionRuntime[1];
+            #feature occurrence <'F-VEHICLE-RUNTIME'> executionRuntime[1] {
+                doc /* How the software runs on the vehicle target. */
+            }
             #feature occurrence <'F-VEHICLE-RUNTIME-NATIVE-ZEPHYR-CANDIDATE'> nativeZephyr[0..1] :> executionRuntime default null {
+                doc /* Software built into the Zephyr image that runs
+                     * natively, not in containers. */
                 assert constraint <'C-VEHICLE-NATIVE-ZEPHYR-REQUIRES-NXP'> nativeZephyrRequiresNXP :> requiresFeatures {
                     doc /* Prevents a partially resolved candidate configuration. */
                     in occurrence constrainedFeatures = new FeatureOperand(that, nxpVehicleCompute);
                 }
             }
-            #feature occurrence <'F-VEHICLE-RUNTIME-NONE'> noConcreteExecutionRuntime[0..1] :> executionRuntime default null;
+            #feature occurrence <'F-VEHICLE-RUNTIME-NONE'> noConcreteExecutionRuntime[0..1] :> executionRuntime default null {
+                doc /* No concrete runtime is chosen yet. */
+            }
         }
     }
 
