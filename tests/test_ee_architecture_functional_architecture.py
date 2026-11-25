@@ -37,6 +37,7 @@ filters, and a skeleton of the package, every declaration at its own depth with 
 record, pins its code whole.
 """
 
+from itertools import zip_longest
 from pathlib import Path
 import re
 
@@ -800,11 +801,13 @@ def _code() -> str:
 
 
 def _flat(text: str) -> str:
-    return " ".join(text.replace("*", " ").split())
+    """The text of a doc or comment body, whitespace collapsed; only the `*` that leads a line is dropped."""
+    return " ".join(re.sub(r"(?m)^\s*\*(?!/)\s?", "", text).split())
 
 
 def _doc(declaration: str) -> str:
     """The doc text of the element whose body follows ``declaration`` in the raw model."""
+    assert _raw().count(declaration) == 1, f"{declaration}: one copy in the file, so that no note holds a decoy"
     body = braced_body(_raw(), declaration)
     match = re.match(r"\s*doc\s*/\*(.*?)\*/", body, re.S)
     assert match, f"{declaration}: the doc must open the body"
@@ -842,6 +845,8 @@ def _process_body() -> str:
 
 
 def _process_paragraphs() -> list[str]:
+    assert _raw().count(f"action def {PROCESS}") == 1, \
+        "one copy of the process in the file, so that no note holds a decoy"
     raw = braced_body(_raw(), f"action def {PROCESS}")
     match = re.match(r"\s*doc\s*/\*(.*?)\*/", raw, re.S)
     assert match, "the doc must open the body of the process"
@@ -944,12 +949,14 @@ def _skeleton() -> list[str]:
         elif raw[at] == "}":
             if pending.strip():
                 emit(pending)
+            assert depth > 0, "a } that closes no body"
             pending, depth, at = "", depth - 1, at + 1
         else:
             pending += raw[at]
             at += 1
     if pending.strip():
         emit(pending)
+    assert depth == 0, "a body that is never closed"
     return lines
 
 
@@ -1453,14 +1460,16 @@ def test_the_package_is_exactly_its_skeleton():
     """The whole code of the package, pinned line by line: every declaration at its own depth, whole, in order.
     Because the skeleton pins the code whole, a change to any declaration of the package fails it: a member added,
     removed, moved or reordered at any depth, a changed keyword, name, type, value or binding, a changed section
-    comment. Its limit: the header, the docs and the named comments are pinned by the texts of record, and the `//`
-    notes of the transitions by TRANSITIONS, not by the skeleton."""
+    comment, a brace that closes no body or a body never closed. Its limit: the header, the docs and the named comments
+    are pinned by the texts of record, which read the one copy of each declaration in the file (a note that copies a
+    declaration fails them), and the `//` notes of the transitions by TRANSITIONS, not by the skeleton."""
     expected = SKELETON.splitlines()
     actual = _skeleton()
     assert len(expected) >= 200, "the skeleton must not be vacuous"
-    for number, (line, pinned) in enumerate(zip(actual, expected), 1):
+    assert not re.search(r"[^\x00-\x7f]", _code()), \
+        "the code is ASCII: only docs, comments and notes hold other characters"
+    for number, (line, pinned) in enumerate(zip_longest(actual, expected), 1):
         assert line == pinned, f"skeleton line {number}: {line!r}, pinned {pinned!r}"
-    assert len(actual) == len(expected), f"the skeleton has {len(actual)} lines, pinned {len(expected)}"
 
 
 def test_the_package_declares_no_name_that_another_model_package_declares():
