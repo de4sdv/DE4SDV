@@ -728,13 +728,14 @@ GUIDE_HOLDERS = {
 #: the guide's status line
 STATUS = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical architecture "
-    "and Phase 8 physical and software realization, proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
+    "architecture, Phase 8 physical and software realization and Phase 9 variability and configuration, "
+    "proposal.**")
 
 #: the guide's next obligation
 NEXT_OBLIGATION = (
-    "The next model obligation is **Phase 9**: the configuration, which makes the realization of the increment a "
-    "configured product; its first gate is `incrementHasConfiguredProduct`.")
+    "The next model obligation is **Phase 10**: the verification cases, one or more for each requirement of the "
+    "increment; its first gate is `verificationCaseVerifiesRequirement`.")
 
 
 
@@ -919,7 +920,10 @@ def test_each_need_has_one_planned_review_on_its_phase_2_use_cases():
     assert sorted(plans) == sorted(short for short, _use_cases in VALIDATION.values())
     associations = re.findall(
         r"\bconnection\s+\w+\s*:\s*ValidationPlanningAssociation\s+connect\s+(\w+)\s+to\s+(\w+)\s*;", code)
-    dependencies = re.findall(r"\bdependency\s+\w+\s+from\s+(\w+)\s+to\s+([\w:]+)\s*;", code)
+    # the links of rule 5 to features (phase 9) are pinned by tests/test_hmi_display_variability_configuration.py
+    dependencies = [(source, target) for source, target in
+                    re.findall(r"\bdependency\s+\w+\s+from\s+(\w+)\s+to\s+([\w:]+)\s*;", code)
+                    if not target.startswith("DE4SDV_SDVProductLineFeatureModel::")]
     for need, (plan_short, use_cases) in VALIDATION.items():
         plan = plans[plan_short]
         assert associations.count((need, plan)) == 1, (need, plan)
