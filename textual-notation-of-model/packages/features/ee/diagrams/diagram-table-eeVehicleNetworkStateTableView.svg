@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="552" height="734" viewBox="0 0 552 734" role="img" aria-labelledby="title description">
+  <title id="title">Vehicle network states</title>
+  <desc id="description">The states of the actuation ECU in a run, by the valid driving commands that reach it, and the function whose behavior differs in each.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="552" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">Vehicle network states</text>
+  <rect x="0" y="54" width="192" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">State</tspan>
+  </text>
+  <rect x="192" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="204" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="204" dy="0">DependentFunctions</tspan>
+  </text>
+  <rect x="0" y="94" width="192" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">noValidCommandYet</tspan>
+  </text>
+  <rect x="192" y="94" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="204" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="204" dy="0">No valid driving command has reached the</tspan>
+    <tspan x="204" dy="20">actuation ECU in this run:</tspan>
+    <tspan x="204" dy="20">applyDrivingCommand gives the vehicle</tspan>
+    <tspan x="204" dy="20">nothing (REQ-EE-008).</tspan>
+  </text>
+  <rect x="0" y="194" width="192" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">applyingValidCommands</tspan>
+  </text>
+  <rect x="192" y="194" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="204" y="218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="204" dy="0">applyDrivingCommand applies each valid</tspan>
+    <tspan x="204" dy="20">driving command that reaches the actuation</tspan>
+    <tspan x="204" dy="20">ECU and gives the vehicle the steering</tspan>
+    <tspan x="204" dy="20">angle and the acceleration of the last one</tspan>
+    <tspan x="204" dy="20">that it applied (REQ-EE-006, REQ-EE-008).</tspan>
+    <tspan x="204" dy="20">An invalid command changes nothing.</tspan>
+  </text>
+  <rect x="0" y="334" width="192" height="400" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">givingStopResponse</tspan>
+  </text>
+  <rect x="192" y="334" width="360" height="400" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="204" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="204" dy="0">Entered once more than 200 ms of</tspan>
+    <tspan x="204" dy="20">simulation time pass with no valid driving</tspan>
+    <tspan x="204" dy="20">command reaching the actuation ECU. From</tspan>
+    <tspan x="204" dy="20">then on applyDrivingCommand applies no</tspan>
+    <tspan x="204" dy="20">driving command that reaches the actuation</tspan>
+    <tspan x="204" dy="20">ECU. Until the stop response starts, it</tspan>
+    <tspan x="204" dy="20">gives the vehicle the steering angle and</tspan>
+    <tspan x="204" dy="20">the acceleration of the last valid driving</tspan>
+    <tspan x="204" dy="20">command that it applied, or nothing when</tspan>
+    <tspan x="204" dy="20">it applied none (REQ-EE-008). From no</tspan>
+    <tspan x="204" dy="20">later than 300 ms of simulation time after</tspan>
+    <tspan x="204" dy="20">the last valid command, or after the start</tspan>
+    <tspan x="204" dy="20">of the run when none reached the actuation</tspan>
+    <tspan x="204" dy="20">ECU, until the run ends, it gives the</tspan>
+    <tspan x="204" dy="20">vehicle the stop response: a deceleration</tspan>
+    <tspan x="204" dy="20">of 4 m/s², within the tolerance of REQ-</tspan>
+    <tspan x="204" dy="20">DRIVING-020, with the steering angle of</tspan>
+    <tspan x="204" dy="20">that last valid driving command, or 0°</tspan>
+    <tspan x="204" dy="20">when it applied none (REQ-EE-009).</tspan>
+  </text>
+</svg>
