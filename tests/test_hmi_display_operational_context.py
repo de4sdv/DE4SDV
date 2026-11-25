@@ -737,8 +737,8 @@ def test_phase_two_makes_no_timing_safety_or_approval_claim_and_names_no_number(
 def test_the_guide_has_a_phase_two_section():
     guide = GUIDE.read_text(encoding="utf-8")
     assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability "
-            "classification, Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture and "
-            "Phase 7 logical architecture, proposal.**") in _flat(guide)
+            "classification, Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 "
+            "logical architecture and Phase 8 physical and software realization, proposal.**") in _flat(guide)
     assert "](../../textual-notation-of-model/packages/features/hmi/hmi_display_operational_context.sysml)" in guide
     assert guide.index("## Concerns (Phase 1)") < guide.index("## Operational context and story (Phase 2)") \
         < guide.index("## What the framing already records as open")
@@ -787,9 +787,8 @@ def test_the_guide_names_the_next_obligation_after_phase_two():
     rest = flat.replace(NEXT_OBLIGATION_PHASE_THREE, "")
     assert not PHASE_THREE_CLAIM.search(rest), PHASE_THREE_CLAIM.search(rest)
     assert "simulator" not in rest
-    for phrase in ("The next model obligation is **Phase 8**: the physical and software realization, which "
-                   "allocates each logical element to a physical element; its first gate is "
-                   "`logicalElementAllocatedToPhysicalElement`.",
+    for phrase in ("The next model obligation is **Phase 9**: the configuration, which makes the realization of the "
+                   "increment a configured product; its first gate is `incrementHasConfiguredProduct`.",
                    "Phase 3 and later phases waited for the revision of the governed scope, which the model now "
                    "holds"):
         assert phrase in flat, phrase
@@ -799,6 +798,7 @@ def test_the_guide_names_the_next_obligation_after_phase_two():
     assert "The next model obligation is **Phase 5**" not in flat
     assert "The next model obligation is **Phase 6**" not in flat
     assert "The next model obligation is **Phase 7**" not in flat
+    assert "The next model obligation is **Phase 8**" not in flat
     assert "Phase 3 and later phases wait for the revision" not in flat, "the scope revision ended the wait"
 
 
