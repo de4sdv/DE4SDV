@@ -188,6 +188,19 @@ KNOWN_PRESENTATION_NOTES = {
         "`DriverAssistanceFunctionalFlow`, and the requirements each function "
         "carries are in `driverAssistanceRequirementFunctionMappingView`."
     ),
+    "eeVehicleNetworkFunctionBreakdownView": (
+        "SysIDE lists the items and the five functions of "
+        "`eeVehicleNetworkFunctionalFlow` but does not draw the flows between "
+        "them. The flows are modeled in the source, in the action definition "
+        "`EEVehicleNetworkFunctionalFlow`, and the requirements each function "
+        "carries are in `eeVehicleNetworkRequirementFunctionMatrixView`."
+    ),
+    "eeVehicleNetworkSystemProcessView": (
+        "The diagram draws the four lanes, the action of the vehicle network "
+        "and the three flows between them. The sequence from a fault to the "
+        "stop response, and its times, are in the documentation of "
+        "EEVehicleNetworkSystemProcess, whose rows the diagram hides."
+    ),
     "hmiDisplayFunctionBreakdownView": (
         "SysIDE lists the items and the five functions of "
         "`hmiDisplayFunctionalFlow` but does not draw the flows between "

@@ -12,9 +12,11 @@ increment asks whether the HMI display of the VisionPilot configuration can do
 both, and holds what it shows against what the application gives.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase
-3 capability classification, Phase 4 stakeholder needs, Phase 5 requirements
-and Phase 6 functional architecture, proposal.** No implementation, run,
-result, product-line admission or compliance is claimed.
+3 capability classification, Phase 4 stakeholder needs, Phase 5 requirements,
+Phase 6 functional architecture, Phase 7 logical architecture and Phase 8
+physical and software realization, proposal.**
+No implementation, run, result, product-line admission or compliance is
+claimed.
 
 ## Authoritative frame
 
@@ -32,6 +34,10 @@ result, product-line admission or compliance is claimed.
   the Phase 5 requirements of the HMI display.
 - [SysML functional architecture](../../textual-notation-of-model/packages/features/hmi/hmi_display_functional_architecture.sysml):
   the Phase 6 functional architecture of the HMI display.
+- [SysML logical architecture](../../textual-notation-of-model/packages/features/hmi/hmi_display_logical_architecture.sysml):
+  the Phase 7 logical architecture of the HMI display.
+- [SysML physical and software realization](../../textual-notation-of-model/packages/features/hmi/hmi_display_physical_software_realization.sysml):
+  the Phase 8 physical and software realization of the HMI display.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/hmi/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/hmi/upstream.md)
@@ -556,6 +562,187 @@ the five views and this section. The Phase 6 gates check that a function exists
 and that each functional requirement is allocated to one; review judges whether
 they are the right ones.
 
+## Logical architecture (Phase 7)
+
+The
+[logical architecture](../../textual-notation-of-model/packages/features/hmi/hmi_display_logical_architecture.sysml)
+answers what technology-independent logical elements realize the five
+functions. The decomposition subject is the system of interest itself:
+`HmiDisplayLogicalSystem` specializes the functional boundary of Phase 6,
+keeps its five ports and owns the display's inside, one level below the
+boundary. The context elements of Phase 2 stay outside and undivided. The
+package's one usage of the definition, `hmiDisplayLogicalSystem`, exists for
+the views, which draw usages; it depicts the context's `hmiDisplay`, whose
+definition `HmiDisplayLogicalSystem` specializes, and is bound to nothing.
+
+The owner decided on three logical elements for the five functions
+(2026-11-24). Functions share an element when nothing requires them to be
+separately placeable, and split where a requirement constrains the exchange
+between them or demands that one keeps working when the other does not:
+
+- **Scene drawer** carries `drawScene` alone. REQ-HMI-009 sets the drawing of
+  the scene apart from the drawing of the vehicle speed and the collision
+  warning, and REQ-HMI-008 asks the speed and the warning to go on through
+  each outage of the drawing of the scene.
+- **Presenter** carries `judgeCurrency`, `showContent` and `giveWarning`. The
+  three share the currency verdict, and no requirement asks one of them to go
+  on when another does not. It takes nothing from the scene drawer but the
+  drawn scenes, so it goes on through each outage of the drawing.
+- **Identity recorder** carries `recordDisplayIdentity`. The record covers
+  both other elements and comes before the first frame of either, so Phase 8
+  realizes it beside their software, not inside either.
+
+Each function is allocated to its element by a native allocation from the
+definition-nested function usage Phase 6 allocated the requirements to; the
+allocation is a responsibility assignment, not a realization, deployment or
+runtime claim. The exchanges are connections between typed ports. The
+boundary items are delegated from the inherited ports: the scene to the scene
+drawer and to the presenter, the vehicle speed and the warning request to the
+presenter, and what the display shows and the collision warning from the
+presenter. Inside, the drawn scenes go from the scene drawer to the
+presenter, the one exchange between elements. The drawn scenes carry
+REQ-HMI-001 and REQ-HMI-002 across two elements, and their stop leaves the
+vehicle speed and the warning going, as REQ-HMI-008 asks. Nothing runs from
+the presenter to another element, and the identity recorder exchanges
+nothing. REQ-HMI-009 keeps the paths of the inputs inside the boundary and
+stays with Phase 8, which carries it by the elements it places on those
+paths; Phase 8 places each exchange on a technology. No element, port or
+exchange names a computer, a process, a transport or a signal catalogue.
+
+What crosses the boundary agrees in three places: the boundary flows of the
+operational context, the ports of Phase 6 and the delegations of Phase 7.
+Nothing goes back to the candidate or to the command and warning path, and
+nothing comes from the driver, who only receives. No identity port: Phase 6
+orders the record before the first frame by succession, with no item, so it
+crosses no exchange. No liveness signal of its own: the drawn scenes carry an
+outage of the drawing to the presenter, as Phase 6 decided. Phase 7 shows no
+timing: Phase 8 divides the 0.1 s of the display among the elements it
+places.
+
+Three concerns of this phase are held by the parties they serve: the
+structure by system architects and software developers, the function mapping
+by system architects and verification engineers, and the internal exchanges
+by systems engineers and software developers. One view answers each, per the
+method's list of views per phase: the structure as a tree of the SAF System
+Structure Definition viewpoint, the mapping as a matrix of function by
+logical element of the System Function Mapping viewpoint, and the exchanges
+as an interconnection of the System Internal Exchange viewpoint. The phase
+publishes three views, listed in
+[`VIEWS.md`](../../textual-notation-of-model/packages/features/hmi/VIEWS.md).
+
+`tests/test_hmi_display_logical_architecture.py` pins the system, the
+elements and their ports, the exchanges, the allocations, the views and this
+section.
+
+## Physical and software realization (Phase 8)
+
+The
+[physical and software realization](../../textual-notation-of-model/packages/features/hmi/hmi_display_physical_software_realization.sysml)
+answers what software, hardware and deployment elements realize the three
+logical elements, and which elements carry each input from the SDV Core VM
+to the high availability renderer and to the app that draws the scene. On
+2026-11-25 the owner decided the placement:
+
+- The identity recorder is a DE4SDV service on the computer that starts the
+  VMs, and that service starts them: the central computer in the vehicle,
+  the guest host on the bench. It records the display identity before it
+  starts the IVI and SDV Media VMs, in the pattern of the identity recording
+  application of the driver-assistance increment. The record is a
+  self-report of System 1, which System 2 only reads.
+- The drawn scene reaches the screen by composition, the design that Android
+  SDV documents: the renderer's plane lies over the IVI plane on one display.
+  With each frame that it draws, the app in the IVI VM sends the renderer a
+  heartbeat with the time of the scene in that frame. While that scene is
+  current, the renderer keeps the scene area transparent; while it is not,
+  the renderer covers the area with its placeholder.
+- In the display's runs the IVI VM runs no other warning presentation, so no
+  element but the renderer draws the vehicle speed or the collision warning.
+  The realization, the runs and the verdicts of the driver-assistance
+  increment stay as they are.
+- The vehicle speed follows the vehicle's own path: an ECU measures it, the
+  vehicle network carries it to the central computer, and the SDV Core VM
+  takes it in as vehicle data. A DE4SDV publisher in the SDV Core VM gives
+  it to the renderer's vehicle data. On the bench the simulator stands in
+  for the ECU and the network.
+- No readiness session runs with this phase. One follows it, at its cost and
+  with the owner's go each time.
+
+Four software elements carry the three logical elements:
+
+- **Identity recording service** (DE4SDV, on the central computer) carries the
+  identity recorder. It has no port: it sends nothing to another element.
+- **Scene drawing app** (DE4SDV, in the IVI VM) carries the scene drawer. It
+  takes the scene through the SDV Gateway, draws it in the scene area of the
+  IVI plane and sends the heartbeats. It draws neither the speed nor the
+  warning.
+- **High availability renderer** (Android SDV's, in the SDV Media VM, with
+  DE4SDV changes) and the **composition of the display** (on the central
+  computer) carry the presenter together. The renderer judges whether the scene
+  as drawn, the speed and the warning request are current, draws the speed, the
+  warning and the symbol that the warning is unavailable on its plane, and
+  gives the chime. The composition puts the renderer's plane over the IVI plane
+  and adds nothing.
+
+The presenter is allocated to both, because the drawn scene reaches the
+display only through the composition. Without the presenter, the composition
+would be a way from the scene drawer to the driver beside the presenter, and
+the showing of the drawn scene would split, which Phase 7 rules out. Neither
+element is in the IVI VM, so both go on through each outage there. The
+heartbeats and the IVI plane together realize the drawn scenes of Phase 7.
+There are four allocations; an allocation is a responsibility assignment,
+no deployment or runtime claim.
+
+The inputs reach the display in the SDV Core VM. The warning request comes as
+the Data Tunnel topic of the driver-assistance increment, the speed as vehicle
+data, and the scene as a Data Tunnel topic that a context stand-in publishes,
+since the scene's way out of the candidate stays open. The Data Tunnel carries
+the scene to the SDV Gateway on the IVI VM. A DE4SDV vehicle data publisher in
+the SDV Core VM, which carries no logical element, gives the renderer the
+speed, the warning request and the time of each scene. The physical system
+carries `reqRendererSplitAndInputPaths` (REQ-HMI-009) by a dependency from its
+definition. The IVI VM of the display's runs is a definition of its own, so it
+holds no other warning presentation. The central computer runs the three VMs
+under its hypervisor; on the bench the guest host of INC-DRIVING-001 stands in
+for it, and no element of the bench is modeled here.
+
+Of the display's 0.1 s, Phase 8 gives 0.05 s to the hop from the SDV Core VM
+to the renderer or to the app, and 0.05 s to the drawing and to the start of
+the sound. Both are unmeasured and revisited when a readiness probe measures
+them. An outdated scene shows as the renderer's placeholder over the scene
+area, an outdated speed as no number, and an unavailable warning as one
+fixed symbol; the visual design stays out of scope. The speed is typed by
+COVESA VSS at its ports, and the warning request keeps the payload of the
+driver-assistance increment. Every other item says in its mapping record
+why it is no vehicle signal. There are eight mappings.
+
+Four gaps of the realization state what is not settled: the renderer's judging
+of the scene by the term current (`gapHmiRendererJudgesSceneCurrency`), the
+bench's feed of the speed into the SDV Core VM (`gapHmiBenchSpeedFeed`), the
+tolerance of a drawn position (`gapHmiDrawingToleranceUnset`), and the display
+identity, which does not name the builds of the vehicle data publisher, of the
+identity recording service and of the composition, nor the image of the SDV
+Core VM (`gapHmiIdentityMissesPhase8Elements`). Comments on the framing's gaps
+say what this phase placed: the path to the renderer, the heartbeats, the
+composition and the chime are placed and not observed on the bench. The changes
+to the projects of the renderer and of the candidate stay gaps, and nothing is
+written to their maintainers.
+
+Three alternatives were not selected: the recorder inside the SDV Core VM,
+the app streaming its drawn frames to the renderer, and the speed on the
+Eclipse S-CORE path.
+
+Three views answer the concerns of this phase: the structure as a tree of
+the SAF Physical Structure Definition viewpoint; the mapping as a matrix of
+logical element by software element of the Physical Logical Mapping
+viewpoint, which also frames `hmiRendererAllocationConcern`; and the paths
+as an interconnection of the Physical Internal Exchange viewpoint, which
+frames `hmiRendererPathConcern`. They are listed in
+[`VIEWS.md`](../../textual-notation-of-model/packages/features/hmi/VIEWS.md).
+
+`tests/test_hmi_display_physical_software_realization.py` pins the elements,
+their ports and paths, the allocations, the mappings, the views and this
+section.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -655,12 +842,14 @@ Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. Phase 3, the capability classification,
 records no feature-model delta, and review judges it: its one blocking check
 has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, with a
-prompt for review. The next model obligation is **Phase 7**, the logical
-architecture. On 2026-11-21 the owner decided that the increment goes on
-without waiting for Phase 10 of the driver-assistance increment. Phase 3 and
-later phases waited for the revision of the governed scope, which the model now
-holds, so they go on. On 2026-11-17 the owner decided that the readiness probe
-of the high availability renderer runs with its cost put to him first.
+prompt for review. The next model obligation is **Phase 9**: the configuration,
+which makes the realization of the increment a configured product; its first
+gate is `incrementHasConfiguredProduct`. On 2026-11-21 the owner decided that
+the increment goes on without waiting for Phase 10 of the driver-assistance
+increment. Phase 3 and later phases waited for the revision of the governed
+scope, which the model now holds, so they go on. On 2026-11-17 the owner
+decided that the readiness probe of the high availability renderer runs with
+its cost put to him first.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
@@ -674,9 +863,11 @@ authorizes no spend.
 Run `sysand sync`, `python scripts/check_repo.py`,
 `python scripts/smoke_test.py` and
 `python -m pytest tests/test_hmi_display_framing.py
-tests/test_hmi_display_functional_architecture.py -q`. These are repository
-and lexical checks, not SysML semantic validation and not runtime
-verification. Use `python scripts/validate_sysml.py` where a licensed
-validator is available, or request the maintainer-run **Privileged Syside
-Validation** on the reviewed head. The framing view and its published diagram
-come from that Syside run.
+tests/test_hmi_display_functional_architecture.py
+tests/test_hmi_display_logical_architecture.py
+tests/test_hmi_display_physical_software_realization.py -q`. These are
+repository and lexical checks, not SysML semantic validation and not runtime
+verification. Use `python scripts/validate_sysml.py` where a licensed validator
+is available, or request the maintainer-run **Privileged Syside Validation** on
+the reviewed head. The framing view and its published diagram come from that
+Syside run.

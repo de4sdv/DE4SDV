@@ -141,10 +141,36 @@ GRID_METADATA = {
         "requirements (requirement usages)",
         "system functions (action usages)",
     ),
+    "matrix-hmiDisplayFunctionMappingView": GridMetadata(
+        "HMI display function-to-logical-element mapping",
+        "Maps the five functions of the HMI display to the three logical elements that carry them.",
+        "system functions (action usages)",
+        "logical elements (part usages)",
+    ),
+    "matrix-hmiDisplayPhysicalLogicalMappingView": GridMetadata(
+        "HMI display logical-to-physical mapping",
+        "Maps the three logical elements of the HMI display to the four software elements that carry them.",
+        "logical elements (part usages)",
+        "software elements (part usages)",
+    ),
     "table-hmiDisplayStateTableView": GridMetadata(
         "HMI display states",
         "The states of each element of the HMI display and of the collision warning, and the functions whose "
         "behavior differs in each.",
+        "states (state usages)",
+        "",
+    ),
+    "matrix-eeVehicleNetworkRequirementFunctionMatrixView": GridMetadata(
+        "Vehicle network requirements by function",
+        "Each requirement of phase 5 and the functions of the vehicle network that carry it; no function carries "
+        "REQ-EE-001 or REQ-EE-003 in this phase.",
+        "requirements (requirement usages)",
+        "system functions (action usages)",
+    ),
+    "table-eeVehicleNetworkStateTableView": GridMetadata(
+        "Vehicle network states",
+        "The states of the actuation ECU in a run, by the valid driving commands that reach it, and the function "
+        "whose behavior differs in each.",
         "states (state usages)",
         "",
     ),
