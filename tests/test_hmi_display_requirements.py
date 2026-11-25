@@ -627,8 +627,8 @@ GUIDE_STATUS_OLD = (
     "Phase 4 stakeholder needs, proposal.**")
 GUIDE_STATUS_NEW = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture and Phase 7 logical "
-    "architecture, proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical architecture "
+    "and Phase 8 physical and software realization, proposal.**")
 GUIDE_FRAME_LINE = f"- [SysML requirements]({GUIDE_LINK}): the Phase 5 requirements of the HMI display."
 GUIDE_PHASE_FOUR_OLD = (
     "No need states a number or names a drawing: Phase 5 derives the requirements and their limits, how the app in "
@@ -643,8 +643,8 @@ GUIDE_PHASE_FOUR_NEW = (
     "what the warning request asks for and carries.")
 GUIDE_NEXT_OLD = "The next model obligation is **Phase 5**, the requirements."
 GUIDE_NEXT_NEW = (
-    "The next model obligation is **Phase 8**: the physical and software realization, which allocates each "
-    "logical element to a physical element; its first gate is `logicalElementAllocatedToPhysicalElement`.")
+    "The next model obligation is **Phase 9**: the configuration, which makes the realization of the increment a "
+    "configured product; its first gate is `incrementHasConfiguredProduct`.")
 GUIDE_HEADING = "## Requirements (Phase 5)"
 #: the blocks of the guide's Phase 5 section, in order; BULLETS and DECISIONS stand for the two lists
 GUIDE_BLOCKS = (
@@ -1280,6 +1280,7 @@ def test_the_guide_states_phase_5_and_the_next_obligation():
     assert nxt.count(GUIDE_NEXT_NEW) == 1 and GUIDE_NEXT_OLD not in flat
     assert "The next model obligation is **Phase 6**" not in flat, "phase 6 moved the next obligation to phase 7"
     assert "The next model obligation is **Phase 7**" not in flat, "phase 7 moved the next obligation to phase 8"
+    assert "The next model obligation is **Phase 8**" not in flat, "phase 8 moved the next obligation to phase 9"
     assert guide.endswith("\n") and not guide.endswith("\n\n"), "the guide ends with exactly one newline"
 
 
