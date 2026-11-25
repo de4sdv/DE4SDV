@@ -275,8 +275,8 @@ GUIDE_OPENING = (
     "system of interest itself: `HmiDisplayLogicalSystem` specializes the functional boundary of Phase 6, keeps its "
     "five ports and owns the display's inside, one level below the boundary. The context elements of Phase 2 stay "
     "outside and undivided. The package's one usage of the definition, `hmiDisplayLogicalSystem`, exists for the "
-    "views, which draw usages; it depicts the context's `hmiDisplay`, whose definition this one specializes, and is "
-    "bound to nothing.")
+    "views, which draw usages; it depicts the context's `hmiDisplay`, whose definition `HmiDisplayLogicalSystem` "
+    "specializes, and is bound to nothing.")
 
 #: The owner's decision, with its date and the cut rule.
 GUIDE_DECISION = (
@@ -523,7 +523,8 @@ def test_the_exchanges_are_exactly_these_seven_connections():
     body = _system_body()
     assert len(re.findall(r"\bconnect\b", body)) == len(CONNECTIONS)
     assert len(re.findall(r"\bconnection\b", _code())) == len(CONNECTIONS)
-    assert not re.search(r"\b(flow|bind|interface|message)\b", body), "exchanges between parts are connections"
+    assert not re.search(r"\b(flow|bind|binding|interface|message|succession)\b", _code()), \
+        "the file's only exchanges are the system's seven connections"
     # every end of a connection names a declared port of its element, or an inherited boundary port
     for _, *ends in connections:
         for end in ends:
@@ -719,8 +720,8 @@ def test_the_package_types_no_signal_and_adds_no_trace_of_req_hmi_009():
 def test_the_package_declares_no_name_that_another_model_package_declares():
     # Two packages may declare the same name, but a lookup by name then finds two elements, and a check that
     # reads a folder by name sees one increment's element as the other's. The elements' ports repeat the five
-    # boundary port names of phase 6, as the precedent's do, and the viewpoint usages keep the names every logical
-    # package uses; those are left out.
+    # boundary port names of phase 6, as the precedent's do, and the viewpoint usages keep the names that other
+    # logical packages use too; those are left out.
     kinds = r"(?:part def|port def|part|port|concern|view|allocation|connection)"
     declared = set(re.findall(rf"(?m)^(?:  |    ){kinds}\s+(\w+)", _code()))
     declared -= set(BOUNDARY_PORTS)
