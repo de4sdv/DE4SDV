@@ -95,7 +95,7 @@ def test_the_receipt_sha256_is_that_of_the_committed_receipt_the_configuration_n
     assert c["configuration_receipt_sha256"] == hashlib.sha256((REPO / RECEIPT).read_bytes()).hexdigest()
     rec = c["configuration_receipt"]
     assert rec["path"] == RECEIPT and rec["commit"] == COMMIT
-    assert rec["model_bound_sha256"] == "50cab825ea8ad7ade74173a7b4c1e7db47d68adf0b25867b8441c1387a63f357"
+    assert rec["model_bound_sha256"] == "0447e4a561240dcdc0cc1860eb9a707e0cc5ca965af40c9a6c26b9534458c4db"
     assert rec["equal_to_model"] is (rec["model_bound_sha256"] == c["configuration_receipt_sha256"])
     # each value names its source, file and line, at the commit
     assert f"{CONFIG_SYSML}:106" in rec["sources"]["configuration_identity"]

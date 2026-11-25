@@ -56,8 +56,13 @@ package DE4SDV_SDVProductLineFeatureModel {
                  * realization content (ADR 0025). Exactly one realization per
                  * group, subject to the constraints. */
 
-            #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION'> vehicleApplication[1];
+            #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION'> vehicleApplication[1] {
+                doc /* The driving or driver-assistance application that
+                     * runs on the main side. */
+            }
             #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE'> autoware[0..1] :> vehicleApplication default null {
+                doc /* Autoware as the vehicle application: open-source
+                     * autonomous-driving software on ROS 2. */
                 assert constraint <'C011'> autowareRequiresLinux :> requiresFeatures {
                     doc /* Autoware requires Linux on the main side (owner
                          * decision of 2026-10-22). */
@@ -65,6 +70,8 @@ package DE4SDV_SDVProductLineFeatureModel {
                 }
             }
             #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION-OPENPILOT'> openpilot[0..1] :> vehicleApplication default null {
+                doc /* Openpilot as the vehicle application: the
+                     * open-source driver-assistance software of comma.ai. */
                 assert constraint openpilotExcludesUnsupportedMiddleware :> xorFeatures {
                     doc /* No derivation rule exists for Openpilot with Android SDV
                          * or AUTOSAR Adaptive, so both pairs are unsupported. */
@@ -72,6 +79,9 @@ package DE4SDV_SDVProductLineFeatureModel {
                 }
             }
             #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION-APOLLO'> apollo[0..1] :> vehicleApplication default null {
+                doc /* Apollo as the vehicle application: the open-source
+                     * autonomous-driving software of Baidu, with its own
+                     * middleware, Cyber RT. */
                 assert constraint apolloExcludesUnsupportedMiddleware :> xorFeatures {
                     doc /* No derivation rule exists for Apollo with Android SDV
                          * or AUTOSAR Adaptive, so both pairs are unsupported. */
@@ -141,6 +151,8 @@ package DE4SDV_SDVProductLineFeatureModel {
                      * partner runs in the guest (C009). */
             }
             #feature occurrence <'F-PLATFORM-MIDDLEWARE-ECLIPSE-SCORE'> eclipseSCORE[0..1] :> middleware default null {
+                doc /* Eclipse S-CORE as the middleware: an open-source
+                     * automotive middleware on the main side. */
                 assert constraint <'C001'> eclipseSCOREExcludesAndroid :> xorFeatures {
                     doc /* Eclipse S-CORE runs on the main side, and it targets
                          * Linux and QNX, not Android HLOS.
@@ -151,6 +163,9 @@ package DE4SDV_SDVProductLineFeatureModel {
                 }
             }
             #feature occurrence <'F-PLATFORM-MIDDLEWARE-ANDROID-SDV'> androidSDV[0..1] :> middleware default null {
+                doc /* AAOS SDV as the middleware: the Android-based SDV
+                     * middleware. It runs in the guest, not on the main
+                     * side. */
                 assert constraint <'C009'> androidSDVRequiresGuestAndroidSDV :> requiresFeatures {
                     doc /* The AAOS SDV partner of the vehicle application runs
                          * in the guest: the guest middleware is AAOS SDV. */
@@ -158,6 +173,9 @@ package DE4SDV_SDVProductLineFeatureModel {
                 }
             }
             #feature occurrence <'F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE'> autosarAdaptive[0..1] :> middleware default null {
+                doc /* AUTOSAR Adaptive as the middleware: the
+                     * service-oriented middleware standard of AUTOSAR, on
+                     * the main side. */
                 assert constraint <'C003'> autosarAdaptiveExcludesAndroid :> xorFeatures {
                     doc /* AUTOSAR Adaptive runs on the main side, on Linux or
                          * QNX.
@@ -167,20 +185,42 @@ package DE4SDV_SDVProductLineFeatureModel {
                     in occurrence constrainedFeatures = new FeatureOperand(that, android);
                 }
             }
-            #feature occurrence <'F-PLATFORM-MIDDLEWARE-NONE'> noMiddleware[0..1] :> middleware default null;
+            #feature occurrence <'F-PLATFORM-MIDDLEWARE-NONE'> noMiddleware[0..1] :> middleware default null {
+                doc /* No vehicle-level middleware: the vehicle application
+                     * uses only its own communication, so no adapter is
+                     * needed. */
+            }
 
             #feature occurrence <'F-PLATFORM-OS'> operatingSystem[1] {
                 doc /* The operating system of the main side: the execution
                      * domain that runs the vehicle application. With KVM, the
                      * main side is the KVM host. */
             }
-            #feature occurrence <'F-PLATFORM-OS-LINUX'> linux[0..1] :> operatingSystem default null;
-            #feature occurrence <'F-PLATFORM-OS-ANDROID'> android[0..1] :> operatingSystem default null;
-            #feature occurrence <'F-PLATFORM-OS-QNX'> qnx[0..1] :> operatingSystem default null;
+            #feature occurrence <'F-PLATFORM-OS-LINUX'> linux[0..1] :> operatingSystem default null {
+                doc /* Linux as the operating system of the main side. */
+            }
+            #feature occurrence <'F-PLATFORM-OS-ANDROID'> android[0..1] :> operatingSystem default null {
+                doc /* Android HLOS as the operating system of the main
+                     * side: the Android framework on a Linux kernel. */
+            }
+            #feature occurrence <'F-PLATFORM-OS-QNX'> qnx[0..1] :> operatingSystem default null {
+                doc /* QNX Neutrino as the operating system of the main
+                     * side: a commercial real-time operating system with a
+                     * POSIX API. */
+            }
 
-            #feature occurrence <'F-PLATFORM-HYPERVISOR'> hypervisor[1];
-            #feature occurrence <'F-PLATFORM-HYPERVISOR-QVM'> qvm[0..1] :> hypervisor default null;
+            #feature occurrence <'F-PLATFORM-HYPERVISOR'> hypervisor[1] {
+                doc /* The hypervisor that separates the execution domains
+                     * on the SoC, or none. */
+            }
+            #feature occurrence <'F-PLATFORM-HYPERVISOR-QVM'> qvm[0..1] :> hypervisor default null {
+                doc /* QNX QVM as the hypervisor: the commercial hypervisor
+                     * of QNX. */
+            }
             #feature occurrence <'F-PLATFORM-HYPERVISOR-ACRN'> acrn[0..1] :> hypervisor default null {
+                doc /* ACRN as the hypervisor: an open-source hypervisor
+                     * that runs each execution domain in a VM, the main
+                     * side included. */
                 assert constraint <'C004'> acrnExcludesQNX :> xorFeatures {
                     doc /* With ACRN the main side runs as a guest of the
                          * hypervisor, and ACRN supports no QNX guest. So the
@@ -189,6 +229,9 @@ package DE4SDV_SDVProductLineFeatureModel {
                 }
             }
             #feature occurrence <'F-PLATFORM-HYPERVISOR-KVM'> kvm[0..1] :> hypervisor default null {
+                doc /* KVM as the hypervisor: virtualization in the Linux
+                     * kernel of the main side. The main side is the host,
+                     * and the guest side runs in KVM VMs. */
                 assert constraint <'C005'> kvmExcludesQNX :> xorFeatures {
                     doc /* With KVM the main side is the KVM host, and KVM runs
                          * in a Linux kernel. So the main side cannot be QNX.
@@ -198,6 +241,8 @@ package DE4SDV_SDVProductLineFeatureModel {
                 }
             }
             #feature occurrence <'F-PLATFORM-HYPERVISOR-NONE'> noHypervisor[0..1] :> hypervisor default null {
+                doc /* No hypervisor: the SoC runs one execution domain,
+                     * the main side. */
                 assert constraint <'C007'> noHypervisorRequiresNoGuestOperatingSystem :> requiresFeatures {
                     doc /* A guest needs a hypervisor: without one, there is no
                          * guest operating system. The rule covers every guest
@@ -212,31 +257,52 @@ package DE4SDV_SDVProductLineFeatureModel {
                      * with one or more VMs. noGuestOperatingSystem selects no
                      * guest domain. */
             }
-            #feature occurrence <'F-PLATFORM-GUEST-OS-ANDROID'> guestAndroid[0..1] :> guestOperatingSystem default null;
-            #feature occurrence <'F-PLATFORM-GUEST-OS-NONE'> noGuestOperatingSystem[0..1] :> guestOperatingSystem default null;
+            #feature occurrence <'F-PLATFORM-GUEST-OS-ANDROID'> guestAndroid[0..1] :> guestOperatingSystem default null {
+                doc /* Android HLOS as the operating system of the guest
+                     * side. */
+            }
+            #feature occurrence <'F-PLATFORM-GUEST-OS-NONE'> noGuestOperatingSystem[0..1] :> guestOperatingSystem default null {
+                doc /* No guest side: the SoC runs no second execution
+                     * domain. */
+            }
 
             #feature occurrence <'F-PLATFORM-GUEST-MIDDLEWARE'> guestMiddleware[1] {
                 doc /* The middleware of the guest side, on the guest operating
                      * system, or none. */
             }
             #feature occurrence <'F-PLATFORM-GUEST-MIDDLEWARE-ANDROID-SDV'> guestAndroidSDV[0..1] :> guestMiddleware default null {
+                doc /* AAOS SDV as the middleware of the guest side. */
                 assert constraint <'C008'> guestAndroidSDVRequiresGuestAndroid :> requiresFeatures {
                     doc /* AAOS SDV requires Android: the guest middleware runs on
                          * the Android of the guest. */
                     in occurrence constrainedFeatures = new FeatureOperand(that, guestAndroid);
                 }
             }
-            #feature occurrence <'F-PLATFORM-GUEST-MIDDLEWARE-NONE'> noGuestMiddleware[0..1] :> guestMiddleware default null;
+            #feature occurrence <'F-PLATFORM-GUEST-MIDDLEWARE-NONE'> noGuestMiddleware[0..1] :> guestMiddleware default null {
+                doc /* No middleware on the guest side. */
+            }
         }
 
         #feature occurrence <'F-SENSING'> sensingBoundary[1] {
             doc /* The vehicle sensing boundary: a mandatory grouping feature.
                  * The motion sensors are common content, not a feature. */
 
-            #feature occurrence <'F-SENSING-PERCEPTION'> perceptionSensors[1..*];
-            #feature occurrence <'F-SENSING-PERCEPTION-LIDAR'> lidar[0..1] :> perceptionSensors default null;
-            #feature occurrence <'F-SENSING-PERCEPTION-RADAR'> radar[0..1] :> perceptionSensors default null;
-            #feature occurrence <'F-SENSING-PERCEPTION-CAMERA'> camera[0..1] :> perceptionSensors default null;
+            #feature occurrence <'F-SENSING-PERCEPTION'> perceptionSensors[1..*] {
+                doc /* The sensors that perceive the surroundings of the
+                     * vehicle: one kind or more. */
+            }
+            #feature occurrence <'F-SENSING-PERCEPTION-LIDAR'> lidar[0..1] :> perceptionSensors default null {
+                doc /* LiDAR: laser sensors that measure the distance to
+                     * the objects around the vehicle. */
+            }
+            #feature occurrence <'F-SENSING-PERCEPTION-RADAR'> radar[0..1] :> perceptionSensors default null {
+                doc /* Radar: radio sensors that measure the distance and
+                     * the speed of the objects around the vehicle. */
+            }
+            #feature occurrence <'F-SENSING-PERCEPTION-CAMERA'> camera[0..1] :> perceptionSensors default null {
+                doc /* Cameras: image sensors that see the surroundings of
+                     * the vehicle. */
+            }
         }
 
         #feature occurrence <'F-CAPABILITIES'> capabilities[1] {
@@ -247,11 +313,26 @@ package DE4SDV_SDVProductLineFeatureModel {
                  * YAML catalogue placed above them, and the common
                  * vehicle-target AEBS have no feature. */
 
-            #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION'> pedestrianDetection[0..1] default null;
-            #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-AEBS-BICYCLE-DETECTION'> bicycleDetection[0..1] default null;
-            #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL'> adaptiveCruiseControl[0..1] default null;
-            #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-LANE-KEEP-ASSIST'> laneKeepAssist[0..1] default null;
-            #feature occurrence <'F-CAPABILITY-HMI-DISPLAY'> hmiDisplay[0..1] default null;
+            #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION'> pedestrianDetection[0..1] default null {
+                doc /* Pedestrian detection for the AEBS: emergency braking
+                     * also for pedestrians, not only for vehicles. */
+            }
+            #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-AEBS-BICYCLE-DETECTION'> bicycleDetection[0..1] default null {
+                doc /* Bicycle detection for the AEBS: emergency braking
+                     * also for cyclists, not only for vehicles. */
+            }
+            #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL'> adaptiveCruiseControl[0..1] default null {
+                doc /* Adaptive cruise control: the vehicle holds a set
+                     * speed and a set gap to the vehicle ahead. */
+            }
+            #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-LANE-KEEP-ASSIST'> laneKeepAssist[0..1] default null {
+                doc /* Lane-keep assist: steering support that keeps the
+                     * vehicle in its lane. */
+            }
+            #feature occurrence <'F-CAPABILITY-HMI-DISPLAY'> hmiDisplay[0..1] default null {
+                doc /* An HMI display for the driver. It shows the vehicle
+                     * speed and gives the collision warning. */
+            }
         }
     }
 

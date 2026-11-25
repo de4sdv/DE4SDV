@@ -6,12 +6,12 @@
  * Shared-assets model: textual-notation-of-model/packages/architecture/execution_environments.sysml
  * Shared-assets model SHA-256: f35675c21dced2604c813b4a366b0cfbdd6a410ccb58539cb387188e89e538fc
  * Receipt: model-based-product-line-engineering/feature-models/receipts/vehicle_execution_environments.receipt.json
- * Receipt SHA-256: 5dfacd6335705682bfd00bc06b24e3aba76d698a1d4b4149823f7863b26bd717
- * Elements SHA-256: 9ddda470ee182cc9ef7543b94f1c50f357aa6f255d836afadfa709c4623f71bd
+ * Receipt SHA-256: ac03e5625547390560fdbf054ef3d90a80d74ad20380b26b459ba965c8950ec0
+ * Elements SHA-256: c3f14b22213120fa0bd9b5256b58ac04d483cbbdd7d2d483775bc41f550a40e1
  * Feature configuration: model-based-product-line-engineering/feature-configurations/nxp_zephyr_vehicle_target_candidate.sysml (nxpZephyrVehicleTargetCandidate)
  * Feature configuration SHA-256: 73159664de143098d2f4a9d46f8aea6ec47aa401840d528c828610bde0f23e10
  * PLEML feature model: model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml
- * PLEML feature model SHA-256: 638ad3ead7b6f1a4006a3ccd4b5c693d1ac946407a0794f3234538dfd6dfb79b
+ * PLEML feature model SHA-256: 5eca98314b25467e717b75cba46ec6a374885fc19579a2713ae6512b2d6f0026
  */
 
 private import DE4SDV_ExecutionEnvironments::VehicleTargetExecutionEnvironment;

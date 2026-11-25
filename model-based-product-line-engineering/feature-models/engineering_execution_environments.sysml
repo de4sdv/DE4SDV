@@ -30,8 +30,12 @@ package DE4SDV_EngineeringExecutionEnvironmentFeatureModel {
             doc /* A mandatory grouping feature that holds the compute,
                  * operating-system and runtime alternative groups. */
 
-            #feature occurrence <'F-ENG-COMPUTE'> computeNode[1];
+            #feature occurrence <'F-ENG-COMPUTE'> computeNode[1] {
+                doc /* The compute hardware of the engineering host. */
+            }
             #feature occurrence <'F-ENG-COMPUTE-JETSON-ORIN-NANO'> jetsonOrinNano[0..1] :> computeNode default null {
+                doc /* The NVIDIA Jetson Orin Nano Developer Kit Super (8
+                     * GiB, ARM64), the maintained Jetson host. */
                 assert constraint <'C-ENG-JETSON-REQUIRES-TEGRA-LINUX'> jetsonRequiresTegraLinux :> requiresFeatures {
                     doc /* The maintained Jetson target is modeled with Ubuntu/Tegra
                          * Linux, not macOS; exact identity is inspected rather than
@@ -44,6 +48,8 @@ package DE4SDV_EngineeringExecutionEnvironmentFeatureModel {
                 }
             }
             #feature occurrence <'F-ENG-COMPUTE-APPLE-SILICON'> appleSiliconMac[0..1] :> computeNode default null {
+                doc /* An Apple Silicon Mac (M-series, ARM64) as the
+                     * engineering host. */
                 assert constraint <'C-ENG-APPLE-REQUIRES-MACOS'> appleSiliconRequiresMacOS :> requiresFeatures {
                     doc /* The candidate denotes an Apple Silicon macOS engineering
                          * host. */
@@ -56,6 +62,8 @@ package DE4SDV_EngineeringExecutionEnvironmentFeatureModel {
                 }
             }
             #feature occurrence <'F-ENG-COMPUTE-INTEL-X86-64-NESTED-KVM'> intelX8664NestedKvmHost[0..1] :> computeNode default null {
+                doc /* An Intel x86-64 Linux host with nested
+                     * virtualization, for the AAOS build and Cuttlefish. */
                 assert constraint <'C-ENG-AOSP-HOST-REQUIRES-LINUX-X86-64'> aospHostRequiresLinuxX8664 :> requiresFeatures {
                     doc /* The candidate AAOS build host requires a Linux x86_64
                          * environment. */
@@ -68,15 +76,35 @@ package DE4SDV_EngineeringExecutionEnvironmentFeatureModel {
                 }
             }
 
-            #feature occurrence <'F-ENG-OS'> operatingSystem[1];
-            #feature occurrence <'F-ENG-OS-UBUNTU-2204-TEGRA'> ubuntu2204Tegra[0..1] :> operatingSystem default null;
-            #feature occurrence <'F-ENG-OS-MACOS-APPLE-SILICON'> macOSAppleSilicon[0..1] :> operatingSystem default null;
-            #feature occurrence <'F-ENG-OS-LINUX-X86-64-AOSP'> linuxX8664AOSPBuild[0..1] :> operatingSystem default null;
+            #feature occurrence <'F-ENG-OS'> operatingSystem[1] {
+                doc /* The operating system of the engineering host. */
+            }
+            #feature occurrence <'F-ENG-OS-UBUNTU-2204-TEGRA'> ubuntu2204Tegra[0..1] :> operatingSystem default null {
+                doc /* Ubuntu 22.04 with the NVIDIA Tegra kernel and
+                     * platform support. */
+            }
+            #feature occurrence <'F-ENG-OS-MACOS-APPLE-SILICON'> macOSAppleSilicon[0..1] :> operatingSystem default null {
+                doc /* macOS on Apple Silicon. */
+            }
+            #feature occurrence <'F-ENG-OS-LINUX-X86-64-AOSP'> linuxX8664AOSPBuild[0..1] :> operatingSystem default null {
+                doc /* Linux on x86-64, set up for the AAOS build. */
+            }
 
-            #feature occurrence <'F-ENG-RUNTIME'> executionRuntime[1];
-            #feature occurrence <'F-ENG-RUNTIME-NATIVE-LINUX-ARM64-OCI'> nativeLinuxArm64OCI[0..1] :> executionRuntime default null;
-            #feature occurrence <'F-ENG-RUNTIME-VIRTUAL-LINUX-ARM64-OCI-MACOS'> virtualizedLinuxArm64OCIOnMacOS[0..1] :> executionRuntime default null;
-            #feature occurrence <'F-ENG-RUNTIME-NESTED-KVM-CUTTLEFISH'> nestedKvmCuttlefish[0..1] :> executionRuntime default null;
+            #feature occurrence <'F-ENG-RUNTIME'> executionRuntime[1] {
+                doc /* How the engineering software runs on the host. */
+            }
+            #feature occurrence <'F-ENG-RUNTIME-NATIVE-LINUX-ARM64-OCI'> nativeLinuxArm64OCI[0..1] :> executionRuntime default null {
+                doc /* OCI containers that run natively on ARM64 Linux,
+                     * with a Docker-compatible runtime. */
+            }
+            #feature occurrence <'F-ENG-RUNTIME-VIRTUAL-LINUX-ARM64-OCI-MACOS'> virtualizedLinuxArm64OCIOnMacOS[0..1] :> executionRuntime default null {
+                doc /* ARM64 Linux OCI containers that run in a Linux VM on
+                     * macOS. */
+            }
+            #feature occurrence <'F-ENG-RUNTIME-NESTED-KVM-CUTTLEFISH'> nestedKvmCuttlefish[0..1] :> executionRuntime default null {
+                doc /* Cuttlefish, the virtual Android device, in nested
+                     * KVM. */
+            }
         }
     }
 
