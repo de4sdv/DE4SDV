@@ -62,16 +62,12 @@
  * gapHmiRendererIntegration gives what the criteria ask of System 2.
  *
  * Rule 5 of the increment workflow makes a requirement core when its subject
- * has no link and it has none of its own. No requirement carries a link at
- * this revision, so all ten read as core. Phase 3 classes the HMI display as
+ * has no link and it has none of its own. Phase 3 classes the HMI display as
  * content of every member of the governed scope and leaves open which of its
- * content is common, so phase 9 decides on a link of its system of interest
- * and claims no member. Beyond the subject, REQ-HMI-001 and REQ-HMI-002 follow
- * the driving application through the scene, whose form is that of VisionPilot
- * (visionPilot), and REQ-HMI-001, REQ-HMI-008, REQ-HMI-009 and REQ-HMI-010
- * name the AAOS SDV guest through the IVI VM or the SDV Media VM
- * (guestAndroidSDV); phase 9 links them. The terms take only the form of the
- * warning request, so REQ-HMI-003 to REQ-HMI-007 name no variant.
+ * content is common, so phase 9 claims no member. In the framing, phase 9
+ * makes the system of interest depend on the features visionPilot and
+ * guestAndroidSDV. Every requirement follows it, and none carries a link of
+ * its own. REQ-HMI-003 to REQ-HMI-007 name no variant beyond their subject.
  *
  * No safety, timing, on-road or production-readiness claim is made, and no
  * member product is claimed.

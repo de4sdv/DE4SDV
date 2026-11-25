@@ -435,9 +435,9 @@ that it shapes:
     draws the scene, the images of both guest VMs, the sound file and each
     configuration file, and records the settings of its start, before the first
     frame of each run.
-13. No requirement carries a feature link yet: phase 9 links `REQ-HMI-001` and
-    `REQ-HMI-002` to the driving application and `REQ-HMI-001`, `REQ-HMI-008`,
-    `REQ-HMI-009` and `REQ-HMI-010` to the AAOS SDV guest.
+13. No requirement carries a feature link of its own: phase 9 links the system
+    of interest to the driving application and to the AAOS SDV guest, and every
+    requirement follows it.
 
 The rationales cite the files of VisionPilot by file name and line, and the
 upstream record gives each with its path at the pinned commit.
@@ -784,6 +784,25 @@ asset, configuration, receipt or projection.
   usage and the three open gaps of Phase 8 that the product inherits,
   GAP-HMI-001, GAP-HMI-003 and GAP-HMI-004; GAP-HMI-002 is a gap of the bench.
   The definition specializes no member-product type.
+- **The links of rule 5.** Until the configuration evaluator reads links of
+  increment elements and the existing links have moved, rule 5 takes its
+  dependency form (ADR 0027 decision 8). The links are declared with their
+  clients, in the framing. No check reads them:
+  `tests/test_hmi_display_variability_configuration.py` pins each link, and
+  that no feature-model or configuration document names an element of the
+  increment.
+- **The system of interest.** `hmiDisplaySystemOnVisionPilotFeature` and
+  `hmiDisplaySystemOnGuestAndroidSDVFeature` make it depend on `visionPilot`
+  and `guestAndroidSDV`. By ADR 0026 every member product is to have an HMI
+  display, and what it shows in each is open; this system of interest is the
+  display of the VisionPilot configuration, inside the AAOS SDV guest, so it
+  enters a member product only with both features. The binding form gives an
+  element one link and derives no variant for this pair, so the move of the
+  links takes this combination to the owner.
+- **The requirements.** Every requirement follows the system of interest, and
+  none carries a link of its own. `REQ-HMI-004`, `REQ-HMI-005` and
+  `REQ-HMI-007` name the warning request, which the driver-assistance increment
+  gives only with both features.
 
 Two views answer the phase's questions, both trees: the selections of the
 projection (Product Line Configuration viewpoint) and the assembly of the
