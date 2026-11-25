@@ -105,6 +105,11 @@ BENCH_GAP = ("GAP-HMI-002", "gapHmiBenchSpeedFeed")
 #: Rule 5, dependency form, owned with their clients (link name -> (client, feature)). A requirement links only what
 #: its subject does not bring.
 SUBJECT_LINKS: dict[str, tuple[str, str]] = {}
+# ---- unit: the links of the system of interest ------------------------------------------------------------------
+#: The system of interest brings VisionPilot and the AAOS SDV guest, so no requirement links a feature of its own.
+SUBJECT_LINKS["hmiDisplaySystemOnVisionPilotFeature"] = ("hmiDisplaySystem", "visionPilot")
+SUBJECT_LINKS["hmiDisplaySystemOnGuestAndroidSDVFeature"] = ("hmiDisplaySystem", "guestAndroidSDV")
+# ---- end of the unit --------------------------------------------------------------------------------------------
 REQUIREMENT_LINKS: dict[str, tuple[str, str]] = {}
 LINKS = REQUIREMENT_LINKS
 
@@ -387,6 +392,54 @@ def test_no_link_sits_in_a_feature_model_document_or_another_hmi_package() -> No
             assert "DE4SDV_SDVProductLineFeatureModel" not in _code(path), path.name
 
 
+# ---- unit: the links of the system of interest ------------------------------------------------------------------
+def test_the_system_of_interest_depends_on_visionpilot_and_on_guest_android_sdv() -> None:
+    """The display of this increment is the display of the VisionPilot configuration inside the AAOS SDV guest: two
+    dependencies of the system of interest in the framing name both features, and its requirements follow it."""
+    assert _feature_links(FRAMING) == SUBJECT_LINKS == {
+        "hmiDisplaySystemOnVisionPilotFeature": ("hmiDisplaySystem", "visionPilot"),
+        "hmiDisplaySystemOnGuestAndroidSDVFeature": ("hmiDisplaySystem", "guestAndroidSDV")}
+    code = " ".join(_code(FRAMING).split())
+    assert "ref part :>> systemOfInterest = hmiDisplaySystem;" in code
+    usage = "part hmiDisplaySystem : HmiDisplaySystem;"
+    assert code.count(usage) == 1
+    assert REQUIREMENT_LINKS == {}
+    assert ("In the framing, phase 9 makes the system of interest depend on the features visionPilot and "
+            "guestAndroidSDV. Every requirement follows it, and none carries a link of its own.") in _docs(NEEDS)
+
+
+def test_no_requirement_of_the_increment_depends_on_a_feature() -> None:
+    """Every requirement follows the system of interest, which brings both features: no requirement of the increment
+    is a client of any dependency in any model file, in any form (named or not, qualified or by its short name, with
+    metadata, inside a body), and the requirements package names no feature and no platform-stack variant."""
+    requirements = re.findall(r"\brequirement <'(REQ-HMI-0\d\d)'> (\w+) :", NEEDS.read_text(encoding="utf-8"))
+    assert len(requirements) == 10, "the population of the check must not be vacuous"
+    names = "|".join(name for _short, name in requirements)
+    shorts = "|".join(short for short, _name in requirements)
+    client = re.compile(rf"(?<![\w:])(?:DE4SDV_HmiDisplayNeedsRequirements::)?(?:'?(?:{names})'?|'(?:{shorts})')"
+                        r"(?![\w'])")
+    for path in sorted(p for root in MODEL_ROOTS for p in root.rglob("*.sysml")):
+        for dependency in re.findall(r"\bdependency\b[^;{]*", strip_comments(path.read_text(encoding="utf-8"))):
+            clients = re.search(r"\bfrom\b(.*?)\bto\b", dependency, re.S)
+            assert not (clients and client.search(clients.group(1))), (path.name, dependency)
+    code = _code(NEEDS)
+    assert "DE4SDV_SDVProductLineFeatureModel" not in code and "DE4SDV_SDVPlatformStack" not in code
+    assert "#FeatureBinding" not in code
+
+
+def test_the_owner_direction_is_one_comment_about_the_product_line_gap() -> None:
+    """The direction on what the display of every member is to show is the one comment of the framing, about the gap
+    that phase 3 hangs its scope decisions on, and changes no member."""
+    code = " ".join(_code(FRAMING).split())
+    assert len(re.findall(r"\bcomment\b", code)) == 1
+    assert re.search(r"\bcomment about gapHmiDisplayInProductLine (?:part|requirement|concern|view|dependency)\b", code)
+    raw = FRAMING.read_text(encoding="utf-8")
+    match = re.search(r"\bcomment\s+about\s+gapHmiDisplayInProductLine\s*/\*(.*?)\*/", raw, re.S)
+    assert match and " ".join(re.sub(r"^\s*\*\s?", "", match.group(1), flags=re.M).split()) == OWNER_DIRECTION
+    assert sum(_doc_texts(path).count(OWNER_DIRECTION) for path in HMI.glob("*.sysml")) == 1
+# ---- end of the unit --------------------------------------------------------------------------------------------
+
+
 # -- the views, the charter and the guide ----------------------------------------------------------------------------
 
 
@@ -495,6 +548,21 @@ GUIDE_BLOCKS: list[str] = [
      "Dependencies record the trace to the Phase 8 usage and the three open gaps of Phase 8 that the product "
      "inherits, GAP-HMI-001, GAP-HMI-003 and GAP-HMI-004; GAP-HMI-002 is a gap of the bench. The definition "
      "specializes no member-product type."),
+# ---- unit: the links of the system of interest ------------------------------------------------------------------
+    ("- **The links of rule 5.** Until the configuration evaluator reads links of increment elements and the "
+     "existing links have moved, rule 5 takes its dependency form (ADR 0027 decision 8). The links are declared with"
+     " their clients, in the framing. No check reads them: `tests/test_hmi_display_variability_configuration.py` "
+     "pins each link, and that no feature-model or configuration document names an element of the increment."),
+    ("- **The system of interest.** `hmiDisplaySystemOnVisionPilotFeature` and "
+     "`hmiDisplaySystemOnGuestAndroidSDVFeature` make it depend on `visionPilot` and `guestAndroidSDV`. By ADR 0026 "
+     "every member product is to have an HMI display, and what it shows in each is open; this system of interest is "
+     "the display of the VisionPilot configuration, inside the AAOS SDV guest, so it enters a member product only "
+     "with both features. The binding form gives an element one link and derives no variant for this pair, so the "
+     "move of the links takes this combination to the owner."),
+    ("- **The requirements.** Every requirement follows the system of interest, and none carries a link of its own. "
+     "`REQ-HMI-004`, `REQ-HMI-005` and `REQ-HMI-007` name the warning request, which the driver-assistance increment"
+     " gives only with both features."),
+# ---- end of the unit --------------------------------------------------------------------------------------------
     ("Two views answer the phase's questions, both trees: the selections of the projection (Product Line "
      "Configuration viewpoint) and the assembly of the product with its two parts, its two bindings and the "
      "configured-product usage (Product Model Assembly viewpoint). Their diagrams come from the licensed Syside run;"
@@ -801,6 +869,32 @@ def test_the_slice_declares_no_exchange_and_no_relation_beyond_its_bindings_and_
 
 #: The plain comment of record that opens the links of rule 5 in a file that declares some (file name -> text).
 LINK_COMMENTS: dict[str, str] = {}
+# ---- unit: the links of the system of interest ------------------------------------------------------------------
+LINK_COMMENTS[FRAMING.name] = (
+    "Rule 5 of the increment workflow, in its dependency form, declared with the system of interest (phase 9). The "
+    "display of this increment is the display of the VisionPilot configuration (owner decision of 2026-11-17), "
+    "inside the AAOS SDV guest: the app in the IVI VM, the high availability renderer in an SDV Media VM, and the "
+    "paths from the SDV Core VM to both. So it enters a member product only with the features visionPilot and "
+    "guestAndroidSDV, and two dependencies name both. By the owner decision of 2026-11-26, its requirements follow "
+    "it, and none links a feature of its own (rule 11). The warning request that REQ-HMI-004, REQ-HMI-005 and "
+    "REQ-HMI-007 name comes with both: the requirements of the driver-assistance increment that name it follow a "
+    "system of interest that brings visionPilot and apply only where the AAOS SDV guest middleware is selected. By "
+    "ADR 0026 every member product is to have an HMI display, and what it shows in each is open "
+    "(hmiDisplayContentScopeDecisions). The binding form gives an element one link and derives no variant for this "
+    "pair, so the move of the links takes this combination to the owner (rule 5).")
+#: The owner's direction on the display of every member: a comment about the product-line gap.
+OWNER_DIRECTION = (
+    "Owner direction of 2026-11-26: the display of every member is to show the vehicle speed, the collision warning, "
+    "the outdated marks and the scene, and the HMI display is to stay independent of the driving application that "
+    "feeds it. It is to take each input in a form that does not depend on that application, and each application "
+    "that feeds it is to give its inputs in that form through a translation of its own. The vehicle speed has such a "
+    "form, as COVESA VSS types it, and the warning request has the form that the driver-assistance increment gives "
+    "it. The scene has the form of the scene of the panel of VisionPilot (termsHmiDisplayRequirements), and its "
+    "message type stays open until phase 10 (DisplaySceneMessage). In this increment VisionPilot is the source of "
+    "the scene and of the warning request. It is a direction for the scope decisions that "
+    "hmiDisplayContentScopeDecisions lists, for the AEBS requirements on the warning and for the message type of the "
+    "scene; it changes no member here.")
+# ---- end of the unit --------------------------------------------------------------------------------------------
 #: The opening of a plain comment on the links of rule 5.
 LINK_COMMENT_OPENING = "Rule 5 of the increment workflow, in its dependency form"
 _LINK = re.compile(r"\s*dependency\s+(\w+)\s+from\s+(\w+)\s+to\s+([\w:]+)\s*;")

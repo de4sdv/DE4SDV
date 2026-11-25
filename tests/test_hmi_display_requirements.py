@@ -585,13 +585,12 @@ HEADER_PHASE_FIVE_SET = (
     "gapHmiRendererIntegration gives what the criteria ask of System 2.")
 HEADER_PHASE_FIVE_VARIABILITY = (
     "Rule 5 of the increment workflow makes a requirement core when its subject has no link and it has none of its "
-    "own. No requirement carries a link at this revision, so all ten read as core. Phase 3 classes the HMI display as "
-    "content of every member of the governed scope and leaves open which of its content is common, so phase 9 decides "
-    "on a link of its system of interest and claims no member. Beyond the subject, REQ-HMI-001 and REQ-HMI-002 follow "
-    "the driving application through the scene, whose form is that of VisionPilot (visionPilot), and REQ-HMI-001, "
-    "REQ-HMI-008, REQ-HMI-009 and REQ-HMI-010 name the AAOS SDV guest through the IVI VM or the SDV Media VM "
-    "(guestAndroidSDV); phase 9 links them. The terms take only the form of the warning request, so REQ-HMI-003 to "
-    "REQ-HMI-007 name no variant.")
+    "own. Phase 3 classes the HMI display as content of every member of the governed scope and leaves open which of "
+    "its content is common, so phase 9 claims no member."
+    # the links of the system of interest
+    " In the framing, phase 9 makes the system of interest depend on the features visionPilot and guestAndroidSDV. "
+    "Every requirement follows it, and none carries a link of its own. REQ-HMI-003 to REQ-HMI-007 name no variant "
+    "beyond their subject.")
 #: the header sentence that phase 5 replaces
 HEADER_OLD = "Phase 5 adds to this package the requirements derived from these needs."
 #: the non-claim sentence of the header
@@ -758,8 +757,9 @@ GUIDE_DECISIONS = (
         "both guest VMs, the sound file and each configuration file, and records the settings of its start, before "
         "the first frame of each run."),
     (
-        "No requirement carries a feature link yet: phase 9 links `REQ-HMI-001` and `REQ-HMI-002` to the driving "
-        "application and `REQ-HMI-001`, `REQ-HMI-008`, `REQ-HMI-009` and `REQ-HMI-010` to the AAOS SDV guest."),
+        # the links of the system of interest
+        "No requirement carries a feature link of its own: phase 9 links the system of interest to the driving "
+        "application and to the AAOS SDV guest, and every requirement follows it."),
 )
 
 VISIONPILOT_PIN = "014e0e7a56ee8e597c2cab8175233f74edd9b856"
