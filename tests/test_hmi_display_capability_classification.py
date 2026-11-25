@@ -349,9 +349,12 @@ def test_the_guide_names_the_next_obligation_after_the_classification():
     for phrase in ("Phase 3, the capability classification, records no feature-model delta, and review judges it: "
                    "its one blocking check has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, "
                    "with a prompt for review.",
-                   "The next model obligation is **Phase 7**, the logical architecture."):
+                   "The next model obligation is **Phase 8**: the physical and software realization, which "
+                   "allocates each logical element to a physical element; its first gate is "
+                   "`logicalElementAllocatedToPhysicalElement`."):
         assert flat.count(phrase) == 1, phrase
     assert "The next model obligation is **Phase 3**" not in flat
     assert "The next model obligation is **Phase 4**" not in flat
     assert "The next model obligation is **Phase 5**" not in flat
     assert "The next model obligation is **Phase 6**" not in flat
+    assert "The next model obligation is **Phase 7**" not in flat
