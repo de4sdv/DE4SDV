@@ -310,6 +310,58 @@ def test_help_names_no_feature_or_configuration():
     assert re.search(r"\bF-[A-Z]", text) is None
 
 
+def _js_function(page: str, name: str) -> str:
+    """The body of one ``function NAME(...){...}`` of the page script."""
+    match = re.search(r"\bfunction %s\([^)]*\)\{" % re.escape(name), page)
+    assert match, f"the page has no function {name}"
+    depth, end = 1, match.end()
+    while depth:
+        depth += {"{": 1, "}": -1}.get(page[end], 0)
+        end += 1
+    body = page[match.end():end - 1]
+    assert "\nfunction " not in body, f"the body of {name} ran into the next function"
+    return body
+
+
+def test_charter_rows_show_one_pearl_per_slot():
+    # A charter row is a miniature of the equipped sidebar: one pearl per
+    # slot, in the order of the slots, and an empty pearl for a slot the
+    # configuration leaves unused. The row reads the configuration, never the
+    # current selection.
+    page = _page()
+    rows = _js_function(page, "renderList")
+    assert "charterPearls(p)" in rows
+    assert re.search(r"slice\(0,\s*\d+\)", rows) is None
+    pearls = _js_function(page, "charterPearls")
+    assert "SLOTS.map(" in pearls
+    assert "orb s20 off" in pearls
+    assert "adapterFor(" in pearls
+    for current in ("state.sel", "selGroup(", "adapter()"):
+        assert current not in pearls
+
+
+def test_sidebar_adapter_pearl_is_empty_without_an_adapter():
+    # The same rule in the sidebar: the adapter slot lights its pearl only
+    # when the model derives an adapter for the pair.
+    page = _page()
+    sidebar = _js_function(page, "render")
+    start = sidebar.index("if(s.derived){")
+    derived = sidebar[start:sidebar.index("} else {", start)]
+    assert "orb s24 off" in derived
+    assert ".derived" in derived
+    assert "derived:" in _js_function(page, "adapterFor")
+
+
+def test_capabilities_keep_the_model_word():
+    # The tab, the group label and the sidebar line say CAPABILITIES, the
+    # word of the feature model, not ABILITIES.
+    page = _page()
+    assert re.search(r"(?<!CAP)ABILITIES", page) is None
+    assert re.search(r"\{id:'cap',\s*label:'CAPABILITIES'", page)
+    assert "'capabilities':{label:'CAPABILITIES'" in page
+    assert "<b>CAPABILITIES</b>" in page
+
+
 def _git(repo: Path, *args: str) -> None:
     import subprocess
 

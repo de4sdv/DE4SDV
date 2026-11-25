@@ -501,7 +501,7 @@ const GROUP_STYLE = {
   'platformStack.guestOperatingSystem':{label:'GUEST OS', color:C.gos, tab:'guest'},
   'platformStack.guestMiddleware':{label:'GUEST MW', color:C.gmw, tab:'guest'},
   'sensingBoundary.perceptionSensors':{label:'SENSING', color:C.sensor, tab:'sensor'},
-  'capabilities':{label:'ABILITIES', color:C.cap, tab:'cap'}
+  'capabilities':{label:'CAPABILITIES', color:C.cap, tab:'cap'}
 };
 const TAB_LAYOUT = [
   {id:'app',      label:'DRIVING',    groups:['platformStack.vehicleApplication']},
@@ -509,7 +509,7 @@ const TAB_LAYOUT = [
   {id:'platform', label:'PLATFORM',   groups:['platformStack.operatingSystem','platformStack.hypervisor']},
   {id:'guest',    label:'GUEST',      groups:['platformStack.guestOperatingSystem','platformStack.guestMiddleware']},
   {id:'sensor',   label:'SENSING',    groups:['sensingBoundary.perceptionSensors']},
-  {id:'cap',      label:'ABILITIES',  groups:[], free:['capabilities']},
+  {id:'cap',      label:'CAPABILITIES', groups:[], free:['capabilities']},
   {id:'charter',  label:'CHARTER'}
 ];
 const SLOT_LAYOUT = [
@@ -813,19 +813,25 @@ function loadPreset(cid){
   else { log(`★ configuration loaded: ${p.title}`,'e'); if(p.admitted) SFX.star(); }
   render();
 }
-function adapter(){
-  const app=selGroup('platformStack.vehicleApplication')[0],
-        mw=selGroup('platformStack.middleware')[0];
-  if(!app||!mw) return null;
+function adapterFor(appId, mwId){
+  // The adapter the model derives for an application and a middleware. A
+  // charter row asks it for its configuration's pair, the sidebar for the
+  // current selection.
+  if(!appId||!mwId) return null;
   const agreement=(FM.agreement||[]).find(a=>a.derived_variation==='applicationMiddlewareAdapter');
-  const row=agreement && (agreement.rows||[]).find(r=>r.pair[0]===app.id && r.pair[1]===mw.id);
+  const row=agreement && (agreement.rows||[]).find(r=>r.pair[0]===appId && r.pair[1]===mwId);
   if(!row || !row.rules || row.rules.length!==1)
-    return {name:'— ??? —',note:'no derivation rule for this pair'};
+    return {name:'— ??? —',note:'no derivation rule for this pair',derived:false};
   const rule=(DERIVATION && (DERIVATION.rules||[]).find(r=>r.rule===row.rules[0]));
   const result=rule?rule.result:'?';
   return result==='none'
-    ? {name:'— none —',note:'the model derives no adapter when no vehicle middleware'}
-    : {name:result,note:`derived by ${row.rules[0]} (${DERIVATION?DERIVATION.derived_variation:'derivation'})`};
+    ? {name:'— none —',note:'the model derives no adapter when no vehicle middleware',derived:false}
+    : {name:result,note:`derived by ${row.rules[0]} (${DERIVATION?DERIVATION.derived_variation:'derivation'})`,derived:result!=='?'};
+}
+function adapter(){
+  const app=selGroup('platformStack.vehicleApplication')[0],
+        mw=selGroup('platformStack.middleware')[0];
+  return adapterFor(app&&app.id, mw&&mw.id);
 }
 function sameSelection(a,b){
   if(a.length!==b.length) return false;
@@ -886,19 +892,37 @@ function evaluate(){
    ================================================================ */
 const $=s=>document.querySelector(s);
 let lastVerdictLevel=null;
-function orbHTML(fid, size=''){
+function orbHTML(fid, size='', title=''){
   const f=F[fid];
-  return `<span class="orb ${size} on" style="--mc:${f.color}"></span>`;
+  return `<span class="orb ${size} on" style="--mc:${f.color}"${title?` title="${esc(title)}"`:''}></span>`;
+}
+function charterPearls(p){
+  // A miniature of the equipped sidebar for one configuration: one pearl per
+  // slot, in the slots' order. A slot the configuration leaves unused shows
+  // an empty pearl.
+  const pick=g=>p.selected.map(id=>F[id]).find(f=>f && f.group===g);
+  const app=pick('platformStack.vehicleApplication'), mw=pick('platformStack.middleware');
+  return SLOTS.map(s=>{
+    if(s.derived){
+      const a=adapterFor(app&&app.id, mw&&mw.id);
+      return a && a.derived
+        ? `<span class="orb s20 on locked" style="--mc:#f2dd9c" title="${esc(s.label+': '+a.name)}"></span>`
+        : `<span class="orb s20 off" title="${esc(s.label+': none')}"></span>`;
+    }
+    const f=pick(s.group);
+    return f ? orbHTML(f.id,'s20',`${s.label}: ${f.label}`)
+             : `<span class="orb s20 off" title="${esc(s.label+': open')}"></span>`;
+  }).join('');
 }
 function render(){
   const ul=$('#slots'); ul.innerHTML='';
   for(const s of SLOTS){
     const li=document.createElement('li');
     if(s.derived){
-      const a=adapter();
-      li.className = (a?'derived':'empty')+' adapter';
+      const a=adapter(), on=!!(a && a.derived);
+      li.className = (on?'derived':'empty')+' adapter';
       li.innerHTML=`<span class="slabel">${esc(s.label)}</span>
-        <span class="orb s24 on locked" style="--mc:#f2dd9c"></span>
+        ${on?'<span class="orb s24 on locked" style="--mc:#f2dd9c"></span>':'<span class="orb s24 off"></span>'}
         <span class="sname">${a?esc(a.name):'— awaiting pair —'}</span><span class="sauto">DERIVED</span>`;
       li.title = a?a.note:'';
     } else {
@@ -916,7 +940,7 @@ function render(){
   const sensors=selGroup('sensingBoundary.perceptionSensors').map(f=>f.label).join(', ')||'none';
   $('#sensors-line').innerHTML=`<b>SENSING</b> · ${esc(sensors)} · <i style="opacity:.7">motion sensors are common content</i>`;
   const caps=FEATURES.filter(f=>f.owner==='capabilities' && f.selectable && state.sel.has(f.id)).map(f=>f.label).join(', ')||'none';
-  $('#caps-line').innerHTML=`<b>ABILITIES</b> · ${esc(caps)}`;
+  $('#caps-line').innerHTML=`<b>CAPABILITIES</b> · ${esc(caps)}`;
   const v=evaluate();
   const box=$('#verdict');
   box.className=v.level;
@@ -960,7 +984,7 @@ function renderList(){
     CONFIGS.forEach((p,i)=>{
       const li=document.createElement('li');
       li.className='preset'+(state.cursor===i?' hi':'');
-      const mini=p.selected.slice(0,6).map(id=>F[id]?orbHTML(id,'s20'):'').join('');
+      const mini=charterPearls(p);
       const stateText=p.admitted?'★ admitted':(p.valid?'✓ valid · not admitted':'✕ invalid');
       li.innerHTML=`<span class="cursor">☞</span>
         <span class="minirow">${mini}</span>
