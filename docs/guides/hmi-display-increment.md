@@ -570,7 +570,7 @@ keeps its five ports and owns the display's inside, one level below the
 boundary. The context elements of Phase 2 stay outside and undivided. The
 package's one usage of the definition, `hmiDisplayLogicalSystem`, exists for
 the views, which draw usages; it depicts the context's `hmiDisplay`, whose
-definition this one specializes, and is bound to nothing.
+definition `HmiDisplayLogicalSystem` specializes, and is bound to nothing.
 
 The owner decided on three logical elements for the five functions
 (2026-11-24). Functions share an element when nothing requires them to be
