@@ -616,9 +616,9 @@ DOCS = {
         "by which the app tells the renderer that Android is alive; and the two planes into the composition on the "
         "central computer. No other port leads to the renderer, and nothing leads back. Each edge between the VMs and "
         "the central computer is labelled with the ports at its ends, and each port definition carries the one item "
-        "that its exchange moves. The platform of the SDV Core VM is listed by name only; where a path enters it, its "
-        "binds and connections are drawn as boxes that name their two ends. The hypervisor interfaces are drawn in no "
-        "view of this phase; the structure tree shows the hypervisor and each VM's operating system.",
+        "that its exchange moves. The platform of the SDV Core VM is listed by name only; where a path enters or "
+        "leaves it, its binds and connections are drawn as boxes that name their two ends. The hypervisor interfaces "
+        "are drawn in no view of this phase; the structure tree shows the hypervisor and each VM's operating system.",
 }
 DOC_IDS = [
     "DisplaySceneMessage", "DisplayVehicleSpeedSample", "DisplaySceneTime", "DrawnSceneHeartbeat", "DisplayPlane",
@@ -1245,19 +1245,20 @@ def test_each_container_holds_exactly_its_parts_binds_and_connections(definition
     assert len(re.findall(r"\bconnection\b", body)) == len(CONNECTIONS[definition])
 
 
-#: The member kinds each body may hold, at its own depth; anything else is a new form no pin reads.
-ALLOWED_PACKAGE = r"(?:private import|item def|port def|part def|part|allocation|dependency|comment|concern|view)"
-ALLOWED_CONTAINER = r"(?:doc|port|part|ref part|bind|connection|interface)"
+#: The member kinds each body may hold, at any indentation, with the continuation words of its multi-line members.
+ALLOWED_PACKAGE = (r"(?:private import|item def|port def|part def|part|allocation|allocate|to|dependency|from|"
+                   r"comment|concern|view)")
+ALLOWED_CONTAINER = r"(?:doc|port|part|ref part|bind|connection|interface|connect)"
 
 
 def test_no_body_holds_a_member_kind_that_no_pin_reads():
     package = _direct(braced_body(_code(), f"package {PACKAGE}"))
-    heads = re.findall(r"(?m)^\s{2}(\w+(?:\s+\w+)?)", package)
+    heads = re.findall(r"(?m)^[ \t]*(\w+(?:[ \t]+\w+)?)", package)
     assert all(re.match(ALLOWED_PACKAGE + r"\b", h) for h in heads), heads
     assert re.findall(r"(?m)^\s*ref\s+part\b", package) == []
     for name in PARTS:
         body = _direct(_definition(name))
-        heads = re.findall(r"(?m)^\s{4}(\w+(?:\s+\w+)?)", body)
+        heads = re.findall(r"(?m)^[ \t]*(\w+(?:[ \t]+\w+)?)", body)
         assert all(re.match(ALLOWED_CONTAINER + r"\b", h) for h in heads), (name, heads)
     assert not re.search(r"\b(?:flow|binding|action|perform|exhibit|succession|message)\b",
                          _strings_blanked(_code()))
@@ -1574,6 +1575,15 @@ def test_each_element_states_its_text_of_record(declaration):
 def test_every_doc_of_the_package_is_pinned():
     docs = len(re.findall(r"\bdoc\s*/\*", _raw()))
     assert docs == len(DOCS) + len(RECORD_DOCS) + len(GAP_DOCS)
+
+
+def test_every_plain_comment_is_a_section_heading_that_names_no_bench():
+    body = _raw().split(f"package {PACKAGE}", 1)[1]
+    blocks = re.findall(r"(\bdoc\s*|\bcomment\s+\w+\s+about\s+\w+\s*)?/\*(.*?)\*/", body, re.S)
+    plain = [_flat(text) for lead, text in blocks if not lead]
+    assert len(plain) == 11
+    assert all(text.startswith("─" * 13 + " ") and "bench" not in text and "guest host" not in text
+               for text in plain), plain
 
 
 def test_the_element_docs_make_no_assurance_claim():
