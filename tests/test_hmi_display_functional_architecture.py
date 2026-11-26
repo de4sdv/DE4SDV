@@ -547,14 +547,15 @@ CONCERN_DOCS = {
 #: The guide: its Status line and the next obligation, as phase 8 moved them.
 GUIDE_STATUS = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical architecture "
-    "and Phase 8 physical and software realization, proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
+    "architecture, Phase 8 physical and software realization and Phase 9 variability and configuration, "
+    "proposal.**")
 GUIDE_STATUS_PHASE_5 = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
     "Phase 4 stakeholder needs and Phase 5 requirements, proposal.**")
 GUIDE_NEXT = (
-    "The next model obligation is **Phase 9**: the configuration, which makes the realization of the increment a "
-    "configured product; its first gate is `incrementHasConfiguredProduct`.")
+    "The next model obligation is **Phase 10**: the verification cases, one or more for each requirement of the "
+    "increment; its first gate is `verificationCaseVerifiesRequirement`.")
 GUIDE_HEADING = "## Functional architecture (Phase 6)"
 GUIDE_LINK = "../../textual-notation-of-model/packages/features/hmi/hmi_display_functional_architecture.sysml"
 GUIDE_FRAME_LINE = (f"- [SysML functional architecture]({GUIDE_LINK}): the Phase 6 functional architecture of the HMI "

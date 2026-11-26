@@ -979,22 +979,24 @@ GAP_DOCS = {
         "display identity, so REQ-HMI-010 is not met as worded until the term names them, before phase 10.",
 }
 
-#: The guide: its Status line, its line in the frame, the next obligation and the check command, as phase 8 moves
+#: The guide: its Status line, its line in the frame, the next obligation and the check command, as phase 9 moves
 #: them.
 GUIDE_STATUS = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical architecture "
-    "and Phase 8 physical and software realization, proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
+    "architecture, Phase 8 physical and software realization and Phase 9 variability and configuration, "
+    "proposal.**")
 GUIDE_NEXT = (
-    "The next model obligation is **Phase 9**: the configuration, which makes the realization of the increment a "
-    "configured product; its first gate is `incrementHasConfiguredProduct`.")
+    "The next model obligation is **Phase 10**: the verification cases, one or more for each requirement of the "
+    "increment; its first gate is `verificationCaseVerifiesRequirement`.")
 GUIDE_HEADING = "## Physical and software realization (Phase 8)"
 GUIDE_LINK = "../../textual-notation-of-model/packages/features/hmi/hmi_display_physical_software_realization.sysml"
 GUIDE_FRAME_LINE = (f"- [SysML physical and software realization]({GUIDE_LINK}): the Phase 8 physical and software "
                     "realization of the HMI display.")
 GUIDE_CHECK = (
     "`python -m pytest tests/test_hmi_display_framing.py tests/test_hmi_display_functional_architecture.py "
-    "tests/test_hmi_display_logical_architecture.py tests/test_hmi_display_physical_software_realization.py -q`")
+    "tests/test_hmi_display_logical_architecture.py tests/test_hmi_display_physical_software_realization.py "
+    "tests/test_hmi_display_variability_configuration.py -q`")
 
 #: The guide's Phase 8 section, block by block, whole.
 GUIDE_BLOCKS = [
@@ -1184,7 +1186,9 @@ def test_the_charter_names_the_package_after_the_logical_architecture():
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
     assert artifacts
     names = re.findall(r'"([^"]+)"', artifacts.group(1))
-    assert names.index(PACKAGE) == names.index(LOGICAL_PACKAGE) + 1 == len(names) - 1
+    # phase 9 follows phase 8 in the charter
+    assert names.index(PACKAGE) == names.index(LOGICAL_PACKAGE) + 1 == len(names) - 2
+    assert names[-1] == "DE4SDV_HmiDisplayVariabilityConfiguration"
     assert names.count(PACKAGE) == 1
     assert re.search(rf"\bpackage\s+{PACKAGE}\s*\{{", _code())
 
@@ -1742,7 +1746,7 @@ def test_the_allocation_file_is_governed_with_its_four_endpoint_definitions():
     assert trace.NOT_ENDPOINTS[trace.HMI_P] == set(NOT_ELEMENTS)
 
 
-def test_the_guide_has_a_phase_8_section_and_names_phase_9_next():
+def test_the_guide_has_a_phase_8_section_and_names_the_next_obligation():
     guide = _guide()
     assert guide.count(GUIDE_HEADING + "\n") == 1
     assert guide.index("## Logical architecture (Phase 7)") < guide.index(GUIDE_HEADING) \

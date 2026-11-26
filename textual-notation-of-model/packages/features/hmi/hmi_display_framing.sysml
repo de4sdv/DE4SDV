@@ -105,6 +105,29 @@ package DE4SDV_HmiDisplayFraming {
      */
   }
   part hmiDisplaySystem : HmiDisplaySystem;
+  /* Rule 5 of the increment workflow, in its dependency form, declared with
+   * the system of interest (phase 9). The display of this increment is the
+   * display of the VisionPilot configuration (owner decision of 2026-11-17),
+   * inside the AAOS SDV guest: the app in the IVI VM, the high availability
+   * renderer in an SDV Media VM, and the paths from the SDV Core VM to both.
+   * So it enters a member product only with the features visionPilot and
+   * guestAndroidSDV, and two dependencies name both. By the owner decision of
+   * 2026-11-26, its requirements follow it, and none links a feature of its
+   * own (rule 11). The warning request that REQ-HMI-004, REQ-HMI-005 and
+   * REQ-HMI-007 name comes with both: the requirements of the
+   * driver-assistance increment that name it follow a system of interest that
+   * brings visionPilot and apply only where the AAOS SDV guest middleware is
+   * selected. By ADR 0026 every member product is to have an HMI display, and
+   * what it shows in each is open (hmiDisplayContentScopeDecisions). The
+   * binding form gives an element one link and derives no variant for this
+   * pair, so the move of the links takes this combination to the owner
+   * (rule 5). */
+  dependency hmiDisplaySystemOnVisionPilotFeature
+    from hmiDisplaySystem
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::visionPilot;
+  dependency hmiDisplaySystemOnGuestAndroidSDVFeature
+    from hmiDisplaySystem
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::guestAndroidSDV;
 
   part hmiDisplayScope : IncrementScope {
     doc /*
@@ -398,6 +421,25 @@ package DE4SDV_HmiDisplayFraming {
      * the display against the scope as it now stands.
      */
   }
+  comment about gapHmiDisplayInProductLine
+  /*
+   * Owner direction of 2026-11-26: the display of every member is to show the
+   * vehicle speed, the collision warning, the outdated marks and the scene,
+   * and the HMI display is to stay independent of the driving application
+   * that feeds it. It is to take each input in a form that does not depend on
+   * that application, and each application that feeds it is to give its
+   * inputs in that form through a translation of its own. The vehicle speed
+   * has such a form, as COVESA VSS types it, and the warning request has the
+   * form that the driver-assistance increment gives it. The scene has the
+   * form of the scene of the panel of VisionPilot
+   * (termsHmiDisplayRequirements), and its message type stays open until
+   * phase 10 (DisplaySceneMessage). In this increment VisionPilot is the
+   * source of the scene, which it does not give at its boundary yet
+   * (gapHmiSceneOutput), and of the warning request. It is a direction for
+   * the scope decisions that hmiDisplayContentScopeDecisions lists, for the
+   * AEBS requirements on the warning and for the message type of the scene;
+   * it changes no member here.
+   */
   part gapHmiUpstreamContact : IncrementGap {
     doc /*
      * The maintainers of the display safety of AAOS SDV and of the candidate
@@ -434,7 +476,8 @@ package DE4SDV_HmiDisplayFraming {
       "DE4SDV_HmiDisplayNeedsRequirements",
       "DE4SDV_HmiDisplayFunctionalArchitecture",
       "DE4SDV_HmiDisplayLogicalArchitecture",
-      "DE4SDV_HmiDisplayPhysicalSoftwareRealization"
+      "DE4SDV_HmiDisplayPhysicalSoftwareRealization",
+      "DE4SDV_HmiDisplayVariabilityConfiguration"
     );
     attribute :>> expectedReviewEvidence = (
       "owner confirmation of the engineering question and the scope",
