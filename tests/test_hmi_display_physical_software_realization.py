@@ -15,8 +15,8 @@ settled on top of it:
   appears only in sentences that say what stands in for an element of the vehicle;
 - the seven connections between the VMs and the central computer, each from an out port to an in port of one item,
   and nothing that leads back;
-- eight signal mappings with complete records, the vehicle speed typed by COVESA VSS at the ports, and REQ-HMI-009
-  carried by a dependency from the physical system;
+- eight signal mappings with complete records, the vehicle speed and the distance to the object that the system
+  acts on typed by COVESA VSS at the ports, and REQ-HMI-009 carried by a dependency from the physical system;
 - three views, each framed by a concern of the Physical domain, two of them the phase 1 concerns of the renderer;
 - the texts of record of the design whole, and the guide's Phase 8 section block by block.
 """
@@ -145,7 +145,8 @@ INTERFACES = [(f"{guest}UnderHypervisor", f"{guest}.os.hypervisorPort", "central
 
 #: The item definitions of the package -> (supertype or None, attributes (name, type)).
 ITEMS = {
-    "DisplaySceneMessage": ("DisplaySceneInput", []),
+    "DisplaySceneMessage": ("DisplaySceneInput",
+                            [("obstacleDistance", "Vehicle_ADAS_ObstacleDetection_Distance[0..1]")]),
     "DisplayVehicleSpeedSample": ("VehicleSpeed", [("speed", "Vehicle_Speed"), ("sampleTime", "Real")]),
     "DisplaySceneTime": (None, [("captureTime", "Real")]),
     "DrawnSceneHeartbeat": (None, [("sceneCaptureTime", "Real")]),
@@ -339,6 +340,7 @@ IMPORTS = [
     "DE4SDV_HmiDisplayLogicalArchitecture::HmiDisplayLogicalSystem",
     "DE4SDV_HmiDisplayNeedsRequirements::reqRendererSplitAndInputPaths",
     "COVESA_VSS::SignalDefinitions::Vehicle_Speed",
+    "COVESA_VSS::SignalDefinitions::Vehicle_ADAS_ObstacleDetection_Distance",
     "DE4SDV_Stakeholders::*",
     "SAF_Viewpoints::*",
     "SysideViews::**",
@@ -388,9 +390,11 @@ HEADER_PARAGRAPHS = [
     "the start of the sound; both are unmeasured and revisited when a readiness probe measures them. The clocks and "
     "the simulator's mode are those of the driver-assistance increment: simulation time is the time that each value "
     "carries from its source, and wall-clock time is the time of the host. - VSS at the ports only: the vehicle "
-    "speed as Vehicle.Speed, and the warning request in the payload of the driver-assistance increment. The scene, "
-    "the time of a scene, the heartbeat, the planes, the frames of the display and the chime are no vehicle signal, "
-    "and their records say so. No VSS extension is added. - Looks of an outdated element (REQ-HMI-006): the "
+    "speed as Vehicle.Speed, the distance to the object that the system acts on in the scene as "
+    "Vehicle.ADAS.ObstacleDetection.Distance, and the warning request in the payload of the driver-assistance "
+    "increment. Apart from that distance, the scene, the time of a scene, the heartbeat, the planes, the frames of "
+    "the display and the chime are no vehicle signal, and their records say so. No VSS extension is added. - Looks "
+    "of an outdated element (REQ-HMI-006): the "
     "renderer's placeholder covers the scene area, the speed shows no number, and the warning shows one fixed symbol "
     "while it is unavailable. The visual design stays out of scope (hmiHumanFactorsOutOfScope). - The changes to the "
     "projects of the renderer and of the candidate stay gaps; nothing is written to their maintainers.",
@@ -415,7 +419,10 @@ DOCS = {
     "item def DisplaySceneMessage :> DisplaySceneInput":
         "The scene as the realization types it on the Data Tunnel topic of the SDV Core VM and through the SDV "
         "Gateway into the scene drawing app: the scene of one result pass with its capture time in simulation time. "
-        "Its message type is new and stays open until phase 10. A scene is no vehicle signal (MAP-HMI-SCENE).",
+        "Its message type is new and stays open until phase 10. A scene is no vehicle signal, except the distance to "
+        "the object that the system acts on: COVESA VSS types it at the port as obstacleDistance "
+        "(Vehicle_ADAS_ObstacleDetection_Distance, m), the value in m of the inherited actedOnObjectDistance "
+        "(MAP-HMI-SCENE).",
     "item def DisplayVehicleSpeedSample :> VehicleSpeed":
         "The vehicle speed as the realization types it from the vehicle data of the SDV Core VM to the speed message "
         "of the renderer's vehicle data. The speed is typed by COVESA VSS at the port (Vehicle_Speed, km/h); the "
@@ -638,7 +645,8 @@ DOC_IDS = [
 RECORD_DOCS = {
     "sceneIngressMappingRecord":
         "The scene from the Data Tunnel topic of the SDV Core VM through the SDV Gateway on the IVI VM into the "
-        "scene drawing app. A scene is no vehicle signal.",
+        "scene drawing app. A scene is no vehicle signal, except the distance to the object that the system acts on, "
+        "which COVESA VSS types at the port.",
     "drawnSceneHeartbeatMappingRecord":
         "The heartbeat of each drawn frame from the scene drawing app in the IVI VM to the renderer in the SDV Media "
         "VM: with the IVI plane, the drawn scenes of phase 7. No vehicle signal.",
@@ -670,8 +678,9 @@ RECORD_VALUES = {
     "sceneIngressMappingRecord": {
         "semanticSource":
             "the scene of one result pass of the candidate with the capture time of its camera image in simulation "
-            "time: the output that the candidate does not give yet (gapHmiSceneOutput), no vehicle signal, so no VSS "
-            "typing applies",
+            "time: the output that the candidate does not give yet (gapHmiSceneOutput), no vehicle signal, except the "
+            "distance to the object that the system acts on, which COVESA VSS types at the port as "
+            "Vehicle_ADAS_ObstacleDetection_Distance (Vehicle.ADAS.ObstacleDetection.Distance, m)",
         "softwareContractArtifact":
             "a Data Tunnel topic of the SDV Core VM that a context stand-in publishes, and the subscription of the "
             "scene drawing app to it through the SDV Gateway on the IVI VM, candidate",
@@ -1046,8 +1055,10 @@ GUIDE_BLOCKS = [
     "0.05 s to the drawing and to the start of the sound. Both are unmeasured and revisited when a readiness probe "
     "measures them. An outdated scene shows as the renderer's placeholder over the scene area, an outdated speed as "
     "no number, and an unavailable warning as one fixed symbol; the visual design stays out of scope. The speed is "
-    "typed by COVESA VSS at its ports, and the warning request keeps the payload of the driver-assistance increment. "
-    "Every other item says in its mapping record why it is no vehicle signal. There are eight mappings.",
+    "typed by COVESA VSS at its ports, and so is the distance to the object that the system acts on in the scene "
+    "message (`Vehicle.ADAS.ObstacleDetection.Distance`); the warning request keeps the payload of the "
+    "driver-assistance increment. Every other item says in its mapping record why it is no vehicle signal. There are "
+    "eight mappings.",
     "Four gaps of the realization state what is not settled: the renderer's judging of the scene by the term current "
     "(`gapHmiRendererJudgesSceneCurrency`), the bench's feed of the speed into the SDV Core VM "
     "(`gapHmiBenchSpeedFeed`), the tolerance of a drawn position (`gapHmiDrawingToleranceUnset`), and the display "
@@ -1280,7 +1291,9 @@ def test_the_items_and_the_port_definitions_carry_one_item_each_in_one_direction
     assert [(name, parent or None) for name, parent in declared] == [(n, p) for n, (p, _) in ITEMS.items()]
     for name, (_, attributes) in ITEMS.items():
         body = braced_body(code, f"item def {name}")
-        assert re.findall(r"\battribute\s+(\w+)\s*:\s*(\w+)\s*;", body) == attributes, name
+        assert re.findall(r"\battribute\s+(\w+)\s*:\s*([\w:]+(?:\[[^\]]*\])?(?:\s+ordered)?)\s*;", body) == \
+            attributes, name
+        assert len(re.findall(r"\battribute\b", body)) == len(attributes), name
     assert re.findall(r"\bport\s+def\s+(\w+)", code) == list(PORT_ITEMS)
     for port_def, (direction, item, item_type) in PORT_ITEMS.items():
         body = braced_body(code, f"port def {port_def}")
@@ -1426,8 +1439,10 @@ def test_the_sdv_core_vm_references_the_platform_boundary_and_holds_the_publishe
 
 def test_vss_types_the_vehicle_speed_at_its_ports_and_the_warning_keeps_its_payload():
     code = _strings_blanked(_code())
-    assert re.findall(r"(?<!:):(?!:)\s*(Vehicle_\w+)", code) == ["Vehicle_Speed"]
+    assert re.findall(r"(?<!:):(?!:)\s*(Vehicle_\w+)", code) == ["Vehicle_ADAS_ObstacleDetection_Distance",
+                                                                "Vehicle_Speed"]
     assert "private import COVESA_VSS::SignalDefinitions::Vehicle_Speed;" in code
+    assert "private import COVESA_VSS::SignalDefinitions::Vehicle_ADAS_ObstacleDetection_Distance;" in code
     assert "DE4SDV_VSS_Extensions" not in code and "VssSignalMetadata" not in code
     assert not re.search(r"\b(?:item|port)\s+def\s+WarningRequestEvent", code), "imported, never redeclared"
     for name in ("WarningRequestEventPayload", "WarningRequestEventIn", "WarningRequestEventOut"):
@@ -1484,6 +1499,9 @@ def test_every_item_that_is_no_vehicle_signal_says_so_and_the_speed_names_its_vs
         source = records[record]["semanticSource"]
         if short == "MAP-HMI-VEHICLE-SPEED":
             assert "COVESA VSS Vehicle_Speed" in source
+        elif short == "MAP-HMI-SCENE":
+            assert "which COVESA VSS types at the port as Vehicle_ADAS_ObstacleDetection_Distance " in source
+            assert "no vehicle signal, except the distance to the object that the system acts on" in source
         elif short == "MAP-HMI-WARNING-REQUEST":
             assert "Vehicle_ADAS_AEBS_DriverWarning_IsActive" in source and "WarningRequestEventPayload" in source
         else:
