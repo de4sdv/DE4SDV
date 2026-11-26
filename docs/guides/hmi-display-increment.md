@@ -782,8 +782,10 @@ asset, configuration, receipt or projection.
   selected variants. The identity binds the SHA-256 of the receipt, and Phase
   10 evidence binds the identity. Dependencies record the trace to the Phase 8
   usage and the three open gaps of Phase 8 that the product inherits,
-  GAP-HMI-001, GAP-HMI-003 and GAP-HMI-004; GAP-HMI-002 is a gap of the bench.
-  The definition specializes no member-product type.
+  GAP-HMI-001, GAP-HMI-003 and GAP-HMI-004. GAP-HMI-002 is not among them: on
+  the bench the simulator stands in for the ECU that measures the vehicle
+  speed, and the gap is the feed of that stand-in. The definition specializes
+  no member-product type.
 - **The links of rule 5.** Until the configuration evaluator reads links of
   increment elements and the existing links have moved, rule 5 takes its
   dependency form (ADR 0027 decision 8). The links are declared with their
@@ -798,7 +800,13 @@ asset, configuration, receipt or projection.
   display of the VisionPilot configuration, inside the AAOS SDV guest, so it
   enters a member product only with both features. The binding form gives an
   element one link and derives no variant for this pair, so the move of the
-  links takes this combination to the owner.
+  links takes this combination to the owner. By the owner decision of
+  2026-11-26 the requirements follow the system of interest. A comment about
+  `gapHmiDisplayInProductLine` records the owner direction of the same day: the
+  display of every member is to show the vehicle speed, the collision warning,
+  the outdated marks and the scene, and to stay independent of the driving
+  application that feeds it. It is a direction for the open scope decisions and
+  changes no member.
 - **The requirements.** Every requirement follows the system of interest, and
   none carries a link of its own. `REQ-HMI-004`, `REQ-HMI-005` and
   `REQ-HMI-007` name the warning request, which the driver-assistance increment

@@ -434,10 +434,11 @@ package DE4SDV_HmiDisplayFraming {
    * form of the scene of the panel of VisionPilot
    * (termsHmiDisplayRequirements), and its message type stays open until
    * phase 10 (DisplaySceneMessage). In this increment VisionPilot is the
-   * source of the scene and of the warning request. It is a direction for the
-   * scope decisions that hmiDisplayContentScopeDecisions lists, for the AEBS
-   * requirements on the warning and for the message type of the scene; it
-   * changes no member here.
+   * source of the scene, which it does not give at its boundary yet
+   * (gapHmiSceneOutput), and of the warning request. It is a direction for
+   * the scope decisions that hmiDisplayContentScopeDecisions lists, for the
+   * AEBS requirements on the warning and for the message type of the scene;
+   * it changes no member here.
    */
   part gapHmiUpstreamContact : IncrementGap {
     doc /*
