@@ -547,15 +547,19 @@ CONCERN_DOCS = {
 #: The guide: its Status line and the next obligation, as phase 8 moved them.
 GUIDE_STATUS = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
-    "architecture, Phase 8 physical and software realization and Phase 9 variability and configuration, "
-    "proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical architecture, "
+    "Phase 8 physical and software realization, Phase 9 variability and configuration and the first slice of Phase 10 "
+    "verification and evidence, proposal.**")
 GUIDE_STATUS_PHASE_5 = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
     "Phase 4 stakeholder needs and Phase 5 requirements, proposal.**")
 GUIDE_NEXT = (
-    "The next model obligation is **Phase 10**: the verification cases, one or more for each requirement of the "
-    "increment; its first gate is `verificationCaseVerifiesRequirement`.")
+    "The next model obligation is **Phase 10**: verification and evidence, its second slice, which follows the "
+    "readiness probes and adds the bench, the runs, the retained records and the statuses. The first slice holds the "
+    "cases that `verificationCaseVerifiesRequirement` and `requirementVerifiedByVerificationCase` read; "
+    "`verificationCaseHasEvidenceRecordOrStatus` stays advisory until runs exist. With those two checks met, the "
+    "first open blocking check of the Method Check is Phase 11's `incrementHasBaselineDecision`. Do not jump from the "
+    "cases to implementation before the probes, and claim no runtime gate.")
 GUIDE_HEADING = "## Functional architecture (Phase 6)"
 GUIDE_LINK = "../../textual-notation-of-model/packages/features/hmi/hmi_display_functional_architecture.sysml"
 GUIDE_FRAME_LINE = (f"- [SysML functional architecture]({GUIDE_LINK}): the Phase 6 functional architecture of the HMI "

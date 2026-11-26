@@ -629,9 +629,9 @@ GUIDE_STATUS_OLD = (
     "Phase 4 stakeholder needs, proposal.**")
 GUIDE_STATUS_NEW = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
-    "architecture, Phase 8 physical and software realization and Phase 9 variability and configuration, "
-    "proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical architecture, "
+    "Phase 8 physical and software realization, Phase 9 variability and configuration and the first slice of Phase 10 "
+    "verification and evidence, proposal.**")
 GUIDE_FRAME_LINE = f"- [SysML requirements]({GUIDE_LINK}): the Phase 5 requirements of the HMI display."
 GUIDE_PHASE_FOUR_OLD = (
     "No need states a number or names a drawing: Phase 5 derives the requirements and their limits, how the app in "
@@ -646,8 +646,12 @@ GUIDE_PHASE_FOUR_NEW = (
     "what the warning request asks for and carries.")
 GUIDE_NEXT_OLD = "The next model obligation is **Phase 5**, the requirements."
 GUIDE_NEXT_NEW = (
-    "The next model obligation is **Phase 10**: the verification cases, one or more for each requirement of the "
-    "increment; its first gate is `verificationCaseVerifiesRequirement`.")
+    "The next model obligation is **Phase 10**: verification and evidence, its second slice, which follows the "
+    "readiness probes and adds the bench, the runs, the retained records and the statuses. The first slice holds the "
+    "cases that `verificationCaseVerifiesRequirement` and `requirementVerifiedByVerificationCase` read; "
+    "`verificationCaseHasEvidenceRecordOrStatus` stays advisory until runs exist. With those two checks met, the "
+    "first open blocking check of the Method Check is Phase 11's `incrementHasBaselineDecision`. Do not jump from the "
+    "cases to implementation before the probes, and claim no runtime gate.")
 GUIDE_HEADING = "## Requirements (Phase 5)"
 #: the blocks of the guide's Phase 5 section, in order; BULLETS and DECISIONS stand for the two lists
 GUIDE_BLOCKS = (

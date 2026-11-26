@@ -1017,12 +1017,16 @@ GAP_DOCS = {
 #: them.
 GUIDE_STATUS = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
-    "architecture, Phase 8 physical and software realization and Phase 9 variability and configuration, "
-    "proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical architecture, "
+    "Phase 8 physical and software realization, Phase 9 variability and configuration and the first slice of Phase 10 "
+    "verification and evidence, proposal.**")
 GUIDE_NEXT = (
-    "The next model obligation is **Phase 10**: the verification cases, one or more for each requirement of the "
-    "increment; its first gate is `verificationCaseVerifiesRequirement`.")
+    "The next model obligation is **Phase 10**: verification and evidence, its second slice, which follows the "
+    "readiness probes and adds the bench, the runs, the retained records and the statuses. The first slice holds the "
+    "cases that `verificationCaseVerifiesRequirement` and `requirementVerifiedByVerificationCase` read; "
+    "`verificationCaseHasEvidenceRecordOrStatus` stays advisory until runs exist. With those two checks met, the "
+    "first open blocking check of the Method Check is Phase 11's `incrementHasBaselineDecision`. Do not jump from the "
+    "cases to implementation before the probes, and claim no runtime gate.")
 GUIDE_HEADING = "## Physical and software realization (Phase 8)"
 GUIDE_LINK = "../../textual-notation-of-model/packages/features/hmi/hmi_display_physical_software_realization.sysml"
 GUIDE_FRAME_LINE = (f"- [SysML physical and software realization]({GUIDE_LINK}): the Phase 8 physical and software "
@@ -1030,7 +1034,7 @@ GUIDE_FRAME_LINE = (f"- [SysML physical and software realization]({GUIDE_LINK}):
 GUIDE_CHECK = (
     "`python -m pytest tests/test_hmi_display_framing.py tests/test_hmi_display_functional_architecture.py "
     "tests/test_hmi_display_logical_architecture.py tests/test_hmi_display_physical_software_realization.py "
-    "tests/test_hmi_display_variability_configuration.py -q`")
+    "tests/test_hmi_display_variability_configuration.py tests/test_hmi_display_verification_evidence.py -q`")
 
 #: The guide's Phase 8 section, block by block, whole.
 GUIDE_BLOCKS = [
@@ -1226,9 +1230,9 @@ def test_the_charter_names_the_package_after_the_logical_architecture():
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
     assert artifacts
     names = re.findall(r'"([^"]+)"', artifacts.group(1))
-    # phase 9 follows phase 8 in the charter
-    assert names.index(PACKAGE) == names.index(LOGICAL_PACKAGE) + 1 == len(names) - 2
-    assert names[-1] == "DE4SDV_HmiDisplayVariabilityConfiguration"
+    # phase 9 and the first slice of phase 10 follow phase 8 in the charter
+    assert names.index(PACKAGE) == names.index(LOGICAL_PACKAGE) + 1 == len(names) - 3
+    assert names[-2:] == ["DE4SDV_HmiDisplayVariabilityConfiguration", "DE4SDV_HmiDisplayVerificationEvidence"]
     assert names.count(PACKAGE) == 1
     assert re.search(rf"\bpackage\s+{PACKAGE}\s*\{{", _code())
 

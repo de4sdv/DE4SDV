@@ -123,17 +123,22 @@ GUIDE_HEADING = "## Variability and configuration (Phase 9)"
 GUIDE_STATUS = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
     "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical architecture, "
-    "Phase 8 physical and software realization and Phase 9 variability and configuration, proposal.**")
+    "Phase 8 physical and software realization, Phase 9 variability and configuration and the first slice of Phase 10 "
+    "verification and evidence, proposal.**")
 GUIDE_NEXT = (
-    "The next model obligation is **Phase 10**: the verification cases, one or more for each requirement of the "
-    "increment; its first gate is `verificationCaseVerifiesRequirement`.")
+    "The next model obligation is **Phase 10**: verification and evidence, its second slice, which follows the "
+    "readiness probes and adds the bench, the runs, the retained records and the statuses. The first slice holds the "
+    "cases that `verificationCaseVerifiesRequirement` and `requirementVerifiedByVerificationCase` read; "
+    "`verificationCaseHasEvidenceRecordOrStatus` stays advisory until runs exist. With those two checks met, the "
+    "first open blocking check of the Method Check is Phase 11's `incrementHasBaselineDecision`. Do not jump from the "
+    "cases to implementation before the probes, and claim no runtime gate.")
 GUIDE_LINK = "../../textual-notation-of-model/packages/features/hmi/hmi_display_variability_configuration.sysml"
 GUIDE_FRAME_LINE = (f"- [SysML variability and configuration]({GUIDE_LINK}): the Phase 9 configured product of the "
                     "HMI display.")
 GUIDE_CHECK = (
     "`python -m pytest tests/test_hmi_display_framing.py tests/test_hmi_display_functional_architecture.py "
     "tests/test_hmi_display_logical_architecture.py tests/test_hmi_display_physical_software_realization.py "
-    "tests/test_hmi_display_variability_configuration.py -q`")
+    "tests/test_hmi_display_variability_configuration.py tests/test_hmi_display_verification_evidence.py -q`")
 
 _NOT_CODE = re.compile(r"/\*.*?\*/|//[^\n]*|\"(?:[^\"\\]|\\.)*\"", re.S)
 _TYPED_BY = r"\b(?:ref\s+)?part\s+\w+\s*(?:\[[^\]]*\]\s*)?:(?![:>])[^;{{]*\b{definition}\b"
@@ -478,9 +483,10 @@ def test_the_views_index_lists_the_two_phase_9_views() -> None:
     assert re.findall(r"^### `(\w+)`", section, re.M) == [view for view, _viewpoint, _concern in VIEWS]
 
 
-def test_the_charter_names_the_phase_9_package_last() -> None:
+def test_the_charter_names_the_phase_9_package_before_the_phase_10_package() -> None:
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", FRAMING.read_text(encoding="utf-8"), re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[-2:] == [PHYSICAL_PACKAGE, PACKAGE]
+    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[-3:] == [
+        PHYSICAL_PACKAGE, PACKAGE, "DE4SDV_HmiDisplayVerificationEvidence"]
     assert re.findall(r"(?m)^package\s+(\w+)\s*\{", _code(SLICE)) == [PACKAGE], "one global package per file"
 
 
