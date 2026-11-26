@@ -14,8 +14,8 @@ both, and holds what it shows against what the application gives.
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase
 3 capability classification, Phase 4 stakeholder needs, Phase 5 requirements,
 Phase 6 functional architecture, Phase 7 logical architecture, Phase 8
-physical and software realization and Phase 9 variability and configuration,
-proposal.**
+physical and software realization, Phase 9 variability and configuration and
+the first slice of Phase 10 verification and evidence, proposal.**
 No implementation, run, result, product-line admission or compliance is
 claimed.
 
@@ -41,6 +41,9 @@ claimed.
   the Phase 8 physical and software realization of the HMI display.
 - [SysML variability and configuration](../../textual-notation-of-model/packages/features/hmi/hmi_display_variability_configuration.sysml):
   the Phase 9 configured product of the HMI display.
+- [SysML verification and evidence](../../textual-notation-of-model/packages/features/hmi/hmi_display_verification_evidence.sysml):
+  the Phase 10 cases, the evidence record of a run and the claim, none
+  started.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/hmi/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/hmi/upstream.md)
@@ -829,6 +832,96 @@ Syside run;
 [`VIEWS.md`](../../textual-notation-of-model/packages/features/hmi/VIEWS.md)
 lists the views.
 
+## Verification and evidence (Phase 10)
+
+[`hmi_display_verification_evidence.sysml`](../../textual-notation-of-model/packages/features/hmi/hmi_display_verification_evidence.sysml)
+states how each requirement will be judged before any run, so that each verdict
+is read against a case written first. This first slice is model only: no case
+has started, no evidence record exists, and every requirement keeps
+`NotStarted`. The five choices of the slice are the owner decision of
+2026-11-26, as INC-DRIVING-002 took them: one case per requirement, an outcome
+vocabulary of the increment's own, the claims now, one evidence record per run
+and the test environment as a gap.
+
+- **One case per requirement.** VC-HMI-001 to VC-HMI-010 verify REQ-HMI-001 to
+  REQ-HMI-010. Each binds the subject of its requirement to the realization of
+  the HMI display in HMI-CONFIG-001 on the bench, checks the success criteria
+  of its requirement and adds none. The bench refers to the configured product,
+  owns nothing and is no product selection.
+
+| Case | Requirement | What it reads | Method |
+|---|---|---|---|
+| VC-HMI-001 | REQ-HMI-001, the scene as given | the runs of SC-HMI-001 to SC-HMI-007 | test |
+| VC-HMI-002 | REQ-HMI-002, the object that the system acts on | the runs of SC-HMI-001 to SC-HMI-007 | test |
+| VC-HMI-003 | REQ-HMI-003, the vehicle speed | the runs of SC-HMI-001, SC-HMI-002 and SC-HMI-007 | test |
+| VC-HMI-004 | REQ-HMI-004, the collision warning while requested | the runs of SC-HMI-001, SC-HMI-002 and SC-HMI-007 | test |
+| VC-HMI-005 | REQ-HMI-005, each warning mode within its limit | the runs of SC-HMI-001 and SC-HMI-002 | test |
+| VC-HMI-006 | REQ-HMI-006, outdated elements | the runs of SC-HMI-001 to SC-HMI-007 | test |
+| VC-HMI-007 | REQ-HMI-007, the warning unavailable | the runs of SC-HMI-001 to SC-HMI-007 | test |
+| VC-HMI-008 | REQ-HMI-008, the speed and the warning through outages | the runs of SC-HMI-003 to SC-HMI-006 | test |
+| VC-HMI-009 | REQ-HMI-009, the split of the renderers and the input paths | no run: the Phase 8 realization | inspection |
+| VC-HMI-010 | REQ-HMI-010, the display identity | the runs of SC-HMI-001 to SC-HMI-007, and outside them a display with one changed part | test |
+
+- **Outcome and verdict.** The increment's own `HmiDisplayEvidenceOutcome` has
+  the six literals of the driver-assistance increment.
+  `MapHmiDisplayEvidenceOutcomeToVerdict` maps the two pass outcomes to pass,
+  `failObservedBehavior` to fail, `errorEvidence` to error and the rest to
+  inconclusive. A run that is missing, or whose record is partial, is
+  inconclusive, never pass. While the tolerance of a drawn position is not set
+  (GAP-HMI-003), VC-HMI-001 gives `inconclusiveMissingEvidence` for evidence
+  that meets every other clause of its criterion.
+- **One evidence record per run.** Every case that reads a run reads its
+  `RetainedHmiDisplayRunEvidence`: HMI-CONFIG-001 and the receipt digest, the
+  model revision, the run and its scenario, the display identity record of
+  REQ-HMI-010 and the engineer who hashes the named files again, the candidate
+  identity record of the driver-assistance increment, the simulation-clock and
+  wall-clock spans, kept apart, the observations that Phase 5 asks of System 2,
+  and the claim boundary of the record. The inspection of REQ-HMI-009 keeps its
+  own record, `RetainedHmiDisplayRealizationInspection`.
+- **Claims before evidence.** Eight claims, one for each Phase 1 concern whose
+  question the ten cases answer: `hmiDisplayInputsConcern`,
+  `hmiContentVarianceConcern`, `hmiWarningSequenceConcern`,
+  `hmiContentCurrencyConcern`, `hmiAndroidOutageConcern`,
+  `hmiRendererAllocationConcern`, `hmiRendererPathConcern` and
+  `hmiDisplayVerdictConcern`. Each has an argument that cites the cases whose
+  requirements name its concern; the argument for `hmiDisplayVerdictConcern`
+  cites all ten. Ten counter-claims restate the non-claims of the framing and
+  of the open gaps, each tied to its record: a recording of a display that
+  looks right is no verdict, the simulated configuration only, no evidence from
+  the results of the driver-assistance bench, the scene from a stand-in, no
+  judgment of the candidate's perception, no compliance or approval, no member
+  product, no upstream endorsement, the drawing tolerance not set, and the open
+  test environment. The claims, the arguments and the counter-claims specialize
+  the kernel's assurance kinds; nothing is satisfied.
+- **The test environment** stays open as GAP-HMI-005, which continues the
+  readiness questions of Phase 8 until the probes fix its host and its
+  topology: the renderer on the guest host with the three VMs, the transport of
+  the renderer's topics, the composition of the two planes, the IVI image, the
+  capture of the sound, the feed of the simulator's speed (GAP-HMI-002) and
+  what stands in for the source of the scene. Each probe runs only on the
+  owner's word.
+- **No validation case.** The validation of the needs stays planned in Phase 4
+  (SC-HMI-008 to SC-HMI-013).
+
+Three amendments of earlier phases come with this slice. The identity-term
+amendment of Phase 10 makes the display identity name the elements that Phase 8
+places inside the display, and so retires GAP-HMI-004. The scene-form amendment
+of Phase 10 types `DisplaySceneMessage` in a form of the display's own, under
+the owner direction of 2026-11-26: each driving application gives its scene in
+that form through a translation of its own. `HmiDisplayPhysicalSystem`
+specializes the framing's `HmiDisplaySystem`, so the realization in
+HMI-CONFIG-001 can be the subject that the cases bind. Phase 8 also takes two
+corrections in place: COVESA VSS types the distance to the object that the
+system acts on in the scene message, and GAP-HMI-003 is carried open.
+
+One view answers the phase's question, a tree of the Argumentation Assurance
+viewpoint: the claims with their arguments and the cases they cite, the
+evidence records, the bench, the counter-claims, the records they are tied to
+and the gaps. It frames `hmiDisplayVerdictConcern`. Its diagram comes from the
+licensed Syside run;
+[`VIEWS.md`](../../textual-notation-of-model/packages/features/hmi/VIEWS.md)
+lists the views.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -928,9 +1021,16 @@ Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. Phase 3, the capability classification,
 records no feature-model delta, and review judges it: its one blocking check
 has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, with a
-prompt for review. The next model obligation is **Phase 10**: the verification
-cases, one or more for each requirement of the increment; its first gate is
-`verificationCaseVerifiesRequirement`. On 2026-11-21 the owner decided that the
+prompt for review. The next model obligation is **Phase 10**: verification and
+evidence, its second slice, which follows the readiness probes and adds the
+bench, the runs, the retained records and the statuses. The first slice holds
+the cases that `verificationCaseVerifiesRequirement` and
+`requirementVerifiedByVerificationCase` read;
+`verificationCaseHasEvidenceRecordOrStatus` stays advisory until runs exist.
+With those two checks met, the first open blocking check of the Method Check is
+Phase 11's `incrementHasBaselineDecision`. Do not jump from the cases to
+implementation before the probes, and claim no runtime gate. On 2026-11-21 the
+owner decided that the
 increment goes on without waiting for Phase 10 of the driver-assistance
 increment. Phase 3 and later phases waited for the revision of the governed
 scope, which the model now holds, so they go on. On 2026-11-17 the owner
@@ -952,7 +1052,8 @@ Run `sysand sync`, `python scripts/check_repo.py`,
 tests/test_hmi_display_functional_architecture.py
 tests/test_hmi_display_logical_architecture.py
 tests/test_hmi_display_physical_software_realization.py
-tests/test_hmi_display_variability_configuration.py -q`. These are
+tests/test_hmi_display_variability_configuration.py
+tests/test_hmi_display_verification_evidence.py -q`. These are
 repository and lexical checks, not SysML semantic validation and not runtime
 verification. Use `python scripts/validate_sysml.py` where a licensed validator
 is available, or request the maintainer-run **Privileged Syside Validation** on
