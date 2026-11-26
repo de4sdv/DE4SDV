@@ -980,8 +980,10 @@ package DE4SDV_HmiDisplayVerificationEvidence {
      * those of REQ-HMI-009. Each verdict is a pass or a fail for its
      * requirement and its scenarios, bound to the candidate revision, the
      * display identity and HMI-CONFIG-001 with its receipt, and holds what the
-     * display shows against what the candidate gives and when. A fail stays a
-     * recorded result. A claim to be proven: no case has started.
+     * display shows against what its sources give and when, the scene of the
+     * context stand-in of phase 8 while the candidate gives no scene
+     * (gapHmiSceneOutput). A fail stays a recorded result. A claim to be
+     * proven: no case has started.
      */
     subject claimSubject : HmiDisplayVerificationBench;
     require constraint {
