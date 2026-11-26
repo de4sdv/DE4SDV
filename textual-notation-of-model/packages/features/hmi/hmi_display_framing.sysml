@@ -432,13 +432,13 @@ package DE4SDV_HmiDisplayFraming {
    * has such a form, as COVESA VSS types it, and the warning request has the
    * form that the driver-assistance increment gives it. The scene has the
    * form of the scene of the panel of VisionPilot
-   * (termsHmiDisplayRequirements), and its message type stays open until
-   * phase 10 (DisplaySceneMessage). In this increment VisionPilot is the
-   * source of the scene, which it does not give at its boundary yet
-   * (gapHmiSceneOutput), and of the warning request. It is a direction for
-   * the scope decisions that hmiDisplayContentScopeDecisions lists, for the
-   * AEBS requirements on the warning and for the message type of the scene;
-   * it changes no member here.
+   * (termsHmiDisplayRequirements), and the scene-form amendment of phase 10
+   * types its message in a form of the display's own (DisplaySceneMessage). In
+   * this increment VisionPilot is the source of the scene, which it does not
+   * give at its boundary yet (gapHmiSceneOutput), and of the warning request.
+   * It is a direction for the scope decisions that
+   * hmiDisplayContentScopeDecisions lists, for the AEBS requirements on the
+   * warning and for the message type of the scene; it changes no member here.
    */
   part gapHmiUpstreamContact : IncrementGap {
     doc /*

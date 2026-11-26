@@ -84,6 +84,14 @@
  *
  * Phase 10 amends this realization:
  *
+ * - The scene-form amendment of phase 10 types DisplaySceneMessage in a form
+ *   of the display's own, under the owner direction of 2026-11-26 recorded
+ *   about gapHmiDisplayInProductLine: the capture time, the lane points, the
+ *   path, the objects with their levels, and the object that the system acts
+ *   on with its distance and the speed of the closest object. Each driving
+ *   application gives its scene in that form through a translation of its
+ *   own; that of VisionPilot is open with the scene's way out of the
+ *   candidate (gapHmiSceneOutput).
  * - GAP-HMI-004 is retired. The identity-term amendment of phase 10 makes the
  *   term display identity name the builds of the vehicle data publisher, of
  *   the identity recording service and of the composition, and the image of
@@ -156,14 +164,40 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
     doc /*
      * The scene as the realization types it on the Data Tunnel topic of the
      * SDV Core VM and through the SDV Gateway into the scene drawing app: the
-     * scene of one result pass with its capture time in simulation time. Its
-     * message type is new and stays open until phase 10. A scene is no vehicle
+     * scene of one result pass with its capture time in simulation time, in a
+     * form of the display's own (the scene-form amendment of phase 10). It
+     * carries the lane points, the points of the path and the objects, each
+     * with its position and its level, and, from DisplaySceneInput, the
+     * capture time and, when the scene has an object that the system acts on,
+     * its distance and the speed of the closest object. A scene is no vehicle
      * signal, except the distance to the object that the system acts on:
      * COVESA VSS types it at the port as obstacleDistance
      * (Vehicle_ADAS_ObstacleDetection_Distance, m), the value in m of the
      * inherited actedOnObjectDistance (MAP-HMI-SCENE).
      */
     attribute obstacleDistance : Vehicle_ADAS_ObstacleDetection_Distance[0..1];
+    attribute lanePoints : DisplayScenePoint[0..*] ordered;
+    attribute pathPoints : DisplayScenePoint[0..*] ordered;
+    attribute sceneObjects : DisplaySceneObject[0..*];
+  }
+
+  attribute def DisplayScenePoint {
+    doc /*
+     * A position in the scene: its distance ahead of the vehicle and its
+     * distance to the left of the vehicle, in m.
+     */
+    attribute ahead : ISQ::LengthValue;
+    attribute left : ISQ::LengthValue;
+  }
+
+  attribute def DisplaySceneObject {
+    doc /*
+     * An object of the scene: its position and its level, 1 for the same
+     * lane, 2 for the adjacent lane, and any other class as the scene gives
+     * it.
+     */
+    attribute objectPosition : DisplayScenePoint;
+    attribute level : ScalarValues::Integer;
   }
 
   item def DisplayVehicleSpeedSample :> VehicleSpeed {
@@ -574,7 +608,7 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
     connection sceneTopicToIVIOverDataTunnel connect hmiSDVCoreGuest.sceneMessageOut to hmiIVIGuest.sceneMessageIn {
       doc /*
        * The scene as the Data Tunnel topic from the SDV Core VM to the SDV
-       * Gateway on the IVI VM; its message type stays open until phase 10.
+       * Gateway on the IVI VM, as DisplaySceneMessage.
        */
     }
     connection speedToRendererAcrossVMs connect hmiSDVCoreGuest.speedSampleOut to hmiSDVMediaGuest.speedSampleIn {
@@ -668,14 +702,14 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
        */
       attribute :>> semanticSource = "the scene of one result pass of the candidate with the capture time of its camera image in simulation time: the output that the candidate does not give yet (gapHmiSceneOutput), no vehicle signal, except the distance to the object that the system acts on, which COVESA VSS types at the port as Vehicle_ADAS_ObstacleDetection_Distance (Vehicle.ADAS.ObstacleDetection.Distance, m)";
       attribute :>> softwareContractArtifact = "a Data Tunnel topic of the SDV Core VM that a context stand-in publishes, and the subscription of the scene drawing app to it through the SDV Gateway on the IVI VM, candidate";
-      attribute :>> softwareContractMessage = "DisplaySceneMessage, one per result pass; a new message type, open until phase 10, candidate";
-      attribute :>> softwareContractField = "the capture time, the lane points, the path, the objects with their levels, and the object that the system acts on with its distance and the speed of the closest object; not typed in this model yet";
-      attribute :>> dataTypeAndUnit = "capture time in simulation seconds; distance in m; speed of the closest object in m/s, negative while it approaches";
+      attribute :>> softwareContractMessage = "DisplaySceneMessage, one per result pass; a message type of the display's own, which each driving application gives through a translation of its own, candidate";
+      attribute :>> softwareContractField = "captureTime; lanePoints and pathPoints, each point ahead and left; sceneObjects, each with its objectPosition and its level; and, when the scene has an object that the system acts on, actedOnObjectDistance, typed at the port as obstacleDistance, and actedOnObjectSpeed";
+      attribute :>> dataTypeAndUnit = "capture time in simulation seconds; positions and distance in m; speed of the closest object in m/s, negative while it approaches; level an integer, 1 for the same lane and 2 for the adjacent lane";
       attribute :>> timingQualityAndState = "one scene per 0.1 s of simulation time; of the display's 0.1 s of wall-clock time, 0.05 s is for the hop from the SDV Core VM to the app and 0.05 s for the drawing, both unmeasured and revisited when a readiness probe measures them";
       attribute :>> transformationRule = "none on the path: the capture time reaches the app unchanged, and the app draws the scene as the candidate gives it";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "settle the scene's way out of the candidate and the message type, then bring the verification cases of REQ-HMI-001 and REQ-HMI-002 to evidence of record; none is started";
+      attribute :>> nextAction = "settle the scene's way out of the candidate and the translation of its scene into DisplaySceneMessage, then bring the verification cases of REQ-HMI-001 and REQ-HMI-002 to evidence of record; none is started";
       attribute :>> evidenceOrGap = "no runtime evidence of record; framing gap gapHmiSceneOutput";
     }
   }
