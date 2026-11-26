@@ -14,8 +14,9 @@ judges two routes: through a zone controller, and over a direct link.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
 Phase 3 capability classification, Phase 4 stakeholder needs, Phase 5
-requirements and Phase 6 functional architecture, proposal.** No
-implementation, run, result, product-line admission or compliance is claimed.
+requirements, Phase 6 functional architecture and Phase 7 logical
+architecture, proposal.** No implementation, run, result, product-line
+admission or compliance is claimed.
 
 ## Authoritative frame
 
@@ -394,6 +395,46 @@ element takes the simulation time. Left to Phase 8, which chooses the
 technology: how a zone controller repacks the command, whether the command
 fits a CAN frame, and the medium of the direct link.
 
+## Logical architecture (Phase 7)
+
+Phase 7 gives the vehicle network three logical elements in
+DE4SDV_EEArchitectureLogicalArchitecture. EEVehicleNetworkLogicalSystem
+specializes the functional boundary of Phase 6, so it keeps its two ports, and
+each of the five functions is allocated to the logical element that carries
+it. On 2026-11-26 the owner chose three logical elements for the five
+functions: functions share a logical element when nothing requires them to be
+separately placeable, and split where a requirement constrains the exchange
+between them or demands that one keeps working when the other does not.
+
+- eeIdentityRecorder carries recordNetworkIdentity (REQ-EE-010). The record
+  covers the software and the configuration of both other logical elements and
+  comes before the first driving command of each run is taken, so it stands
+  alone. It exchanges nothing: Phase 6 orders the record by succession, with
+  no item.
+- eeCommandCarrier carries takeDrivingCommand and carryDrivingCommand
+  (REQ-EE-002, REQ-EE-004, REQ-EE-005 and REQ-EE-007). Nothing asks the taking
+  and the carrying to be placed apart.
+- eeActuationEnd carries checkDrivingCommand and applyDrivingCommand
+  (REQ-EE-006, REQ-EE-008 and REQ-EE-009). It keeps working when the carriage
+  delivers nothing: by REQ-EE-009 the stop response starts there once more
+  than 200 ms of simulation time pass with no valid driving command reaching
+  it. So it stands apart from the command carrier. The check stays with the
+  application: Phase 5 judges a driving command valid as it reaches the end of
+  its route, and both functions share REQ-EE-006 and REQ-EE-008.
+
+The driving command enters by one delegation, to the command carrier, the one
+input that REQ-EE-002 keeps; the carried driving commands go from the command
+carrier to the actuation end, the one exchange between logical elements, which
+REQ-EE-004, REQ-EE-005 and REQ-EE-007 constrain; and the applied command
+leaves from the actuation end. REQ-EE-001 and REQ-EE-003 constrain the
+topology and the routes, so Phase 8 carries them by the elements that it
+places on the routes. Of the two questions that Phase 6 left open, Phase 7
+settles which element checks a driving command: the actuation end. Where each
+element of the routes takes the simulation time stays with Phase 8.
+
+Three views show it: the logical structure, the function by logical element
+matrix and the internal exchange.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -504,9 +545,11 @@ vacuous, with a prompt for review. The owner decided on 2026-11-18 to carry
 out Phases 1 to 3 of this increment before the baseline of the
 driver-assistance increment, whose driving command it carries. After that
 baseline, the owner decided on 2026-11-21 to start Phase 4, on 2026-11-22 to
-go on with Phase 5 and on 2026-11-24 to go on with Phase 6. The next model
-obligation is **Phase 7**, the logical architecture. The testbed with its
-readiness probe waits for a further decision of the owner.
+go on with Phase 5, on 2026-11-24 to go on with Phase 6 and on 2026-11-25 to
+go on with Phase 7. The next model obligation is **Phase 8**: the E/E and
+software realization, which allocates each logical element to a physical
+element; its first gate is `logicalElementAllocatedToPhysicalElement`. The
+testbed with its readiness probe waits for a further decision of the owner.
 
 The testbed is chosen after a readiness probe. Before a paid cloud run,
 refresh the regional price, the capacity and the available credit, obtain the
@@ -521,7 +564,8 @@ scripts/smoke_test.py` and `python -m pytest
 tests/test_ee_architecture_framing.py
 tests/test_ee_architecture_needs_requirements.py
 tests/test_ee_architecture_requirements.py
-tests/test_ee_architecture_functional_architecture.py -q`. These are
+tests/test_ee_architecture_functional_architecture.py
+tests/test_ee_architecture_logical_architecture.py -q`. These are
 repository and lexical checks, not SysML semantic validation and not runtime
 verification. Use `python scripts/validate_sysml.py` where a licensed
 validator is available, or request the maintainer-run **Privileged Syside

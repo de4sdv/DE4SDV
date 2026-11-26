@@ -174,6 +174,12 @@ GRID_METADATA = {
         "states (state usages)",
         "",
     ),
+    "matrix-eeVehicleNetworkFunctionMappingView": GridMetadata(
+        "Vehicle network function-to-logical-element mapping",
+        "Maps the five functions of the vehicle network to the three logical elements that carry them.",
+        "system functions (action usages)",
+        "logical elements (part usages)",
+    ),
     "table-middlewareProductLineClassificationView": GridMetadata(
         "Middleware product-line classification",
         "Classifies middleware characteristics and attaches each rationale to its element.",
