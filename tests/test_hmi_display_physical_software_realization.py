@@ -413,7 +413,9 @@ HEADER_PARAGRAPHS = [
     "VisionPilot is open with the scene's way out of the candidate (gapHmiSceneOutput). - GAP-HMI-004 is retired. The "
     "identity-term amendment of phase 10 makes the term display identity name the builds of the vehicle data "
     "publisher, of the identity recording service and of the composition, and the image of the SDV Core VM, so a "
-    "change to one of them records another display identity.",
+    "change to one of them records another display identity. - HmiDisplayPhysicalSystem specializes the framing's "
+    "HmiDisplaySystem, the system of interest, so that the realization in HMI-CONFIG-001 is the subject of the "
+    "requirements that the cases of phase 10 verify. HmiDisplaySystem declares no feature.",
     "Alternatives recorded and not selected: - ALT-HMI-RECORDERINCORE-001: the identity recorder inside the SDV Core "
     "VM. A recorder in a VM records no image of the IVI or SDV Media VM before their start, which the record has to "
     "precede. - ALT-HMI-SCENESTREAM-001: the app streams its drawn frames to the renderer, which draws them. The "
@@ -597,15 +599,16 @@ DOCS = {
     "part def HmiDisplayPhysicalSystem":
         "The physical realization of the HMI display in the vehicle: the central computer and its three VMs. Inside "
         "the display are the identity recording service and the composition on the central computer, the IVI VM with "
-        "the scene drawing app, the SDV Media VM with the high availability renderer, and the paths from the SDV "
-        "Core VM, with the vehicle data publisher in it. The platform of the SDV Core VM, where the inputs reach the "
-        "display, is shared with the Eclipse S-CORE path outside it. The candidate, the S-CORE path and the "
-        "simulator stay in the realization of the driver-assistance increment, and no part here stands for them or "
-        "for an element of the bench. Between the VMs, the scene goes from the SDV Core VM to the IVI VM on the Data "
-        "Tunnel; the speed, the warning request and the time of each scene go from the SDV Core VM to the SDV Media "
-        "VM over the platform's messaging; and the heartbeats go from the IVI VM to the SDV Media VM. The two planes "
-        "go to the composition on the central computer, the renderer's over the IVI plane. Nothing crosses back to "
-        "the SDV Core VM or to the IVI VM. It carries REQ-HMI-009 by the elements that it places on those paths.",
+        "the scene drawing app, the SDV Media VM with the high availability renderer, and the paths from the SDV Core "
+        "VM, with the vehicle data publisher in it. The platform of the SDV Core VM, where the inputs reach the "
+        "display, is shared with the Eclipse S-CORE path outside it. The candidate, the S-CORE path and the simulator "
+        "stay in the realization of the driver-assistance increment, and no part here stands for them or for an "
+        "element of the bench. Between the VMs, the scene goes from the SDV Core VM to the IVI VM on the Data Tunnel; "
+        "the speed, the warning request and the time of each scene go from the SDV Core VM to the SDV Media VM over "
+        "the platform's messaging; and the heartbeats go from the IVI VM to the SDV Media VM. The two planes go to "
+        "the composition on the central computer, the renderer's over the IVI plane. Nothing crosses back to the SDV "
+        "Core VM or to the IVI VM. It carries REQ-HMI-009 by the elements that it places on those paths. It "
+        "specializes the framing's HmiDisplaySystem, the system of interest.",
     "connection sceneTopicToIVIOverDataTunnel":
         "The scene as the Data Tunnel topic from the SDV Core VM to the SDV Gateway on the IVI VM, as "
         "DisplaySceneMessage.",
@@ -1086,9 +1089,11 @@ GUIDE_BLOCKS = [
     "GAP-HMI-004, on the display identity, is retired: the identity-term amendment of Phase 10 makes the term name "
     "the builds of the vehicle data publisher, of the identity recording service and of the composition, and the "
     "image of the SDV Core VM. The scene-form amendment of Phase 10 types `DisplaySceneMessage` in a form of the "
-    "display's own. Comments on the framing's gaps say what this phase placed: the path to the renderer, the "
-    "heartbeats, the composition and the chime are placed and not observed on the bench. The changes to the projects "
-    "of the renderer and of the candidate stay gaps, and nothing is written to their maintainers.",
+    "display's own, and `HmiDisplayPhysicalSystem` specializes the framing's `HmiDisplaySystem`, so that the "
+    "realization is the subject of the requirements that the cases verify. Comments on the framing's gaps say what "
+    "this phase placed: the path to the renderer, the heartbeats, the composition and the chime are placed and not "
+    "observed on the bench. The changes to the projects of the renderer and of the candidate stay gaps, and nothing "
+    "is written to their maintainers.",
     "Three alternatives were not selected: the recorder inside the SDV Core VM, the app streaming its drawn frames "
     "to the renderer, and the speed on the Eclipse S-CORE path.",
     "Three views answer the concerns of this phase: the structure as a tree of the SAF Physical Structure Definition "
@@ -1258,6 +1263,11 @@ def test_the_four_software_elements_are_the_physical_elements_and_nothing_else_i
         "the import and the four"
     assert re.findall(r"\bpart\s+def\s+(\w+)", code) == ELEMENT_DEFINITIONS + NOT_ELEMENTS
     for name in NOT_ELEMENTS:
+        if name == SYSTEM:
+            # since phase 10 the realization specializes the system of interest of the framing, and nothing else
+            assert re.search(rf"\bpart\s+def\s+{name}\s*:>\s*DE4SDV_HmiDisplayFraming::HmiDisplaySystem\s*\{{",
+                             code), f"{name} specializes the system of interest"
+            continue
         assert re.search(rf"\bpart\s+def\s+{name}\s*\{{", code), f"{name} specializes nothing"
     for definition in ELEMENT_DEFINITIONS:
         assert _doc(f"part def {definition} :> PhysicalAllocationElement").startswith("Carries "), definition
