@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # drivingAgent's C++ units (agent/cc): the decision logic (agent_logic), the frame store
 # (frame_store + pace_signal), the kinematics (ego_motion.h), the route listener, the nav
-# prefetch (nav_prefetch.h) and the navigation input. Plain -O2 with warnings as errors, AddressSanitizer +
+# prefetch (nav_prefetch.h) and the navigation input with the step's take of the prefetch
+# (TakeNavPrefetch). Plain -O2 with warnings as errors, AddressSanitizer +
 # UndefinedBehaviorSanitizer, ThreadSanitizer for the threaded units, the records-against-the-
 # evaluators check, and with --mutations the mutation probes.
 #   run_tests.sh [--mutations]
@@ -89,6 +90,10 @@ if [ -f "$UPN/navigation_rasterizer.cpp" ] && [ -f "${NAV_MAP:-/nonexistent}" ] 
   step build_nav_thread    g++ "${W[@]}" -O1 -g -fsanitize=thread -pthread "${NAV[@]}" "$CC_DIR/navigation_input.cpp" -o "$OUT/navigation_input_test_thread"
   step navigation_input_thread env TSAN_OPTIONS=halt_on_error=0 "$OUT/navigation_input_test_thread" "$NAV_MAP" "$NAV_ROUTE"
   san_clean "$OUT/navigation_input_thread.log" || { echo "FAIL  navigation_input_thread: sanitizer report"; FAILED=1; }
+  # The take hands the checkpoint pointers to buffers it swapped (TakeNavPrefetch).
+  step build_nav_address   g++ "${W[@]}" -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -pthread "${NAV[@]}" "$CC_DIR/navigation_input.cpp" -o "$OUT/navigation_input_test_address"
+  step navigation_input_address "$OUT/navigation_input_test_address" "$NAV_MAP" "$NAV_ROUTE"
+  san_clean "$OUT/navigation_input_address.log" || { echo "FAIL  navigation_input_address: sanitizer report"; FAILED=1; }
 else
   echo "SKIP  navigation_input (needs $UPN/navigation_rasterizer.cpp, NAV_MAP and NAV_ROUTE)"
 fi
@@ -98,6 +103,7 @@ if [ "${1:-}" = "--mutations" ]; then
   step frame_store_mutations "$PYTHON" "$CC_DIR/tests/frame_store_mutations.py"
   step nav_prefetch_mutations "$PYTHON" "$CC_DIR/tests/nav_prefetch_mutations.py"
   if [ $NAV_OK -eq 1 ]; then
+    step nav_prefetch_take_mutations "$PYTHON" "$CC_DIR/tests/nav_prefetch_take_mutations.py" "$NAV_MAP" "$NAV_ROUTE" "$OUT/upstream_rasterizer.o"
     # The coverage check must see a wrong pixel mapping: a mirrored lateral axis and swapped axes.
     i=0
     for mut in 's/ey = -s \* dx + c \* dy/ey = s * dx - c * dy/' \

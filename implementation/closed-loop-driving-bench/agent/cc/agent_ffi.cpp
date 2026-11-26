@@ -400,17 +400,6 @@ class FakeWorld {
   std::thread poll_;
 };
 
-// What the nav prefetch's thread hands the step: the step's rasters in buffers of their own, the
-// pose they were drawn at, and the "route" record's data when that render changed the route.
-struct NavPrefetchResult {
-  da::NavigationInput::Step step;
-  std::vector<float> map_context, route_mask;
-  da::Pose pose{};
-  bool ok = false;
-  std::string error;
-  std::string route_event;   // nav_prefetch.h carries it to the next take when the result is never used
-};
-
 struct Agent {
   Config cfg;
   std::unique_ptr<dd::RunLog> log;
@@ -439,7 +428,7 @@ struct Agent {
   std::string setup_config_json;          // the planner configuration handed to setup
   std::unique_ptr<da::NavigationInput> nav;  // nav_map set
   // Declared after nav: destroyed (its thread joined) before it. The store's snapshot sink calls it.
-  std::unique_ptr<da::NavPrefetch<NavPrefetchResult>> nav_prefetch;  // nav_map and nav_prefetch set
+  std::unique_ptr<da::NavPrefetch<da::NavPrefetchResult>> nav_prefetch;  // nav_map and nav_prefetch set
   std::vector<float> nav_hit_map, nav_hit_route;  // a hit's rasters, kept until the next step's
   std::uint64_t nav_hits = 0, nav_route_changed = 0, nav_pose_changed = 0, nav_render_failed = 0,
                 nav_not_submitted = 0, nav_timed_out = 0;
@@ -875,8 +864,8 @@ int32_t de4sdv_condition_startup(void) {
   if (!a.cfg.nav_map.empty() && a.cfg.nav_prefetch) {
     // Created before the store and armed once the navigation input and the REF origin exist: until
     // then the sink's requests are refused and the steps render on the chain.
-    a.nav_prefetch = std::make_unique<da::NavPrefetch<NavPrefetchResult>>();
-    da::NavPrefetch<NavPrefetchResult>* np = a.nav_prefetch.get();
+    a.nav_prefetch = std::make_unique<da::NavPrefetch<da::NavPrefetchResult>>();
+    da::NavPrefetch<da::NavPrefetchResult>* np = a.nav_prefetch.get();
     fc.snapshotSink = [np](std::uint64_t frame, const da::HeroSnapshot& snapshot, std::int64_t arrival) {
       np->Submit(frame, snapshot.pose, arrival);
     };
@@ -958,12 +947,9 @@ int32_t de4sdv_condition_startup(void) {
     if (a.nav_prefetch) {
       da::NavigationInput* nav = a.nav.get();
       const std::array<double, 3> origin{a.ref_origin[0], a.ref_origin[1], a.ref_origin[2]};   // set once, above
-      a.nav_prefetch->Start([nav, origin](std::uint64_t frame, const da::Pose& pose, std::int64_t, NavPrefetchResult* r) {
-        r->pose = pose;
-        r->ok = nav->RenderInto(pose, origin.data(), &r->step, &r->map_context, &r->route_mask, &r->error);
-        if (r->ok && !r->step.route_event.empty()) {
-          r->route_event = "{\"frame\":" + std::to_string(frame) + ",\"event\":" + r->step.route_event + "}";
-        }
+      a.nav_prefetch->Start([nav, origin](std::uint64_t frame, const da::Pose& pose, std::int64_t,
+                                          da::NavPrefetchResult* r) {
+        da::RenderNavPrefetch(nav, origin.data(), frame, pose, r);
       });
       a.nav_prefetch->Arm(true);
     }
@@ -1044,42 +1030,26 @@ int32_t de4sdv_condition_step(De4sdvInputsMsg* inputs, De4sdvConditionMsg* condi
     if (a.nav_prefetch) {
       // The rasters drawn when this step's snapshot arrived, if they are what a render here would
       // draw: the same pose and the same route (the issue time and corridor count are read now).
-      NavPrefetchResult pf;
-      std::vector<std::string> carried;
+      // TakeNavPrefetch (navigation_input.h) decides; the step logs, counts and renders otherwise.
       const auto wait_ns = static_cast<std::int64_t>(a.cfg.nav_prefetch_wait_ms * 1e6);
-      const da::TakeOutcome o = a.nav_prefetch->Take(frame, wait_ns, &pf, &carried, &prefetch_take_ms);
-      for (const auto& ev : carried) Log("route", WithStage(ev));   // route changes of renders never used
-      if (o == da::TakeOutcome::kHit) {
-        const da::RouteState now = a.nav->NewestRoute();
-        const da::UseDecision use = da::DecideUse(pf.ok, pf.pose, view.snapshot.pose, pf.step.route_identity,
-                                                  da::NavigationInput::RouteIdentity(now));
-        if (use == da::UseDecision::kRenderFailed) {
-          prefetch_outcome = "render_failed";
-          ++a.nav_render_failed;
-        } else if (use == da::UseDecision::kPoseChanged) {
-          prefetch_outcome = "pose_changed";
-          ++a.nav_pose_changed;
-        } else if (use == da::UseDecision::kRouteChanged) {
-          prefetch_outcome = "route_changed";
-          ++a.nav_route_changed;
-        } else {
-          da::NavigationInput::ObserveAnnouncement(now, &pf.step.route);   // as a render here reads it
-          nav_step = std::move(pf.step);
-          a.nav_hit_map.swap(pf.map_context);
-          a.nav_hit_route.swap(pf.route_mask);
-          map_buf = &a.nav_hit_map;
-          route_buf = &a.nav_hit_route;
-          from_prefetch = true;
-          prefetch_outcome = "hit";
-          ++a.nav_hits;
-        }
-        if (!from_prefetch && !pf.route_event.empty()) Log("route", WithStage(pf.route_event));
-      } else if (o == da::TakeOutcome::kTimedOut) {
-        prefetch_outcome = "timed_out";
-        ++a.nav_timed_out;
-      } else {
-        prefetch_outcome = "not_submitted";
-        ++a.nav_not_submitted;
+      da::NavPrefetchTake take = da::TakeNavPrefetch(a.nav_prefetch.get(), *a.nav, frame, view.snapshot.pose,
+                                                     wait_ns, &a.nav_hit_map, &a.nav_hit_route);
+      for (const auto& ev : take.route_events) Log("route", WithStage(ev));   // renders this step does not use
+      prefetch_outcome = da::NavPrefetchOutcomeName(take.outcome);
+      prefetch_take_ms = take.take_ms;
+      switch (take.outcome) {
+        case da::NavPrefetchOutcome::kHit: ++a.nav_hits; break;
+        case da::NavPrefetchOutcome::kNotSubmitted: ++a.nav_not_submitted; break;
+        case da::NavPrefetchOutcome::kTimedOut: ++a.nav_timed_out; break;
+        case da::NavPrefetchOutcome::kRouteChanged: ++a.nav_route_changed; break;
+        case da::NavPrefetchOutcome::kPoseChanged: ++a.nav_pose_changed; break;
+        case da::NavPrefetchOutcome::kRenderFailed: ++a.nav_render_failed; break;
+      }
+      if (take.map_context != nullptr) {   // a use: this frame's prefetched rasters, held in nav_hit_*
+        nav_step = std::move(take.step);
+        map_buf = take.map_context;
+        route_buf = take.route_mask;
+        from_prefetch = true;
       }
     }
     if (!from_prefetch) {
