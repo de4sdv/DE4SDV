@@ -27,7 +27,7 @@ functional requirement allocated to a function by a native allocation). These pi
   carries the steering angle and the acceleration only; no vehicle signal specification;
 - five views, one per SAF question of the phase, each framing its concern; the process view frames the phase 1
   concern of the fault response and hides doc rows, so the view index notes where its sequence is;
-- the guide's Phase 6 section, its status line and its next obligation, Phase 7.
+- the guide's Phase 6 section, its status line and its next obligation, as phase 7 moved them.
 
 The guards added after the review of 2026-11-25 read the code with docs and `//` notes removed, so a doc word cannot
 trip them: every directed feature of a function is one of its parameters, the state machine is not parallel and owns
@@ -499,24 +499,28 @@ CONCERN_DOCS = {
         "command, until the run ends."),
 }
 
-#: The guide: its Status line and the next obligation, which phase 6 moves.
+#: The guide: its Status line and the next obligation, as phase 7 moved them.
 GUIDE_STATUS = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs, Phase 5 requirements and Phase 6 functional architecture, proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture and Phase 7 logical "
+    "architecture, proposal.**")
 GUIDE_STATUS_PHASE_5 = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
     "Phase 4 stakeholder needs and Phase 5 requirements, proposal.**")
-#: The paragraph of the next obligation: the go for phase 6 with its date, and phase 7 next.
+#: The paragraph of the next obligation: the goes up to phase 7 with their dates, and phase 8 next.
 GUIDE_NEXT_PARAGRAPH = (
     "Use the Method Check of the reviewed pull request to select the next obligation, not the phase number alone. "
     "Phase 3, the capability classification, records no feature-model delta, and review judges it: its one blocking "
     "check has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, with a prompt for review. The owner "
     "decided on 2026-11-18 to carry out Phases 1 to 3 of this increment before the baseline of the driver-assistance "
     "increment, whose driving command it carries. After that baseline, the owner decided on 2026-11-21 to start "
-    "Phase 4, on 2026-11-22 to go on with Phase 5 and on 2026-11-24 to go on with Phase 6. The next model obligation "
-    "is **Phase 7**, the logical architecture. The testbed with its readiness probe waits for a further decision of "
-    "the owner.")
-GUIDE_NEXT = "The next model obligation is **Phase 7**, the logical architecture."
+    "Phase 4, on 2026-11-22 to go on with Phase 5, on 2026-11-24 to go on with Phase 6 and on 2026-11-25 to go on "
+    "with Phase 7. The next model obligation is **Phase 8**: the E/E and software realization, which allocates each "
+    "logical element to a physical element; its first gate is `logicalElementAllocatedToPhysicalElement`. The "
+    "testbed with its readiness probe waits for a further decision of the owner.")
+GUIDE_NEXT = (
+    "The next model obligation is **Phase 8**: the E/E and software realization, which allocates each logical "
+    "element to a physical element; its first gate is `logicalElementAllocatedToPhysicalElement`.")
 GUIDE_HEADING = "## Functional architecture (Phase 6)"
 #: The paragraphs of the guide's Phase 6 section, whole and in order.
 GUIDE_PARAGRAPHS = [
@@ -974,7 +978,7 @@ def test_the_charter_names_the_package_after_the_needs_and_requirements():
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
     assert artifacts
     names = re.findall(r'"([^"]+)"', artifacts.group(1))
-    assert names[-1] == PACKAGE and names.index(PACKAGE) == names.index("DE4SDV_EEArchitectureNeedsRequirements") + 1
+    assert names.index(PACKAGE) == names.index("DE4SDV_EEArchitectureNeedsRequirements") + 1
     assert names.count(PACKAGE) == 1
     assert re.search(rf"(?m)^package\s+{PACKAGE}\s*\{{", _code())
     assert len(re.findall(r"(?m)^package\s+\w+", _code())) == 1
@@ -1501,7 +1505,7 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
     assert not taken, f"declared in another package too: {taken}"
 
 
-def test_the_guide_has_a_phase_6_section_and_names_phase_7_next():
+def test_the_guide_has_a_phase_6_section_and_names_the_next_obligation():
     guide = _guide()
     assert guide.count(GUIDE_HEADING + "\n") == 1
     assert guide.index("## Requirements (Phase 5)") < guide.index(GUIDE_HEADING) \
@@ -1517,5 +1521,6 @@ def test_the_guide_has_a_phase_6_section_and_names_phase_7_next():
     assert [" ".join(block.split()) for block in re.split(r"\n\s*\n", nxt.strip())][0] == GUIDE_NEXT_PARAGRAPH
     assert flat.count(GUIDE_NEXT) == 1
     assert "The next model obligation is **Phase 6**" not in flat
+    assert "The next model obligation is **Phase 7**" not in flat
     check = " ".join(guide.split("## Check the framing change", 1)[1].split())
     assert "tests/test_ee_architecture_functional_architecture.py" in check

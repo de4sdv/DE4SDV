@@ -385,7 +385,8 @@ package DE4SDV_EEArchitectureFraming {
       "DE4SDV_EEArchitectureOperationalContext",
       "DE4SDV_EEArchitectureCapabilityClassification",
       "DE4SDV_EEArchitectureNeedsRequirements",
-      "DE4SDV_EEArchitectureFunctionalArchitecture"
+      "DE4SDV_EEArchitectureFunctionalArchitecture",
+      "DE4SDV_EEArchitectureLogicalArchitecture"
     );
     attribute :>> expectedReviewEvidence = (
       "owner confirmation of the engineering question and the scope",

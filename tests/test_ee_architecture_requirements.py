@@ -542,8 +542,8 @@ GUIDE_STATUS_OLD = (
     'classification and Phase 4 stakeholder needs, proposal.**')
 GUIDE_STATUS_NEW = (
     '**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability '
-    'classification, Phase 4 stakeholder needs, Phase 5 requirements and Phase 6 functional architecture, '
-    'proposal.**')
+    'classification, Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture and '
+    'Phase 7 logical architecture, proposal.**')
 #: the status line of phase 5, which phase 6 moves
 GUIDE_STATUS_PHASE_5 = (
     '**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability '
@@ -554,9 +554,11 @@ GUIDE_NEXT_OLD = (
     'decision of the owner.')
 GUIDE_NEXT_NEW = (
     'After that baseline, the owner decided on 2026-11-21 to start Phase 4, on 2026-11-22 to go on '
-    'with Phase 5 and on 2026-11-24 to go on with Phase 6. The next model obligation is **Phase 7**, '
-    'the logical architecture. The testbed with its readiness probe waits for a further decision of '
-    'the owner.')
+    'with Phase 5, on 2026-11-24 to go on with Phase 6 and on 2026-11-25 to go on with Phase 7. The '
+    'next model obligation is **Phase 8**: the E/E and software realization, which allocates each '
+    'logical element to a physical element; its first gate is '
+    '`logicalElementAllocatedToPhysicalElement`. The testbed with its readiness probe waits for a '
+    'further decision of the owner.')
 GUIDE_HEADING = "## Requirements (Phase 5)"
 #: the paragraphs of the guide's Phase 5 section, in order; BULLETS and DECISIONS stand for the two lists
 GUIDE_PARAGRAPHS = (
@@ -1046,6 +1048,7 @@ def test_the_guide_states_phase_5_and_the_next_obligation():
     assert GUIDE_NEXT_NEW in flat and GUIDE_NEXT_OLD not in flat
     assert GUIDE_STATUS_PHASE_5 not in flat, "phase 6 moved the status line"
     assert "The next model obligation is **Phase 6**" not in flat, "phase 6 moved the next obligation to phase 7"
+    assert "The next model obligation is **Phase 7**" not in flat, "phase 7 moved the next obligation to phase 8"
     assert guide.endswith("\n") and not guide.endswith("\n\n"), "the guide ends with exactly one newline"
 
 
