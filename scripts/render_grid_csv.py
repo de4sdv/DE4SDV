@@ -180,6 +180,12 @@ GRID_METADATA = {
         "system functions (action usages)",
         "logical elements (part usages)",
     ),
+    "matrix-eeVehicleNetworkPhysicalLogicalMappingView": GridMetadata(
+        "Vehicle network logical-to-physical mapping",
+        "Maps the three logical elements of the vehicle network to the three nodes that carry them.",
+        "logical elements (part usages)",
+        "nodes (part usages)",
+    ),
     "table-middlewareProductLineClassificationView": GridMetadata(
         "Middleware product-line classification",
         "Classifies middleware characteristics and attaches each rationale to its element.",

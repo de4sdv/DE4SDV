@@ -539,12 +539,13 @@ Artifact-aware rules (small and explicit, no heuristic parser):
   directory stays governed — so a clean CI checkout and a developer
   checkout with a built workspace behave identically.
 - **Non-governed look-alikes**: hash-algorithm names (`SHA-256`, `SHA-1`),
-  GitHub line anchors (`#L743-L754`), charset fragments, mixed-case prose
-  (`SERVER-IPv4`, `AI-Ready`), external project names (`S-CORE`,
-  `SAF-SysMLV2`, …), and retained evidence-index filenames
-  (`VIDEO-EVIDENCE-DISPOSITION.md`, an artifact label of the INC-AEBS-010
-  campaign, not a project identity) are outside the grammar by construction
-  or by the named external list.
+  GitHub line anchors (`#L743-L754`), the release designation of a
+  specification that an upstream record cites (`R` with a two-digit year and
+  month, in Markdown), charset fragments, mixed-case prose (`SERVER-IPv4`,
+  `AI-Ready`), external project names (`S-CORE`, `SAF-SysMLV2`, …), and
+  retained evidence-index filenames (`VIDEO-EVIDENCE-DISPOSITION.md`, an
+  artifact label of the INC-AEBS-010 campaign, not a project identity) are
+  outside the grammar by construction or by the named external list.
 
 **What the checker cannot do (honest boundary):** it validates syntax
 against the registries plus the enumerated grandfathered identity sets

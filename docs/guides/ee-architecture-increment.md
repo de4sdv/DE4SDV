@@ -14,9 +14,9 @@ judges two routes: through a zone controller, and over a direct link.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
 Phase 3 capability classification, Phase 4 stakeholder needs, Phase 5
-requirements, Phase 6 functional architecture and Phase 7 logical
-architecture, proposal.** No implementation, run, result, product-line
-admission or compliance is claimed.
+requirements, Phase 6 functional architecture, Phase 7 logical architecture
+and the E/E realization of Phase 8, proposal.** No implementation, run,
+result, product-line admission or compliance is claimed.
 
 ## Authoritative frame
 
@@ -435,6 +435,57 @@ element of the routes takes the simulation time stays with Phase 8.
 Three views show it: the logical structure, the function by logical element
 matrix and the internal exchange.
 
+## E/E realization (Phase 8)
+
+Phase 8 realizes the vehicle network in two packages. The first is the
+[E/E realization](../../textual-notation-of-model/packages/features/ee/ee_architecture_physical_ee_realization.sysml),
+DE4SDV_EEArchitecturePhysicalEERealization: the nodes, the links and the
+frame on them. The software realization, with the software of each node,
+follows a change to the method that relates software to a node. On
+2026-11-26 the owner decided this split, that the network side of the
+central computer puts each driving command straight into one CAN FD frame,
+and that this frame reaches the actuation ECU unchanged on either route.
+
+- The central computer, the two zone controllers and the actuation ECU are
+  typed as vehicle compute nodes, a typing that claims no board, no operating
+  system and no qualification. Of the central computer only its network side
+  is an element of the vehicle network, and it carries the identity recorder
+  and the command carrier. It takes each driving command from the Eclipse
+  S-CORE path at the boundary interface, reads the vehicle's clock and builds
+  the frame. Before the first driving command of each run it records the
+  network identity.
+- The zone controller of the actuation ECU's zone carries the command
+  carrier on the route through a zone controller. It takes the frame out of
+  its IEEE 1722 packet from the Ethernet backbone and puts it on the CAN FD
+  bus of its zone. It repacks nothing.
+- The actuation ECU carries the actuation end. It reads the vehicle's clock
+  when a frame arrives, checks the frame, applies each valid driving command
+  and gives the stop response.
+- The Ethernet backbone, the CAN FD bus of that zone and the direct link, a
+  CAN FD link, carry the frame and compute nothing. The other zone
+  controller and its CAN FD bus lie on neither route and carry no logical
+  element.
+
+The frame keeps the five parts of the command of Phase 6. Its steering angle
+and acceleration are typed by the two DE4SDV_VSS_Extensions command signals
+of the driving increments; the issue time, the sequence count and the check
+value are protocol fields, no vehicle signal. Seven signal mappings record
+the items at the crossings, and two dependencies from the physical system
+carry REQ-EE-001 and REQ-EE-003. Three gaps state what is not settled: the
+second declaration of the central computer, in the realization of the HMI
+display (`gapEECentralComputerHandover`); the files of the configuration,
+named by role only (`gapEEConfigurationNamedByRole`); and the software of the
+nodes (`gapEENodeSoftwareOpen`). On the bench the testbed stands in for each
+element; whether it carries CAN FD is a question for Phase 10.
+
+Three views show it: the structure as a tree, the logical elements by node
+as a matrix, and the two routes as an interconnection, which also shows the
+item on each part of the way.
+
+`tests/test_ee_architecture_physical_ee_realization.py` pins the elements,
+their ports and routes, the allocations, the mappings, the views and this
+section.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -545,11 +596,15 @@ vacuous, with a prompt for review. The owner decided on 2026-11-18 to carry
 out Phases 1 to 3 of this increment before the baseline of the
 driver-assistance increment, whose driving command it carries. After that
 baseline, the owner decided on 2026-11-21 to start Phase 4, on 2026-11-22 to
-go on with Phase 5, on 2026-11-24 to go on with Phase 6 and on 2026-11-25 to
-go on with Phase 7. The next model obligation is **Phase 8**: the E/E and
-software realization, which allocates each logical element to a physical
-element; its first gate is `logicalElementAllocatedToPhysicalElement`. The
-testbed with its readiness probe waits for a further decision of the owner.
+go on with Phase 5, on 2026-11-24 to go on with Phase 6, on 2026-11-25 to go
+on with Phase 7 and on 2026-11-26 to go on with Phase 8 in three pull
+requests. The next model obligation is the software realization of
+**Phase 8**, after the change to the method that relates software to a node:
+the software of each node, the layers that it runs on and VSS at its software
+ports. Once the E/E realization holds the gate of Phase 8, the Method Check
+names Phase 9 next, with its first gate `incrementHasConfiguredProduct`; by
+the owner's decision Phase 9 waits for the software realization. The testbed
+with its readiness probe waits for a further decision of the owner.
 
 The testbed is chosen after a readiness probe. Before a paid cloud run,
 refresh the regional price, the capacity and the available credit, obtain the
@@ -565,7 +620,8 @@ tests/test_ee_architecture_framing.py
 tests/test_ee_architecture_needs_requirements.py
 tests/test_ee_architecture_requirements.py
 tests/test_ee_architecture_functional_architecture.py
-tests/test_ee_architecture_logical_architecture.py -q`. These are
+tests/test_ee_architecture_logical_architecture.py
+tests/test_ee_architecture_physical_ee_realization.py -q`. These are
 repository and lexical checks, not SysML semantic validation and not runtime
 verification. Use `python scripts/validate_sysml.py` where a licensed
 validator is available, or request the maintainer-run **Privileged Syside
