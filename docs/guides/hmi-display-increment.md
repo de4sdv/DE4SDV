@@ -714,9 +714,11 @@ the sound. Both are unmeasured and revisited when a readiness probe measures
 them. An outdated scene shows as the renderer's placeholder over the scene
 area, an outdated speed as no number, and an unavailable warning as one
 fixed symbol; the visual design stays out of scope. The speed is typed by
-COVESA VSS at its ports, and the warning request keeps the payload of the
-driver-assistance increment. Every other item says in its mapping record
-why it is no vehicle signal. There are eight mappings.
+COVESA VSS at its ports, and so is the distance to the object that the
+system acts on in the scene message
+(`Vehicle.ADAS.ObstacleDetection.Distance`); the warning request keeps the
+payload of the driver-assistance increment. Every other item says in its
+mapping record why it is no vehicle signal. There are eight mappings.
 
 Four gaps of the realization state what is not settled: the renderer's judging
 of the scene by the term current (`gapHmiRendererJudgesSceneCurrency`), the

@@ -68,11 +68,13 @@
  *   probe measures them. The clocks and the simulator's mode are those of the
  *   driver-assistance increment: simulation time is the time that each value
  *   carries from its source, and wall-clock time is the time of the host.
- * - VSS at the ports only: the vehicle speed as Vehicle.Speed, and the warning
- *   request in the payload of the driver-assistance increment. The scene, the
- *   time of a scene, the heartbeat, the planes, the frames of the display and
- *   the chime are no vehicle signal, and their records say so. No VSS
- *   extension is added.
+ * - VSS at the ports only: the vehicle speed as Vehicle.Speed, the distance to
+ *   the object that the system acts on in the scene as
+ *   Vehicle.ADAS.ObstacleDetection.Distance, and the warning request in the
+ *   payload of the driver-assistance increment. Apart from that distance, the
+ *   scene, the time of a scene, the heartbeat, the planes, the frames of the
+ *   display and the chime are no vehicle signal, and their records say so. No
+ *   VSS extension is added.
  * - Looks of an outdated element (REQ-HMI-006): the renderer's placeholder
  *   covers the scene area, the speed shows no number, and the warning shows
  *   one fixed symbol while it is unavailable. The visual design stays out of
@@ -134,6 +136,7 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
   private import DE4SDV_HmiDisplayLogicalArchitecture::HmiDisplayLogicalSystem;
   private import DE4SDV_HmiDisplayNeedsRequirements::reqRendererSplitAndInputPaths;
   private import COVESA_VSS::SignalDefinitions::Vehicle_Speed;
+  private import COVESA_VSS::SignalDefinitions::Vehicle_ADAS_ObstacleDetection_Distance;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
@@ -147,8 +150,12 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
      * SDV Core VM and through the SDV Gateway into the scene drawing app: the
      * scene of one result pass with its capture time in simulation time. Its
      * message type is new and stays open until phase 10. A scene is no vehicle
-     * signal (MAP-HMI-SCENE).
+     * signal, except the distance to the object that the system acts on:
+     * COVESA VSS types it at the port as obstacleDistance
+     * (Vehicle_ADAS_ObstacleDetection_Distance, m), the value in m of the
+     * inherited actedOnObjectDistance (MAP-HMI-SCENE).
      */
+    attribute obstacleDistance : Vehicle_ADAS_ObstacleDetection_Distance[0..1];
   }
 
   item def DisplayVehicleSpeedSample :> VehicleSpeed {
@@ -646,9 +653,10 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
       doc /*
        * The scene from the Data Tunnel topic of the SDV Core VM through the
        * SDV Gateway on the IVI VM into the scene drawing app. A scene is no
-       * vehicle signal.
+       * vehicle signal, except the distance to the object that the system acts
+       * on, which COVESA VSS types at the port.
        */
-      attribute :>> semanticSource = "the scene of one result pass of the candidate with the capture time of its camera image in simulation time: the output that the candidate does not give yet (gapHmiSceneOutput), no vehicle signal, so no VSS typing applies";
+      attribute :>> semanticSource = "the scene of one result pass of the candidate with the capture time of its camera image in simulation time: the output that the candidate does not give yet (gapHmiSceneOutput), no vehicle signal, except the distance to the object that the system acts on, which COVESA VSS types at the port as Vehicle_ADAS_ObstacleDetection_Distance (Vehicle.ADAS.ObstacleDetection.Distance, m)";
       attribute :>> softwareContractArtifact = "a Data Tunnel topic of the SDV Core VM that a context stand-in publishes, and the subscription of the scene drawing app to it through the SDV Gateway on the IVI VM, candidate";
       attribute :>> softwareContractMessage = "DisplaySceneMessage, one per result pass; a new message type, open until phase 10, candidate";
       attribute :>> softwareContractField = "the capture time, the lane points, the path, the objects with their levels, and the object that the system acts on with its distance and the speed of the closest object; not typed in this model yet";
