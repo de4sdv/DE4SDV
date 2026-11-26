@@ -284,24 +284,29 @@ CONCERN_DOCS = {
         "that REQ-EE-002 keeps. Phase 8 places the exchange on the routes."),
 }
 
-#: The guide: its Status line and the next obligation, as phase 7 moves them.
+#: The guide: its Status line and the next obligation, as the E/E realization of phase 8 moves them.
 GUIDE_STATUS = (
-    "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture and Phase 7 logical "
-    "architecture, proposal.**")
-#: The paragraph of the next obligation: the go for phase 7 with its date, and phase 8 next.
+    "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability "
+    "classification, Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 "
+    "logical architecture and the E/E realization of Phase 8, proposal.**")
+#: The status line of phase 7, which the E/E realization of phase 8 moves.
+GUIDE_STATUS_PHASE_7 = "Phase 6 functional architecture and Phase 7 logical architecture, proposal.**"
+#: The paragraph of the next obligation: the goes up to phase 8 with their dates, and the next obligation.
 GUIDE_NEXT_PARAGRAPH = (
-    "Use the Method Check of the reviewed pull request to select the next obligation, not the phase number alone. "
-    "Phase 3, the capability classification, records no feature-model delta, and review judges it: its one blocking "
-    "check has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, with a prompt for review. The "
-    "owner decided on 2026-11-18 to carry out Phases 1 to 3 of this increment before the baseline of the "
-    "driver-assistance increment, whose driving command it carries. After that baseline, the owner decided on "
-    "2026-11-21 to start Phase 4, on 2026-11-22 to go on with Phase 5, on 2026-11-24 to go on with Phase 6 and on "
-    "2026-11-25 to go on with Phase 7. The next model obligation is **Phase 8**: the E/E and software realization, "
-    "which allocates each logical element to a physical element; its first gate is "
-    "`logicalElementAllocatedToPhysicalElement`. The testbed with its readiness probe waits for a further decision "
-    "of the owner.")
-GUIDE_NEXT = (
+    "Use the Method Check of the reviewed pull request to select the next obligation, not the phase number "
+    "alone. Phase 3, the capability classification, records no feature-model delta, and review judges it: its "
+    "one blocking check has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, with a prompt for "
+    "review. The owner decided on 2026-11-18 to carry out Phases 1 to 3 of this increment before the baseline of "
+    "the driver-assistance increment, whose driving command it carries. After that baseline, the owner decided "
+    "on 2026-11-21 to start Phase 4, on 2026-11-22 to go on with Phase 5, on 2026-11-24 to go on with Phase 6, "
+    "on 2026-11-25 to go on with Phase 7 and on 2026-11-26 to go on with Phase 8 in three pull requests. The "
+    "next model obligation is the software realization of **Phase 8**, after the change to the method that "
+    "relates software to a node: the software of each node, the layers that it runs on and VSS at its software "
+    "ports. Once the E/E realization holds the gate of Phase 8, the Method Check names Phase 9 next, with its "
+    "first gate `incrementHasConfiguredProduct`; by the owner's decision Phase 9 waits for the software "
+    "realization. The testbed with its readiness probe waits for a further decision of the owner.")
+#: The next obligation of phase 7, which the E/E realization of phase 8 moves; the phase 8 test pins the new one.
+GUIDE_NEXT_PHASE_7 = (
     "The next model obligation is **Phase 8**: the E/E and software realization, which allocates each logical "
     "element to a physical element; its first gate is `logicalElementAllocatedToPhysicalElement`.")
 #: The blocks of the guide's Phase 7 section, whole and in order: the opening, one list item per logical
@@ -992,10 +997,11 @@ def test_the_guide_has_a_phase_7_section_and_names_the_next_obligation():
     assert flat.count(GUIDE_STATUS) == 1
     assert "Phase 5 requirements and Phase 6 functional architecture, proposal.**" not in flat, \
         "the status line moved to phase 7"
+    assert GUIDE_STATUS_PHASE_7 not in flat, "the status line moved to the E/E realization of phase 8"
     nxt = guide.split("## Next obligation and execution limits\n", 1)[1].split("\n## ", 1)[0]
     assert [" ".join(block.split()) for block in re.split(r"\n\s*\n", nxt.strip())][0] == GUIDE_NEXT_PARAGRAPH
-    assert flat.count(GUIDE_NEXT) == 1
+    assert GUIDE_NEXT_PHASE_7 not in flat, "the E/E realization of phase 8 moved the next obligation"
     assert "The next model obligation is **Phase 7**" not in flat
     assert flat.count("The next model obligation is") == 1
     check = " ".join(guide.split("## Check the framing change", 1)[1].split())
-    assert f"tests/test_ee_architecture_functional_architecture.py {TEST_FILE} -q`" in check
+    assert f"tests/test_ee_architecture_functional_architecture.py {TEST_FILE} " in check
