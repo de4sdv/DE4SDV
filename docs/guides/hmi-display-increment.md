@@ -431,10 +431,12 @@ that it shapes:
 11. The speed, the warning and its sound go to the high availability renderer
     in an SDV Media VM and the scene to an app in the IVI VM, by the owner's
     decision of 2026-11-17.
-12. The display identity hashes the builds of the renderer and of the app that
-    draws the scene, the images of both guest VMs, the sound file and each
-    configuration file, and records the settings of its start, before the first
-    frame of each run.
+12. The display identity hashes the builds of the renderer, of the app that
+    draws the scene, of the vehicle data publisher, of the identity recording
+    service and of the composition, the images of the SDV Core, IVI and SDV
+    Media VMs, the sound file and each configuration file, and records the
+    settings of its start, before the first frame of each run (the
+    identity-term amendment of Phase 10).
 13. No requirement carries a feature link of its own: phase 9 links the system
     of interest to the driving application and to the AAOS SDV guest, and every
     requirement follows it.
@@ -720,17 +722,17 @@ system acts on in the scene message
 payload of the driver-assistance increment. Every other item says in its
 mapping record why it is no vehicle signal. There are eight mappings.
 
-Four gaps of the realization state what is not settled: the renderer's judging
+Three gaps of the realization state what is not settled: the renderer's judging
 of the scene by the term current (`gapHmiRendererJudgesSceneCurrency`), the
-bench's feed of the speed into the SDV Core VM (`gapHmiBenchSpeedFeed`), the
-tolerance of a drawn position (`gapHmiDrawingToleranceUnset`), and the display
-identity, which does not name the builds of the vehicle data publisher, of the
-identity recording service and of the composition, nor the image of the SDV
-Core VM (`gapHmiIdentityMissesPhase8Elements`). Comments on the framing's gaps
-say what this phase placed: the path to the renderer, the heartbeats, the
-composition and the chime are placed and not observed on the bench. The changes
-to the projects of the renderer and of the candidate stay gaps, and nothing is
-written to their maintainers.
+bench's feed of the speed into the SDV Core VM (`gapHmiBenchSpeedFeed`) and the
+tolerance of a drawn position (`gapHmiDrawingToleranceUnset`). A fourth,
+GAP-HMI-004, on the display identity, is retired: the identity-term amendment
+of Phase 10 makes the term name the builds of the vehicle data publisher, of
+the identity recording service and of the composition, and the image of the SDV
+Core VM. Comments on the framing's gaps say what this phase placed: the path to
+the renderer, the heartbeats, the composition and the chime are placed and not
+observed on the bench. The changes to the projects of the renderer and of the
+candidate stay gaps, and nothing is written to their maintainers.
 
 Three alternatives were not selected: the recorder inside the SDV Core VM,
 the app streaming its drawn frames to the renderer, and the speed on the
@@ -783,8 +785,8 @@ asset, configuration, receipt or projection.
   not their only owner, and a test keeps them typed by the definitions of the
   selected variants. The identity binds the SHA-256 of the receipt, and Phase
   10 evidence binds the identity. Dependencies record the trace to the Phase 8
-  usage and the three open gaps of Phase 8 that the product inherits,
-  GAP-HMI-001, GAP-HMI-003 and GAP-HMI-004. GAP-HMI-002 is not among them: on
+  usage and the two open gaps of Phase 8 that the product inherits,
+  GAP-HMI-001 and GAP-HMI-003. GAP-HMI-002 is not among them: on
   the bench the simulator stands in for the ECU that measures the vehicle
   speed, and the gap is the feed of that stand-in. The definition specializes
   no member-product type.

@@ -82,6 +82,14 @@
  * - The changes to the projects of the renderer and of the candidate stay
  *   gaps; nothing is written to their maintainers.
  *
+ * Phase 10 amends this realization:
+ *
+ * - GAP-HMI-004 is retired. The identity-term amendment of phase 10 makes the
+ *   term display identity name the builds of the vehicle data publisher, of
+ *   the identity recording service and of the composition, and the image of
+ *   the SDV Core VM, so a change to one of them records another display
+ *   identity.
+ *
  * Alternatives recorded and not selected:
  * - ALT-HMI-RECORDERINCORE-001: the identity recorder inside the SDV Core VM.
  *   A recorder in a VM records no image of the IVI or SDV Media VM before
@@ -282,18 +290,20 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
      * before it starts the IVI and SDV Media VMs, it records the display
      * identity as the term of the requirements defines it: the SHA-256 of the
      * files of the build of the high availability renderer, of the files of
-     * the build of the scene drawing app, of the image of the IVI VM and of
-     * the SDV Media VM, and of the sound file of the collision warning; the
-     * SHA-256 of each configuration file that the HMI display reads at its
-     * start; and the settings of its start, verbatim. Only then does it start
-     * the two VMs, so the record comes before the first frame of the display
-     * (REQ-HMI-010). It follows the pattern of the identity recording
-     * application of the driver-assistance increment, which the platform's
-     * launcher starts first. The record is a self-report of System 1, a file
-     * of the run that System 2 only reads into the evidence of the run. It
-     * sends nothing to another element of the display, so it has no port. How
-     * long the recording delays the start of the two VMs is not measured. A
-     * build item, named here, not claimed.
+     * the build of the scene drawing app, of the files of the builds of the
+     * vehicle data publisher, of this service and of the composition, of the
+     * image of the SDV Core VM, of the IVI VM and of the SDV Media VM, and of
+     * the sound file of the collision warning; the SHA-256 of each
+     * configuration file that the HMI display reads at its start; and the
+     * settings of its start, verbatim. Only then does it start the two VMs, so
+     * the record comes before the first frame of the display (REQ-HMI-010). It
+     * follows the pattern of the identity recording application of the
+     * driver-assistance increment, which the platform's launcher starts first.
+     * The record is a self-report of System 1, a file of the run that System 2
+     * only reads into the evidence of the run. It sends nothing to another
+     * element of the display, so it has no port. How long the recording delays
+     * the start of the two VMs is not measured. A build item, named here, not
+     * claimed.
      */
   }
 
@@ -932,21 +942,6 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
      * scale of the scene area and the drawing of the scene drawing app are
      * not built, so the tolerance is not set. It is set with the app's drawing,
      * before phase 10.
-     */
-  }
-
-  part <'GAP-HMI-004'> gapHmiIdentityMissesPhase8Elements : IncrementGap {
-    doc /*
-     * The display identity of the requirements names the builds of the
-     * renderer and of the scene drawing app and the images of the IVI and SDV
-     * Media VMs. Phase 8 places three more elements inside the display whose
-     * builds it does not name: the vehicle data publisher in the SDV Core VM,
-     * and the identity recording service and the composition on the central
-     * computer. Nor does it name the image of the SDV Core VM, whose platform
-     * carries the scene on to the IVI VM and the other inputs to the
-     * publisher. A change to one of them records the same display identity, so
-     * REQ-HMI-010 is not met as worded until the term names them, before phase
-     * 10.
      */
   }
 
