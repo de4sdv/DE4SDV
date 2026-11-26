@@ -1009,7 +1009,8 @@ GAP_DOCS = {
     "GAP-HMI-003":
         "REQ-HMI-001 reads a frame on the display against the scene within the tolerance of a drawn position that "
         "phase 8 states with the drawing. The scale of the scene area and the drawing of the scene drawing app are "
-        "not built, so the tolerance is not set. It is set with the app's drawing, before phase 10.",
+        "not built, so the tolerance is not set. It is set with the app's drawing; until then the gap stays open, and "
+        "it goes to the baseline open if the drawing does not set it before.",
 }
 
 #: The guide: its Status line, its line in the frame, the next obligation and the check command, as phase 9 moves
@@ -1085,15 +1086,16 @@ GUIDE_BLOCKS = [
     "eight mappings.",
     "Three gaps of the realization state what is not settled: the renderer's judging of the scene by the term current "
     "(`gapHmiRendererJudgesSceneCurrency`), the bench's feed of the speed into the SDV Core VM "
-    "(`gapHmiBenchSpeedFeed`) and the tolerance of a drawn position (`gapHmiDrawingToleranceUnset`). A fourth, "
-    "GAP-HMI-004, on the display identity, is retired: the identity-term amendment of Phase 10 makes the term name "
-    "the builds of the vehicle data publisher, of the identity recording service and of the composition, and the "
-    "image of the SDV Core VM. The scene-form amendment of Phase 10 types `DisplaySceneMessage` in a form of the "
-    "display's own, and `HmiDisplayPhysicalSystem` specializes the framing's `HmiDisplaySystem`, so that the "
-    "realization is the subject of the requirements that the cases verify. Comments on the framing's gaps say what "
-    "this phase placed: the path to the renderer, the heartbeats, the composition and the chime are placed and not "
-    "observed on the bench. The changes to the projects of the renderer and of the candidate stay gaps, and nothing "
-    "is written to their maintainers.",
+    "(`gapHmiBenchSpeedFeed`) and the tolerance of a drawn position (`gapHmiDrawingToleranceUnset`), which is set "
+    "with the app's drawing and stays open until then, into the baseline if need be. A fourth, GAP-HMI-004, on the "
+    "display identity, is retired: the identity-term amendment of Phase 10 makes the term name the builds of the "
+    "vehicle data publisher, of the identity recording service and of the composition, and the image of the SDV Core "
+    "VM. The scene-form amendment of Phase 10 types `DisplaySceneMessage` in a form of the display's own, and "
+    "`HmiDisplayPhysicalSystem` specializes the framing's `HmiDisplaySystem`, so that the realization is the subject "
+    "of the requirements that the cases verify. Comments on the framing's gaps say what this phase placed: the path "
+    "to the renderer, the heartbeats, the composition and the chime are placed and not observed on the bench. The "
+    "changes to the projects of the renderer and of the candidate stay gaps, and nothing is written to their "
+    "maintainers.",
     "Three alternatives were not selected: the recorder inside the SDV Core VM, the app streaming its drawn frames "
     "to the renderer, and the speed on the Eclipse S-CORE path.",
     "Three views answer the concerns of this phase: the structure as a tree of the SAF Physical Structure Definition "
