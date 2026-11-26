@@ -650,6 +650,12 @@ HEADER_PHASE_FIVE_VARIABILITY = (
     "beyond their subject.")
 
 #: the non-claim sentence of the header
+#: The record of the identity-term amendment of phase 10, before the non-claims.
+HEADER_IDENTITY_TERM = (
+    "The identity-term amendment of phase 10 makes the term display identity name the builds of the vehicle data "
+    "publisher in the SDV Core VM, of the identity recording service and of the composition of the display on the "
+    "central computer, and the image of the SDV Core VM, which phase 8 places inside the display. It changes no "
+    "statement and no success criterion.")
 HEADER_NON_CLAIM = (
     "No safety, timing, on-road or production-readiness claim is made, and no member product is claimed.")
 
@@ -1125,7 +1131,8 @@ def test_the_header_states_its_non_claims_and_names_no_drawing():
     paragraphs = [paragraphs[0].removeprefix("/*").strip(), *paragraphs[1:-1],
                   paragraphs[-1].removesuffix("/").strip()]
     assert paragraphs == [HEADER_TITLE, HEADER_INTRO, HEADER_REASONS, HEADER_DRAWING, DISPLAY_RULE_RECORD,
-                          HEADER_PHASE_FIVE_SET, HEADER_PHASE_FIVE_VARIABILITY, HEADER_NON_CLAIM], \
+                          HEADER_PHASE_FIVE_SET, HEADER_PHASE_FIVE_VARIABILITY, HEADER_IDENTITY_TERM,
+                          HEADER_NON_CLAIM], \
         "the header, paragraph by paragraph, whole"
 
 

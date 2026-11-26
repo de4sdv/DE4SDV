@@ -216,7 +216,6 @@ GAPS = {
     "GAP-HMI-001": "gapHmiRendererJudgesSceneCurrency",
     "GAP-HMI-002": "gapHmiBenchSpeedFeed",
     "GAP-HMI-003": "gapHmiDrawingToleranceUnset",
-    "GAP-HMI-004": "gapHmiIdentityMissesPhase8Elements",
 }
 
 STRUCTURE_VIEW = "hmiDisplayPhysicalStructureView"
@@ -398,6 +397,10 @@ HEADER_PARAGRAPHS = [
     "renderer's placeholder covers the scene area, the speed shows no number, and the warning shows one fixed symbol "
     "while it is unavailable. The visual design stays out of scope (hmiHumanFactorsOutOfScope). - The changes to the "
     "projects of the renderer and of the candidate stay gaps; nothing is written to their maintainers.",
+    "Phase 10 amends this realization:",
+    "- GAP-HMI-004 is retired. The identity-term amendment of phase 10 makes the term display identity name the "
+    "builds of the vehicle data publisher, of the identity recording service and of the composition, and the image "
+    "of the SDV Core VM, so a change to one of them records another display identity.",
     "Alternatives recorded and not selected: - ALT-HMI-RECORDERINCORE-001: the identity recorder inside the SDV Core "
     "VM. A recorder in a VM records no image of the IVI or SDV Media VM before their start, which the record has to "
     "precede. - ALT-HMI-SCENESTREAM-001: the app streams its drawn frames to the renderer, which draws them. The "
@@ -476,14 +479,15 @@ DOCS = {
         "decision of 2026-11-25). In the vehicle that computer is the central computer; on the bench the guest host "
         "stands in for it. In each run, before it starts the IVI and SDV Media VMs, it records the display identity "
         "as the term of the requirements defines it: the SHA-256 of the files of the build of the high availability "
-        "renderer, of the files of the build of the scene drawing app, of the image of the IVI VM and of the SDV "
-        "Media VM, and of the sound file of the collision warning; the SHA-256 of each configuration file that the "
-        "HMI display reads at its start; and the settings of its start, verbatim. Only then does it start the two "
+        "renderer, of the files of the build of the scene drawing app, of the files of the builds of the vehicle data "
+        "publisher, of this service and of the composition, of the image of the SDV Core VM, of the IVI VM and of the "
+        "SDV Media VM, and of the sound file of the collision warning; the SHA-256 of each configuration file that "
+        "the HMI display reads at its start; and the settings of its start, verbatim. Only then does it start the two "
         "VMs, so the record comes before the first frame of the display (REQ-HMI-010). It follows the pattern of the "
         "identity recording application of the driver-assistance increment, which the platform's launcher starts "
-        "first. The record is a self-report of System 1, a file of the run that System 2 only reads into the "
-        "evidence of the run. It sends nothing to another element of the display, so it has no port. How long the "
-        "recording delays the start of the two VMs is not measured. A build item, named here, not claimed.",
+        "first. The record is a self-report of System 1, a file of the run that System 2 only reads into the evidence "
+        "of the run. It sends nothing to another element of the display, so it has no port. How long the recording "
+        "delays the start of the two VMs is not measured. A build item, named here, not claimed.",
     "part def SceneDrawingApplication :> PhysicalAllocationElement":
         "Carries the scene drawer of phase 7: a DE4SDV Android app in the IVI VM, a build item, named here, not "
         "claimed. It subscribes to the topic of the scene through the SDV Gateway and draws each scene that reaches "
@@ -979,13 +983,6 @@ GAP_DOCS = {
         "REQ-HMI-001 reads a frame on the display against the scene within the tolerance of a drawn position that "
         "phase 8 states with the drawing. The scale of the scene area and the drawing of the scene drawing app are "
         "not built, so the tolerance is not set. It is set with the app's drawing, before phase 10.",
-    "GAP-HMI-004":
-        "The display identity of the requirements names the builds of the renderer and of the scene drawing app and "
-        "the images of the IVI and SDV Media VMs. Phase 8 places three more elements inside the display whose builds "
-        "it does not name: the vehicle data publisher in the SDV Core VM, and the identity recording service and the "
-        "composition on the central computer. Nor does it name the image of the SDV Core VM, whose platform carries "
-        "the scene on to the IVI VM and the other inputs to the publisher. A change to one of them records the same "
-        "display identity, so REQ-HMI-010 is not met as worded until the term names them, before phase 10.",
 }
 
 #: The guide: its Status line, its line in the frame, the next obligation and the check command, as phase 9 moves
@@ -1059,14 +1056,14 @@ GUIDE_BLOCKS = [
     "message (`Vehicle.ADAS.ObstacleDetection.Distance`); the warning request keeps the payload of the "
     "driver-assistance increment. Every other item says in its mapping record why it is no vehicle signal. There are "
     "eight mappings.",
-    "Four gaps of the realization state what is not settled: the renderer's judging of the scene by the term current "
+    "Three gaps of the realization state what is not settled: the renderer's judging of the scene by the term current "
     "(`gapHmiRendererJudgesSceneCurrency`), the bench's feed of the speed into the SDV Core VM "
-    "(`gapHmiBenchSpeedFeed`), the tolerance of a drawn position (`gapHmiDrawingToleranceUnset`), and the display "
-    "identity, which does not name the builds of the vehicle data publisher, of the identity recording service and "
-    "of the composition, nor the image of the SDV Core VM (`gapHmiIdentityMissesPhase8Elements`). Comments on the "
-    "framing's gaps say what this phase placed: the path to the renderer, the heartbeats, the composition and the "
-    "chime are placed and not observed on the bench. The changes to the projects of the renderer and of the "
-    "candidate stay gaps, and nothing is written to their maintainers.",
+    "(`gapHmiBenchSpeedFeed`) and the tolerance of a drawn position (`gapHmiDrawingToleranceUnset`). A fourth, "
+    "GAP-HMI-004, on the display identity, is retired: the identity-term amendment of Phase 10 makes the term name "
+    "the builds of the vehicle data publisher, of the identity recording service and of the composition, and the "
+    "image of the SDV Core VM. Comments on the framing's gaps say what this phase placed: the path to the renderer, "
+    "the heartbeats, the composition and the chime are placed and not observed on the bench. The changes to the "
+    "projects of the renderer and of the candidate stay gaps, and nothing is written to their maintainers.",
     "Three alternatives were not selected: the recorder inside the SDV Core VM, the app streaming its drawn frames "
     "to the renderer, and the speed on the Eclipse S-CORE path.",
     "Three views answer the concerns of this phase: the structure as a tree of the SAF Physical Structure Definition "
@@ -1313,13 +1310,18 @@ def test_the_recorder_has_no_port_records_before_the_vms_start_and_names_every_p
     doc = _doc("part def DisplayIdentityRecordingService :> PhysicalAllocationElement")
     for phrase in ("before it starts the IVI and SDV Media VMs, it records the display identity",
                    "the files of the build of the high availability renderer", "the build of the scene drawing app",
-                   "the image of the IVI VM and of the SDV Media VM", "the sound file of the collision warning",
+                   "the files of the builds of the vehicle data publisher, of this service and of the composition",
+                   "the image of the SDV Core VM, of the IVI VM and of the SDV Media VM",
+                   "the sound file of the collision warning",
                    "each configuration file that the HMI display reads at its start",
                    "the settings of its start, verbatim", "Only then does it start the two VMs",
                    "on the bench the guest host stands in for it", "(owner decision of 2026-11-25)"):
         assert phrase in doc, phrase
     term = _flat(re.search(r"- Display identity:(.*?)(?=- Run:)", NEEDS.read_text(encoding="utf-8"), re.S).group(1))
-    for part in ("of the build of the high availability renderer", "of the image of the IVI VM and of the SDV Media VM",
+    for part in ("of the build of the high availability renderer",
+                 "of the files of the build of the vehicle data publisher in the SDV Core VM",
+                 "of the files of the builds of the identity recording service and of the composition of the display "
+                 "on the central computer", "of the image of the SDV Core VM, of the IVI VM and of the SDV Media VM",
                  "of the sound file of the collision warning", "each configuration file that the HMI display reads at "
                  "its start", "the settings of its start, verbatim"):
         assert part in term, part
@@ -1571,22 +1573,17 @@ def test_the_gaps_of_the_realization_are_recorded_with_their_short_names_and_no_
     assert "private import DE4SDV_MethodContext::*;" in code
 
 
-def test_the_display_identity_gap_names_what_the_term_misses():
-    # The term of phase 5 names the builds of the two drawing elements and the images of the IVI and SDV Media VMs;
-    # phase 8 places three more elements inside the display, and the platform of the SDV Core VM carries the inputs
-    # on. The gap stays true while the term does not name them.
-    doc = _doc("part <'GAP-HMI-004'> gapHmiIdentityMissesPhase8Elements : IncrementGap")
-    for phrase in ("the vehicle data publisher in the SDV Core VM",
-                   "the identity recording service and the composition on the central computer.",
-                   "Nor does it name the image of the SDV Core VM, whose platform carries the scene on to the IVI VM "
-                   "and the other inputs to the publisher.",
-                   "A change to one of them records the same display identity",
-                   "so REQ-HMI-010 is not met as worded until the term names them, before phase 10."):
-        assert phrase in doc, phrase
+def test_the_display_identity_gap_is_retired_once_the_term_names_the_phase_8_elements():
+    # The identity-term amendment of phase 10 makes the term name the builds of the publisher, of the recording
+    # service and of the composition and the image of the SDV Core VM, so the record of GAP-HMI-004 leaves the model.
+    raw = _raw()
+    assert "<'GAP-HMI-004'>" not in raw and "gapHmiIdentityMissesPhase8Elements" not in raw
     term = _flat(re.search(r"- Display identity:(.*?)(?=- Run:)", NEEDS.read_text(encoding="utf-8"), re.S).group(1))
-    for element in ("publisher", "recording service", "composition", "SDV Core VM"):
-        assert element not in term, element
-    assert "(`gapHmiIdentityMissesPhase8Elements`)" in " ".join(GUIDE_BLOCKS)
+    for element in ("vehicle data publisher in the SDV Core VM", "identity recording service",
+                    "composition of the display on the central computer", "image of the SDV Core VM"):
+        assert element in term, element
+    assert "gapHmiIdentityMissesPhase8Elements" not in " ".join(GUIDE_BLOCKS)
+    assert "A fourth, GAP-HMI-004, on the display identity, is retired" in " ".join(GUIDE_BLOCKS)
 
 
 @pytest.mark.parametrize("declaration", list(DOCS), ids=DOC_IDS)

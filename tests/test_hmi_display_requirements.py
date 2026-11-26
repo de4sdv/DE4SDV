@@ -477,9 +477,11 @@ TERM_DEFINITIONS = {
         "boot or a restart of Android in the IVI VM, until that app gives its first frame on the display after it."),
     "Display identity": (
         "the SHA-256 of the files of the build of the high availability renderer in the SDV Media VM, of the files of "
-        "the build of the app in the IVI VM that draws the scene, of the image of the IVI VM and of the SDV Media VM, "
-        "and of the sound file of the collision warning; the SHA-256 of each configuration file that the HMI display "
-        "reads at its start; and the settings of its start, verbatim."),
+        "the build of the app in the IVI VM that draws the scene, of the files of the build of the vehicle data "
+        "publisher in the SDV Core VM, of the files of the builds of the identity recording service and of the "
+        "composition of the display on the central computer, of the image of the SDV Core VM, of the IVI VM and of "
+        "the SDV Media VM, and of the sound file of the collision warning; the SHA-256 of each configuration file "
+        "that the HMI display reads at its start; and the settings of its start, verbatim."),
     "Run": "one execution of the HMI display on one scenario of SC-HMI-001 to SC-HMI-007, from its start to its end.",
     "Simulation time": "the time of the simulated world.",
     "Wall-clock time": "the time of the host.",
@@ -753,9 +755,10 @@ GUIDE_DECISIONS = (
         "The speed, the warning and its sound go to the high availability renderer in an SDV Media VM and the scene "
         "to an app in the IVI VM, by the owner's decision of 2026-11-17."),
     (
-        "The display identity hashes the builds of the renderer and of the app that draws the scene, the images of "
-        "both guest VMs, the sound file and each configuration file, and records the settings of its start, before "
-        "the first frame of each run."),
+        "The display identity hashes the builds of the renderer, of the app that draws the scene, of the vehicle data "
+        "publisher, of the identity recording service and of the composition, the images of the SDV Core, IVI and "
+        "SDV Media VMs, the sound file and each configuration file, and records the settings of its start, before "
+        "the first frame of each run (the identity-term amendment of Phase 10)."),
     (
         # the links of the system of interest
         "No requirement carries a feature link of its own: phase 9 links the system of interest to the driving "
@@ -1126,9 +1129,12 @@ def test_the_gap_comments_record_what_phase_5_fixes_and_asks():
 
 def test_the_header_states_phase_5():
     paragraphs = _header_paragraphs()
-    assert len(paragraphs) == 8, "the header has its eight paragraphs"
+    assert len(paragraphs) == 9, "the header has its nine paragraphs"
     assert paragraphs[5:7] == [HEADER_PHASE_FIVE_SET, HEADER_PHASE_FIVE_VARIABILITY], \
         "the two paragraphs of phase 5, pinned whole, before the non-claims"
+    assert paragraphs[7].startswith("The identity-term amendment of phase 10 makes the term display identity name "
+                                    "the builds of the vehicle data publisher in the SDV Core VM"), \
+        "the record of the identity-term amendment of phase 10, before the non-claims"
     assert HEADER_OLD not in _flat(_raw().split("\npackage ", 1)[0])
     assert paragraphs[-1].removesuffix("/").strip() == HEADER_NON_CLAIM, "the header keeps its non-claims"
 

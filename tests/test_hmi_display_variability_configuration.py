@@ -94,12 +94,9 @@ DEPENDENCIES = {
     "configuredProductSceneCurrencyGap": ("configuredProduct",
                                           f"{PHYSICAL_PACKAGE}::gapHmiRendererJudgesSceneCurrency"),
     "configuredProductDrawingToleranceGap": ("configuredProduct", f"{PHYSICAL_PACKAGE}::gapHmiDrawingToleranceUnset"),
-    "configuredProductDisplayIdentityGap": ("configuredProduct",
-                                            f"{PHYSICAL_PACKAGE}::gapHmiIdentityMissesPhase8Elements"),
 }
-#: the gaps of phase 8 by short name: the three above, and the bench's, which the product does not inherit
-PRODUCT_GAPS = {"GAP-HMI-001": "gapHmiRendererJudgesSceneCurrency", "GAP-HMI-003": "gapHmiDrawingToleranceUnset",
-                "GAP-HMI-004": "gapHmiIdentityMissesPhase8Elements"}
+#: the gaps of phase 8 by short name: the two above, and the bench's, which the product does not inherit
+PRODUCT_GAPS = {"GAP-HMI-001": "gapHmiRendererJudgesSceneCurrency", "GAP-HMI-003": "gapHmiDrawingToleranceUnset"}
 BENCH_GAP = ("GAP-HMI-002", "gapHmiBenchSpeedFeed")
 
 #: Rule 5, dependency form, owned with their clients (link name -> (client, feature)). A requirement links only what
@@ -284,9 +281,9 @@ def test_the_configured_product_is_no_member_product() -> None:
         (IDENTITY, "configuredProduct", PRODUCT_DEF)]
 
 
-def test_the_configured_product_traces_the_realization_and_the_three_gaps_it_inherits() -> None:
-    """GAP-HMI-001, -003 and -004 are product content; GAP-HMI-002 is the bench's speed feed, which the car's design
-    does not have."""
+def test_the_configured_product_traces_the_realization_and_the_two_gaps_it_inherits() -> None:
+    """GAP-HMI-001 and -003 are product content (GAP-HMI-004 is retired in phase 10); GAP-HMI-002 is the bench's
+    speed feed, which the car's design does not have."""
     code = " ".join(_code(SLICE).split())
     found = re.findall(r"\bdependency\s+(\w+)\s+from\s+([\w:]+)\s+to\s+([\w:]+)\s*;", code)
     assert {name: (client, supplier) for name, client, supplier in found} == DEPENDENCIES
@@ -505,7 +502,7 @@ def test_the_guide_describes_phase_9_and_names_phase_10_next() -> None:
     for text in (IDENTITY, f"`{CONFIGURATION_NAME}`", f"`{PROJECTION}`", "`HmiDisplayPhysicalSystem`",
                  "valid, and the governed scope does not admit it", "the privileged PLE authority run does not start",
                  "Two bindings", "The operating system of the SDV Media VM stays unbound",
-                 "So the stack is not their only owner", "GAP-HMI-001, GAP-HMI-003 and GAP-HMI-004",
+                 "So the stack is not their only owner", "GAP-HMI-001 and GAP-HMI-003. GAP-HMI-002",
                  "GAP-HMI-002 is not among them", "2026-11-17", f"({GUIDE_LINK})"):
         assert text in section, text
     flat = " ".join(guide.split())
@@ -544,11 +541,10 @@ GUIDE_BLOCKS: list[str] = [
      "guest. The guest layers of the realization stay owned: Android in the SDV Core VM and in the IVI VM, and the "
      "AAOS SDV middleware in the SDV Core VM, beside the guest operating system and the guest middleware of the "
      "stack. So the stack is not their only owner, and a test keeps them typed by the definitions of the selected "
-     "variants. The identity binds the SHA-256 of the receipt, and Phase 10 evidence binds the identity. "
-     "Dependencies record the trace to the Phase 8 usage and the three open gaps of Phase 8 that the product "
-     "inherits, GAP-HMI-001, GAP-HMI-003 and GAP-HMI-004. GAP-HMI-002 is not among them: on the bench the simulator "
-     "stands in for the ECU that measures the vehicle speed, and the gap is the feed of that stand-in. The "
-     "definition specializes no member-product type."),
+     "variants. The identity binds the SHA-256 of the receipt, and Phase 10 evidence binds the identity. Dependencies "
+     "record the trace to the Phase 8 usage and the two open gaps of Phase 8 that the product inherits, GAP-HMI-001 "
+     "and GAP-HMI-003. GAP-HMI-002 is not among them: on the bench the simulator stands in for the ECU that measures "
+     "the vehicle speed, and the gap is the feed of that stand-in. The definition specializes no member-product type."),
 # ---- unit: the links of the system of interest ------------------------------------------------------------------
     ("- **The links of rule 5.** Until the configuration evaluator reads links of increment elements and the "
      "existing links have moved, rule 5 takes its dependency form (ADR 0027 decision 8). The links are declared with"
@@ -660,20 +656,19 @@ TEXTS_OF_RECORD: list[str] = [
      "driver-assistance increment binds DRIVING-CONFIG-002. The identity is bound to the exact receipt that the "
      "configurator generated the platform-stack projection from. receiptSha256 is the SHA-256 of "
      "model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json, the receipt that "
-     "records the evaluation of the feature configuration driverAssistanceVisionPilotSCOREReference. A receipt "
-     "re-cut keeps this identity and rebinds receiptSha256 here. The pull request that rebinds it states whether the"
-     " configuration's own receipt record changed. By the decision of 2026-11-17 that the identity of "
+     "records the evaluation of the feature configuration driverAssistanceVisionPilotSCOREReference. A receipt re-cut "
+     "keeps this identity and rebinds receiptSha256 here. The pull request that rebinds it states whether the "
+     "configuration's own receipt record changed. By the decision of 2026-11-17 that the identity of "
      "DRIVING-CONFIG-001 records, the record has not changed when its only difference is added states omitted for "
      "features that it does not select, and every other entry is the same: validity, reasons, derived variants with "
      "their variant ids, admission, the selected features, projection name, source, description and element id. "
-     "Evidence that binds HMI-CONFIG-001 also records the receipt SHA-256 it ran against. The product inherits three"
-     " open gaps of phase 8: the renderer's judging of the scene by the term current (GAP-HMI-001), the tolerance of"
-     " a drawn position (GAP-HMI-003), and the elements that the display identity does not name (GAP-HMI-004). On "
-     "the bench, the guest host of INC-DRIVING-001 stands in for the central computer, with the SDV Media VM as a "
-     "third guest, and the simulator stands in for the ECU that measures the vehicle speed and for the vehicle "
-     "network; the feed of that speed (GAP-HMI-002) is a gap of the bench, not of this product. Configuration "
-     "evidence only. This usage proves no renderer, app, composition or platform behavior and no requirement "
-     "satisfaction."),
+     "Evidence that binds HMI-CONFIG-001 also records the receipt SHA-256 it ran against. The product inherits two "
+     "open gaps of phase 8: the renderer's judging of the scene by the term current (GAP-HMI-001) and the tolerance "
+     "of a drawn position (GAP-HMI-003). On the bench, the guest host of INC-DRIVING-001 stands in for the central "
+     "computer, with the SDV Media VM as a third guest, and the simulator stands in for the ECU that measures the "
+     "vehicle speed and for the vehicle network; the feed of that speed (GAP-HMI-002) is a gap of the bench, not of "
+     "this product. Configuration evidence only. This usage proves no renderer, app, composition or platform behavior "
+     "and no requirement satisfaction."),
     ("Product-line engineers, system architects and open-source reviewers need the variant selections of "
      "HMI-CONFIG-001 in the platform-stack projection that the configurator generates from its receipt, the "
      "projection of the VisionPilot configuration. The main side selects VisionPilot, Eclipse S-CORE and Linux. The "
@@ -719,8 +714,6 @@ package DE4SDV_HmiDisplayVariabilityConfiguration {
  DE4SDV_HmiDisplayPhysicalSoftwareRealization::gapHmiRendererJudgesSceneCurrency;
   dependency configuredProductDrawingToleranceGap from configuredProduct to\
  DE4SDV_HmiDisplayPhysicalSoftwareRealization::gapHmiDrawingToleranceUnset;
-  dependency configuredProductDisplayIdentityGap from configuredProduct to\
- DE4SDV_HmiDisplayPhysicalSoftwareRealization::gapHmiIdentityMissesPhase8Elements;
   concern hmiDisplayProductLineConfigurationConcern : ProductLineConfigurationConcern {
     doc /*…*/
     subject;
@@ -774,7 +767,7 @@ package DE4SDV_HmiDisplayVariabilityConfiguration {
 
 #: Exchange and relation keywords -> how often the stripped file holds each: the two bindings, the four dependencies
 #: and the five imports, and none of any other form.
-KEYWORD_COUNTS = {"bind": 2, "binding": 2, "dependency": 4, "import": 5, "flow": 0, "interface": 0, "message": 0,
+KEYWORD_COUNTS = {"bind": 2, "binding": 2, "dependency": 3, "import": 5, "flow": 0, "interface": 0, "message": 0,
                   "succession": 0, "first": 0, "then": 0, "connection": 0, "connect": 0, "end": 0, "allocation": 0,
                   "allocate": 0, "satisfy": 0, "verify": 0, "perform": 0, "exhibit": 0, "include": 0, "ref": 0,
                   "redefines": 0, "subsets": 0, "references": 0, "specializes": 0, "variant": 0, "variation": 0}
