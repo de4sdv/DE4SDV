@@ -605,12 +605,15 @@ def test_the_guide_has_a_phase_4_section_and_names_phase_5_next():
     assert not CLAUSE_NUMBER.findall(raw_section), CLAUSE_NUMBER.findall(raw_section)
     flat = " ".join(guide.split())
     assert "After that baseline, the owner decided on 2026-11-21 to start Phase 4, on 2026-11-22 to go on with " \
-        "Phase 5 and on 2026-11-24 to go on with Phase 6. The next model obligation is **Phase 7**, the logical " \
-        "architecture. The testbed with its readiness probe waits for a further decision of the owner." in flat
+        "Phase 5, on 2026-11-24 to go on with Phase 6 and on 2026-11-25 to go on with Phase 7. The next model " \
+        "obligation is **Phase 8**: the E/E and software realization, which allocates each logical element to a " \
+        "physical element; its first gate is `logicalElementAllocatedToPhysicalElement`. The testbed with its " \
+        "readiness probe waits for a further decision of the owner." in flat
     assert "The next model obligation is **Phase 6**" not in flat
+    assert "The next model obligation is **Phase 7**" not in flat
     assert "Phase 5 waits" not in flat and "Phase 5 and the testbed" not in flat, "no hold of Phase 5 is written"
-    assert "Phase 3 capability classification, Phase 4 stakeholder needs, Phase 5 requirements and Phase 6 " \
-        "functional architecture, proposal." in flat
+    assert "Phase 3 capability classification, Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 " \
+        "functional architecture and Phase 7 logical architecture, proposal." in flat
     assert "Phase 4 stakeholder needs and Phase 5 requirements, proposal." not in flat
 
 
