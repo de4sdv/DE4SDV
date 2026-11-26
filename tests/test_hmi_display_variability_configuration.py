@@ -506,7 +506,7 @@ def test_the_guide_describes_phase_9_and_names_phase_10_next() -> None:
                  "valid, and the governed scope does not admit it", "the privileged PLE authority run does not start",
                  "Two bindings", "The operating system of the SDV Media VM stays unbound",
                  "So the stack is not their only owner", "GAP-HMI-001, GAP-HMI-003 and GAP-HMI-004",
-                 "GAP-HMI-002 is a gap of the bench", "2026-11-17", f"({GUIDE_LINK})"):
+                 "GAP-HMI-002 is not among them", "2026-11-17", f"({GUIDE_LINK})"):
         assert text in section, text
     flat = " ".join(guide.split())
     assert flat.count(GUIDE_STATUS) == 1
@@ -546,8 +546,9 @@ GUIDE_BLOCKS: list[str] = [
      "stack. So the stack is not their only owner, and a test keeps them typed by the definitions of the selected "
      "variants. The identity binds the SHA-256 of the receipt, and Phase 10 evidence binds the identity. "
      "Dependencies record the trace to the Phase 8 usage and the three open gaps of Phase 8 that the product "
-     "inherits, GAP-HMI-001, GAP-HMI-003 and GAP-HMI-004; GAP-HMI-002 is a gap of the bench. The definition "
-     "specializes no member-product type."),
+     "inherits, GAP-HMI-001, GAP-HMI-003 and GAP-HMI-004. GAP-HMI-002 is not among them: on the bench the simulator "
+     "stands in for the ECU that measures the vehicle speed, and the gap is the feed of that stand-in. The "
+     "definition specializes no member-product type."),
 # ---- unit: the links of the system of interest ------------------------------------------------------------------
     ("- **The links of rule 5.** Until the configuration evaluator reads links of increment elements and the "
      "existing links have moved, rule 5 takes its dependency form (ADR 0027 decision 8). The links are declared with"
@@ -558,7 +559,11 @@ GUIDE_BLOCKS: list[str] = [
      "every member product is to have an HMI display, and what it shows in each is open; this system of interest is "
      "the display of the VisionPilot configuration, inside the AAOS SDV guest, so it enters a member product only "
      "with both features. The binding form gives an element one link and derives no variant for this pair, so the "
-     "move of the links takes this combination to the owner."),
+     "move of the links takes this combination to the owner. By the owner decision of 2026-11-26 the requirements "
+     "follow the system of interest. A comment about `gapHmiDisplayInProductLine` records the owner direction of "
+     "the same day: the display of every member is to show the vehicle speed, the collision warning, the outdated "
+     "marks and the scene, and to stay independent of the driving application that feeds it. It is a direction for "
+     "the open scope decisions and changes no member."),
     ("- **The requirements.** Every requirement follows the system of interest, and none carries a link of its own. "
      "`REQ-HMI-004`, `REQ-HMI-005` and `REQ-HMI-007` name the warning request, which the driver-assistance increment"
      " gives only with both features."),
@@ -891,9 +896,9 @@ OWNER_DIRECTION = (
     "form, as COVESA VSS types it, and the warning request has the form that the driver-assistance increment gives "
     "it. The scene has the form of the scene of the panel of VisionPilot (termsHmiDisplayRequirements), and its "
     "message type stays open until phase 10 (DisplaySceneMessage). In this increment VisionPilot is the source of "
-    "the scene and of the warning request. It is a direction for the scope decisions that "
-    "hmiDisplayContentScopeDecisions lists, for the AEBS requirements on the warning and for the message type of the "
-    "scene; it changes no member here.")
+    "the scene, which it does not give at its boundary yet (gapHmiSceneOutput), and of the warning request. It is a "
+    "direction for the scope decisions that hmiDisplayContentScopeDecisions lists, for the AEBS requirements on the "
+    "warning and for the message type of the scene; it changes no member here.")
 # ---- end of the unit --------------------------------------------------------------------------------------------
 #: The opening of a plain comment on the links of rule 5.
 LINK_COMMENT_OPENING = "Rule 5 of the increment workflow, in its dependency form"
