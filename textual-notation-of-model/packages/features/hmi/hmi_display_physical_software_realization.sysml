@@ -979,8 +979,9 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
      * REQ-HMI-001 reads a frame on the display against the scene within the
      * tolerance of a drawn position that phase 8 states with the drawing. The
      * scale of the scene area and the drawing of the scene drawing app are
-     * not built, so the tolerance is not set. It is set with the app's drawing,
-     * before phase 10.
+     * not built, so the tolerance is not set. It is set with the app's drawing;
+     * until then the gap stays open, and it goes to the baseline open if the
+     * drawing does not set it before.
      */
   }
 
