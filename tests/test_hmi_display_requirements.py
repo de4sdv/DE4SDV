@@ -17,8 +17,8 @@ are checked by Method Check; these pins hold what review settled on top of them:
 - one requirement definition table, the one view the method names for phase 5, framing the requirement trace concern;
 - the guide's phase 5 section, its bullets, its decisions and the next obligation, phase 6;
 - the upstream record's permalink for each line range that a rationale cites;
-- no claim the charter excludes, the word patterns of the tests that read the same files, no satisfy link, and no
-  feature link of the HMI display or of a requirement in any model file before phase 9.
+- no claim the charter excludes, the word patterns of the tests that read the same files, no satisfy link, and as
+  feature links only the dependencies of phase 9: beside the requirements, and the framing's of the HMI display.
 
 The tests read the model text; they do not parse SysML. They state their own constants.
 """
@@ -35,6 +35,7 @@ ROOT = Path(__file__).resolve().parents[1]
 NOTATION = ROOT / "textual-notation-of-model"
 HMI = NOTATION / "packages/features/hmi"
 MODEL = HMI / "hmi_display_needs_requirements.sysml"
+FRAMING = HMI / "hmi_display_framing.sysml"
 GUIDE = ROOT / "docs/guides/hmi-display-increment.md"
 RECORD = HMI / "upstream.md"
 MODEL_ROOTS = (NOTATION, ROOT / "model-based-product-line-engineering")
@@ -584,13 +585,12 @@ HEADER_PHASE_FIVE_SET = (
     "gapHmiRendererIntegration gives what the criteria ask of System 2.")
 HEADER_PHASE_FIVE_VARIABILITY = (
     "Rule 5 of the increment workflow makes a requirement core when its subject has no link and it has none of its "
-    "own. No requirement carries a link at this revision, so all ten read as core. Phase 3 classes the HMI display as "
-    "content of every member of the governed scope and leaves open which of its content is common, so phase 9 decides "
-    "on a link of its system of interest and claims no member. Beyond the subject, REQ-HMI-001 and REQ-HMI-002 follow "
-    "the driving application through the scene, whose form is that of VisionPilot (visionPilot), and REQ-HMI-001, "
-    "REQ-HMI-008, REQ-HMI-009 and REQ-HMI-010 name the AAOS SDV guest through the IVI VM or the SDV Media VM "
-    "(guestAndroidSDV); phase 9 links them. The terms take only the form of the warning request, so REQ-HMI-003 to "
-    "REQ-HMI-007 name no variant.")
+    "own. Phase 3 classes the HMI display as content of every member of the governed scope and leaves open which of "
+    "its content is common, so phase 9 claims no member."
+    # the links of the system of interest
+    " In the framing, phase 9 makes the system of interest depend on the features visionPilot and guestAndroidSDV. "
+    "Every requirement follows it, and none carries a link of its own. REQ-HMI-003 to REQ-HMI-007 name no variant "
+    "beyond their subject.")
 #: the header sentence that phase 5 replaces
 HEADER_OLD = "Phase 5 adds to this package the requirements derived from these needs."
 #: the non-claim sentence of the header
@@ -627,8 +627,9 @@ GUIDE_STATUS_OLD = (
     "Phase 4 stakeholder needs, proposal.**")
 GUIDE_STATUS_NEW = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical architecture "
-    "and Phase 8 physical and software realization, proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
+    "architecture, Phase 8 physical and software realization and Phase 9 variability and configuration, "
+    "proposal.**")
 GUIDE_FRAME_LINE = f"- [SysML requirements]({GUIDE_LINK}): the Phase 5 requirements of the HMI display."
 GUIDE_PHASE_FOUR_OLD = (
     "No need states a number or names a drawing: Phase 5 derives the requirements and their limits, how the app in "
@@ -643,8 +644,8 @@ GUIDE_PHASE_FOUR_NEW = (
     "what the warning request asks for and carries.")
 GUIDE_NEXT_OLD = "The next model obligation is **Phase 5**, the requirements."
 GUIDE_NEXT_NEW = (
-    "The next model obligation is **Phase 9**: the configuration, which makes the realization of the increment a "
-    "configured product; its first gate is `incrementHasConfiguredProduct`.")
+    "The next model obligation is **Phase 10**: the verification cases, one or more for each requirement of the "
+    "increment; its first gate is `verificationCaseVerifiesRequirement`.")
 GUIDE_HEADING = "## Requirements (Phase 5)"
 #: the blocks of the guide's Phase 5 section, in order; BULLETS and DECISIONS stand for the two lists
 GUIDE_BLOCKS = (
@@ -756,8 +757,9 @@ GUIDE_DECISIONS = (
         "both guest VMs, the sound file and each configuration file, and records the settings of its start, before "
         "the first frame of each run."),
     (
-        "No requirement carries a feature link yet: phase 9 links `REQ-HMI-001` and `REQ-HMI-002` to the driving "
-        "application and `REQ-HMI-001`, `REQ-HMI-008`, `REQ-HMI-009` and `REQ-HMI-010` to the AAOS SDV guest."),
+        # the links of the system of interest
+        "No requirement carries a feature link of its own: phase 9 links the system of interest to the driving "
+        "application and to the AAOS SDV guest, and every requirement follows it."),
 )
 
 VISIONPILOT_PIN = "014e0e7a56ee8e597c2cab8175233f74edd9b856"
@@ -1145,31 +1147,46 @@ def test_the_phase_4_contract_comments_are_now_stated_in_the_rationales():
     assert "One plan holds" not in RATIONALES["reqCollisionWarningWhileRequested"], "a fact with no source of record"
 
 
-def test_no_feature_link_before_phase_9():
-    # Phase 3 classes the HMI display as content of every member; phase 9 decides on a link.
+def test_the_phase_9_links_are_the_only_feature_links_of_the_display_and_its_requirements():
+    # Phase 9 declares the links of rule 5 in its dependency form with their clients: the requirements' here, the
+    # system of interest's in the framing. The links are pinned by name, client and feature in
+    # tests/test_hmi_display_variability_configuration.py.
+    from test_hmi_display_variability_configuration import FEATURE, LINKS, SUBJECT_LINKS
+
     raw = _raw()
-    assert "DE4SDV_SDVProductLineFeatureModel" not in raw
-    assert not re.search(r"\bimport\s+DE4SDV_ProductLine", raw)
+    assert not re.search(r"\bimport\s+DE4SDV_(?:ProductLine|SDVProductLineFeatureModel)\b", raw)
     assert "#FeatureBinding" not in raw
-    # rule 5 reads a dependency of a requirement on a feature, a variant or its definition as a link: no client of any
-    # dependency is one of the ten, by declared name, qualified name or short name, in any place of the client list
+    assert _code().count("DE4SDV_SDVProductLineFeatureModel") == len(LINKS), "a feature is named only as a link target"
     names = "|".join(REQUIREMENTS)
     shorts = "|".join(re.escape(short) for short, _need, _kind, _method in REQUIREMENTS.values())
     client = re.compile(rf"(?:^|[\s,:])(?:'?(?:{names})'?|'(?:{shorts})')(?![\w'])")
+    found = {}
     for dependency in re.findall(r"\bdependency\b[^;{]*", _code()):
         clients = re.search(r"\bfrom\b(.*?)\bto\b", dependency, re.S)
-        assert not (clients and client.search(clients.group(1))), f"a requirement has a dependency: {dependency}"
+        if clients and client.search(clients.group(1)):
+            link = re.fullmatch(rf"dependency\s+(\w+)\s+from\s+(\w+)\s+to\s+{re.escape(FEATURE)}(\w+)\s*", dependency)
+            assert link, f"a requirement has a dependency that is no feature link: {dependency}"
+            found[link.group(1)] = (link.group(2), link.group(3))
+    assert found == LINKS, "each requirement link of phase 9, and no other"
     # the method declares no satisfy link in phase 5
     assert not re.search(r"\bsatisfy\b", _code()), "phase 5 declares no satisfy link"
-    # a link may also be declared in another file: no dependency of any model file has the HMI display or one of
-    # the ten among its clients, by its plain, its qualified or its short name, quoted or not
+    # no other model file declares a dependency of the HMI display or of one of the ten, by its plain, its qualified
+    # or its short name, quoted or not, other than the framing's link of the system of interest
     subject = (r"(?:DE4SDV_HmiDisplayFraming::)?'?hmiDisplaySystem'?|"
                rf"(?:DE4SDV_HmiDisplayNeedsRequirements::)?(?:'?(?:{names})'?|'(?:{shorts})')")
     for path in sorted(p for root in MODEL_ROOTS for p in root.rglob("*.sysml")):
+        if path == MODEL:
+            assert not re.search(r"\bdependency\s+\w+\s+from\s+(?:DE4SDV_HmiDisplayFraming::)?hmiDisplaySystem\b",
+                                 _code())
+            continue
         for dependency in re.findall(r"\bdependency\b[^;{]*", strip_comments(path.read_text(encoding="utf-8"))):
             clients = re.search(r"\bfrom\b(.*?)\bto\b", dependency, re.S)
-            assert not (clients and re.search(rf"(?<![\w:])(?:{subject})(?![\w'])", clients.group(1))), \
-                (path.name, "a link of the HMI display or a requirement before phase 9", dependency)
+            if not (clients and re.search(rf"(?<![\w:])(?:{subject})(?![\w'])", clients.group(1))):
+                continue
+            link = re.fullmatch(rf"dependency\s+(\w+)\s+from\s+hmiDisplaySystem\s+to\s+{re.escape(FEATURE)}(\w+)\s*",
+                                dependency)
+            assert path == FRAMING and link, (path.name, "a link other than those of phase 9", dependency)
+            assert SUBJECT_LINKS.get(link.group(1)) == ("hmiDisplaySystem", link.group(2)), dependency
 
 
 def _columns(body: str) -> list[str]:

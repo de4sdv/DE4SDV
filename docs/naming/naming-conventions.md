@@ -342,7 +342,9 @@ Configuration identities use the subject-first form
 `MW-CONFIG-001` is the accepted middleware reference-member configuration
 (bound as `configurationIdentity` in the INC-MW-010 evidence record);
 `AEBS-CONFIG-010-001` is the INC-AEBS-010 test-article configuration
-decision. These are stable configuration identities — do not renumber.
+decision; `HMI-CONFIG-001` is the configured product of the HMI display
+(INC-HMI-001 phase 9). These are stable configuration identities — do not
+renumber.
 
 ### External names that merely look like IDs (not registry entries)
 

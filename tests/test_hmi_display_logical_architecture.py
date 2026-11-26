@@ -258,11 +258,12 @@ GRID = (
 #: The guide: its Status line, its line in the frame and the next obligation, as phase 8 moves them.
 GUIDE_STATUS = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical architecture "
-    "and Phase 8 physical and software realization, proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
+    "architecture, Phase 8 physical and software realization and Phase 9 variability and configuration, "
+    "proposal.**")
 GUIDE_NEXT = (
-    "The next model obligation is **Phase 9**: the configuration, which makes the realization of the increment a "
-    "configured product; its first gate is `incrementHasConfiguredProduct`.")
+    "The next model obligation is **Phase 10**: the verification cases, one or more for each requirement of the "
+    "increment; its first gate is `verificationCaseVerifiesRequirement`.")
 GUIDE_HEADING = "## Logical architecture (Phase 7)"
 GUIDE_LINK = "../../textual-notation-of-model/packages/features/hmi/hmi_display_logical_architecture.sysml"
 GUIDE_FRAME_LINE = (f"- [SysML logical architecture]({GUIDE_LINK}): the Phase 7 logical architecture of the HMI "
@@ -787,4 +788,4 @@ def test_the_guide_has_a_phase_7_section_and_names_the_next_obligation():
     check = " ".join(guide.split("## Check the framing change", 1)[1].split())
     assert ("`python -m pytest tests/test_hmi_display_framing.py tests/test_hmi_display_functional_architecture.py "
             "tests/test_hmi_display_logical_architecture.py tests/test_hmi_display_physical_software_realization.py "
-            "-q`") in check
+            "tests/test_hmi_display_variability_configuration.py -q`") in check

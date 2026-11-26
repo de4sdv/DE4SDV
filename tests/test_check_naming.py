@@ -112,6 +112,8 @@ def test_new_canonical_need_and_evidence_forms_are_accepted():
 def test_config_identity_form_is_accepted():
     assert _yaml_errors('configuration: "MW-CONFIG-001"\n') == []
     assert _yaml_errors('configuration: "AEBS-CONFIG-010-001"\n') == []
+    assert _yaml_errors('configuration: "HMI-CONFIG-001"\n') == []
+    assert _yaml_errors('configuration: "ZZZ-CONFIG-001"\n') != []
 
 
 def test_tail_of_longer_id_is_not_matched():
