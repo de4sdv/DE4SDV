@@ -730,11 +730,13 @@ GAP-HMI-004, on the display identity, is retired: the identity-term amendment
 of Phase 10 makes the term name the builds of the vehicle data publisher, of
 the identity recording service and of the composition, and the image of the SDV
 Core VM. The scene-form amendment of Phase 10 types `DisplaySceneMessage` in a
-form of the display's own. Comments on the framing's gaps say what this phase
-placed: the path to the renderer, the heartbeats, the composition and the chime
-are placed and not observed on the bench. The changes to the projects of the
-renderer and of the candidate stay gaps, and nothing is written to their
-maintainers.
+form of the display's own, and `HmiDisplayPhysicalSystem` specializes the
+framing's `HmiDisplaySystem`, so that the realization is the subject of the
+requirements that the cases verify. Comments on the framing's gaps say what
+this phase placed: the path to the renderer, the heartbeats, the composition
+and the chime are placed and not observed on the bench. The changes to the
+projects of the renderer and of the candidate stay gaps, and nothing is written
+to their maintainers.
 
 Three alternatives were not selected: the recorder inside the SDV Core VM,
 the app streaming its drawn frames to the renderer, and the speed on the

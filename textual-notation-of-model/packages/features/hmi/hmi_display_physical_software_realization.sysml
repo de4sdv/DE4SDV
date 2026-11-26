@@ -97,6 +97,10 @@
  *   the identity recording service and of the composition, and the image of
  *   the SDV Core VM, so a change to one of them records another display
  *   identity.
+ * - HmiDisplayPhysicalSystem specializes the framing's HmiDisplaySystem, the
+ *   system of interest, so that the realization in HMI-CONFIG-001 is the
+ *   subject of the requirements that the cases of phase 10 verify.
+ *   HmiDisplaySystem declares no feature.
  *
  * Alternatives recorded and not selected:
  * - ALT-HMI-RECORDERINCORE-001: the identity recorder inside the SDV Core VM.
@@ -575,7 +579,7 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
     bind displayFrameOut = planeComposition.displayFrameOut;
   }
 
-  part def HmiDisplayPhysicalSystem {
+  part def HmiDisplayPhysicalSystem :> DE4SDV_HmiDisplayFraming::HmiDisplaySystem {
     doc /*
      * The physical realization of the HMI display in the vehicle: the central
      * computer and its three VMs. Inside the display are the identity
@@ -593,7 +597,8 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
      * from the IVI VM to the SDV Media VM. The two planes go to the
      * composition on the central computer, the renderer's over the IVI plane.
      * Nothing crosses back to the SDV Core VM or to the IVI VM. It carries
-     * REQ-HMI-009 by the elements that it places on those paths.
+     * REQ-HMI-009 by the elements that it places on those paths. It
+     * specializes the framing's HmiDisplaySystem, the system of interest.
      */
     part centralComputer : HmiDisplayCentralComputer;
     part hmiSDVCoreGuest : HmiDisplaySDVCoreGuest;
