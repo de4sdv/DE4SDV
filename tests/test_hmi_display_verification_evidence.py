@@ -193,8 +193,9 @@ CLAIM_TEXTS = {
         "the success criteria of REQ-HMI-001 to REQ-HMI-008 and of REQ-HMI-010 in the runs of SC-HMI-001 to "
         "SC-HMI-007 that those criteria name, and the realization that phase 8 records meets those of REQ-HMI-009. "
         "Each verdict is a pass or a fail for its requirement and its scenarios, bound to the candidate revision, the "
-        "display identity and HMI-CONFIG-001 with its receipt, and holds what the display shows against what the "
-        "candidate gives and when. A fail stays a recorded result. A claim to be proven: no case has started.",
+        "display identity and HMI-CONFIG-001 with its receipt, and holds what the display shows against what its "
+        "sources give and when, the scene of the context stand-in of phase 8 while the candidate gives no scene "
+        "(gapHmiSceneOutput). A fail stays a recorded result. A claim to be proven: no case has started.",
         "The claim requires the retained records of the runs and the record of the inspection that its argument "
         "cites, bound to HMI-CONFIG-001 and its receipt; it excludes a recording of a display that looks right, the "
         "vehicle and the road that the simulation stands in for, and the results of the bench of the "
@@ -1198,8 +1199,9 @@ DOC_TEXTS = [
         "the success criteria of REQ-HMI-001 to REQ-HMI-008 and of REQ-HMI-010 in the runs of SC-HMI-001 to "
         "SC-HMI-007 that those criteria name, and the realization that phase 8 records meets those of REQ-HMI-009. "
         "Each verdict is a pass or a fail for its requirement and its scenarios, bound to the candidate revision, "
-        "the display identity and HMI-CONFIG-001 with its receipt, and holds what the display shows against what the "
-        "candidate gives and when. A fail stays a recorded result. A claim to be proven: no case has started."),
+        "the display identity and HMI-CONFIG-001 with its receipt, and holds what the display shows against what its "
+        "sources give and when, the scene of the context stand-in of phase 8 while the candidate gives no scene "
+        "(gapHmiSceneOutput). A fail stays a recorded result. A claim to be proven: no case has started."),
     (
         "requirement hmiDisplayVerdictClaim : HmiDisplayClaim / require constraint",
         "The claim requires the retained records of the runs and the record of the inspection that its argument "
