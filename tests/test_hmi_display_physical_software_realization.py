@@ -146,13 +146,21 @@ INTERFACES = [(f"{guest}UnderHypervisor", f"{guest}.os.hypervisorPort", "central
 #: The item definitions of the package -> (supertype or None, attributes (name, type)).
 ITEMS = {
     "DisplaySceneMessage": ("DisplaySceneInput",
-                            [("obstacleDistance", "Vehicle_ADAS_ObstacleDetection_Distance[0..1]")]),
+                            [("obstacleDistance", "Vehicle_ADAS_ObstacleDetection_Distance[0..1]"),
+                             ("lanePoints", "DisplayScenePoint[0..*] ordered"),
+                             ("pathPoints", "DisplayScenePoint[0..*] ordered"),
+                             ("sceneObjects", "DisplaySceneObject[0..*]")]),
     "DisplayVehicleSpeedSample": ("VehicleSpeed", [("speed", "Vehicle_Speed"), ("sampleTime", "Real")]),
     "DisplaySceneTime": (None, [("captureTime", "Real")]),
     "DrawnSceneHeartbeat": (None, [("sceneCaptureTime", "Real")]),
     "DisplayPlane": (None, []),
     "ComposedDisplayFrame": ("DisplayContentOutput", []),
     "CollisionWarningChime": (None, []),
+}
+#: The attribute definitions of the package (the scene-form amendment of phase 10) -> their attributes (name, type).
+ATTRIBUTE_DEFS = {
+    "DisplayScenePoint": [("ahead", "ISQ::LengthValue"), ("left", "ISQ::LengthValue")],
+    "DisplaySceneObject": [("objectPosition", "DisplayScenePoint"), ("level", "ScalarValues::Integer")],
 }
 #: The port definitions of the package -> (direction, item, item type): one item each, one direction.
 PORT_ITEMS = {
@@ -398,9 +406,14 @@ HEADER_PARAGRAPHS = [
     "while it is unavailable. The visual design stays out of scope (hmiHumanFactorsOutOfScope). - The changes to the "
     "projects of the renderer and of the candidate stay gaps; nothing is written to their maintainers.",
     "Phase 10 amends this realization:",
-    "- GAP-HMI-004 is retired. The identity-term amendment of phase 10 makes the term display identity name the "
-    "builds of the vehicle data publisher, of the identity recording service and of the composition, and the image "
-    "of the SDV Core VM, so a change to one of them records another display identity.",
+    "- The scene-form amendment of phase 10 types DisplaySceneMessage in a form of the display's own, under the owner "
+    "direction of 2026-11-26 recorded about gapHmiDisplayInProductLine: the capture time, the lane points, the path, "
+    "the objects with their levels, and the object that the system acts on with its distance and the speed of the "
+    "closest object. Each driving application gives its scene in that form through a translation of its own; that of "
+    "VisionPilot is open with the scene's way out of the candidate (gapHmiSceneOutput). - GAP-HMI-004 is retired. The "
+    "identity-term amendment of phase 10 makes the term display identity name the builds of the vehicle data "
+    "publisher, of the identity recording service and of the composition, and the image of the SDV Core VM, so a "
+    "change to one of them records another display identity.",
     "Alternatives recorded and not selected: - ALT-HMI-RECORDERINCORE-001: the identity recorder inside the SDV Core "
     "VM. A recorder in a VM records no image of the IVI or SDV Media VM before their start, which the record has to "
     "precede. - ALT-HMI-SCENESTREAM-001: the app streams its drawn frames to the renderer, which draws them. The "
@@ -421,11 +434,19 @@ HEADER_PARAGRAPHS = [
 DOCS = {
     "item def DisplaySceneMessage :> DisplaySceneInput":
         "The scene as the realization types it on the Data Tunnel topic of the SDV Core VM and through the SDV "
-        "Gateway into the scene drawing app: the scene of one result pass with its capture time in simulation time. "
-        "Its message type is new and stays open until phase 10. A scene is no vehicle signal, except the distance to "
-        "the object that the system acts on: COVESA VSS types it at the port as obstacleDistance "
-        "(Vehicle_ADAS_ObstacleDetection_Distance, m), the value in m of the inherited actedOnObjectDistance "
-        "(MAP-HMI-SCENE).",
+        "Gateway into the scene drawing app: the scene of one result pass with its capture time in simulation time, "
+        "in a form of the display's own (the scene-form amendment of phase 10). It carries the lane points, the "
+        "points of the path and the objects, each with its position and its level, and, from DisplaySceneInput, the "
+        "capture time and, when the scene has an object that the system acts on, its distance and the speed of the "
+        "closest object. A scene is no vehicle signal, except the distance to the object that the system acts on: "
+        "COVESA VSS types it at the port as obstacleDistance (Vehicle_ADAS_ObstacleDetection_Distance, m), the value "
+        "in m of the inherited actedOnObjectDistance (MAP-HMI-SCENE).",
+    "attribute def DisplayScenePoint":
+        "A position in the scene: its distance ahead of the vehicle and its distance to the left of the vehicle, in "
+        "m.",
+    "attribute def DisplaySceneObject":
+        "An object of the scene: its position and its level, 1 for the same lane, 2 for the adjacent lane, and any "
+        "other class as the scene gives it.",
     "item def DisplayVehicleSpeedSample :> VehicleSpeed":
         "The vehicle speed as the realization types it from the vehicle data of the SDV Core VM to the speed message "
         "of the renderer's vehicle data. The speed is typed by COVESA VSS at the port (Vehicle_Speed, km/h); the "
@@ -586,8 +607,8 @@ DOCS = {
         "go to the composition on the central computer, the renderer's over the IVI plane. Nothing crosses back to "
         "the SDV Core VM or to the IVI VM. It carries REQ-HMI-009 by the elements that it places on those paths.",
     "connection sceneTopicToIVIOverDataTunnel":
-        "The scene as the Data Tunnel topic from the SDV Core VM to the SDV Gateway on the IVI VM; its message type "
-        "stays open until phase 10.",
+        "The scene as the Data Tunnel topic from the SDV Core VM to the SDV Gateway on the IVI VM, as "
+        "DisplaySceneMessage.",
     "connection speedToRendererAcrossVMs":
         "The vehicle speed from the vehicle data publisher to the speed message of the renderer's vehicle data, over "
         "the platform's messaging between the VMs.",
@@ -632,7 +653,8 @@ DOCS = {
         "are drawn in no view of this phase; the structure tree shows the hypervisor and each VM's operating system.",
 }
 DOC_IDS = [
-    "DisplaySceneMessage", "DisplayVehicleSpeedSample", "DisplaySceneTime", "DrawnSceneHeartbeat", "DisplayPlane",
+    "DisplaySceneMessage", "DisplayScenePoint", "DisplaySceneObject", "DisplayVehicleSpeedSample", "DisplaySceneTime",
+    "DrawnSceneHeartbeat", "DisplayPlane",
     "ComposedDisplayFrame", "CollisionWarningChime", "DisplaySceneMessageOut", "DisplaySceneMessageIn",
     "DisplayVehicleSpeedSampleOut", "DisplayVehicleSpeedSampleIn", "DisplaySceneTimeOut", "DisplaySceneTimeIn",
     "DrawnSceneHeartbeatOut", "DrawnSceneHeartbeatIn", "DisplayPlaneOut", "DisplayPlaneIn", "ComposedDisplayFrameOut",
@@ -689,13 +711,15 @@ RECORD_VALUES = {
             "a Data Tunnel topic of the SDV Core VM that a context stand-in publishes, and the subscription of the "
             "scene drawing app to it through the SDV Gateway on the IVI VM, candidate",
         "softwareContractMessage":
-            "DisplaySceneMessage, one per result pass; a new message type, open until phase 10, candidate",
+            "DisplaySceneMessage, one per result pass; a message type of the display's own, which each driving "
+            "application gives through a translation of its own, candidate",
         "softwareContractField":
-            "the capture time, the lane points, the path, the objects with their levels, and the object that the "
-            "system acts on with its distance and the speed of the closest object; not typed in this model yet",
+            "captureTime; lanePoints and pathPoints, each point ahead and left; sceneObjects, each with its "
+            "objectPosition and its level; and, when the scene has an object that the system acts on, "
+            "actedOnObjectDistance, typed at the port as obstacleDistance, and actedOnObjectSpeed",
         "dataTypeAndUnit":
-            "capture time in simulation seconds; distance in m; speed of the closest object in m/s, negative while "
-            "it approaches",
+            "capture time in simulation seconds; positions and distance in m; speed of the closest object in m/s, "
+            "negative while it approaches; level an integer, 1 for the same lane and 2 for the adjacent lane",
         "timingQualityAndState":
             "one scene per 0.1 s of simulation time; of the display's 0.1 s of wall-clock time, 0.05 s is for the "
             "hop from the SDV Core VM to the app and 0.05 s for the drawing, both unmeasured and revisited when a "
@@ -708,8 +732,8 @@ RECORD_VALUES = {
         "owner":
             "DE4SDV maintainers",
         "nextAction":
-            "settle the scene's way out of the candidate and the message type, then bring the verification cases of "
-            "REQ-HMI-001 and REQ-HMI-002 to evidence of record; none is started",
+            "settle the scene's way out of the candidate and the translation of its scene into DisplaySceneMessage, "
+            "then bring the verification cases of REQ-HMI-001 and REQ-HMI-002 to evidence of record; none is started",
         "evidenceOrGap":
             "no runtime evidence of record; framing gap gapHmiSceneOutput",
     },
@@ -1061,9 +1085,10 @@ GUIDE_BLOCKS = [
     "(`gapHmiBenchSpeedFeed`) and the tolerance of a drawn position (`gapHmiDrawingToleranceUnset`). A fourth, "
     "GAP-HMI-004, on the display identity, is retired: the identity-term amendment of Phase 10 makes the term name "
     "the builds of the vehicle data publisher, of the identity recording service and of the composition, and the "
-    "image of the SDV Core VM. Comments on the framing's gaps say what this phase placed: the path to the renderer, "
-    "the heartbeats, the composition and the chime are placed and not observed on the bench. The changes to the "
-    "projects of the renderer and of the candidate stay gaps, and nothing is written to their maintainers.",
+    "image of the SDV Core VM. The scene-form amendment of Phase 10 types `DisplaySceneMessage` in a form of the "
+    "display's own. Comments on the framing's gaps say what this phase placed: the path to the renderer, the "
+    "heartbeats, the composition and the chime are placed and not observed on the bench. The changes to the projects "
+    "of the renderer and of the candidate stay gaps, and nothing is written to their maintainers.",
     "Three alternatives were not selected: the recorder inside the SDV Core VM, the app streaming its drawn frames "
     "to the renderer, and the speed on the Eclipse S-CORE path.",
     "Three views answer the concerns of this phase: the structure as a tree of the SAF Physical Structure Definition "
@@ -1258,7 +1283,8 @@ def test_each_container_holds_exactly_its_parts_binds_and_connections(definition
 
 
 #: The member kinds each body may hold, at any indentation, with the continuation words of its multi-line members.
-ALLOWED_PACKAGE = (r"(?:private import|item def|port def|part def|part|allocation|allocate|to|dependency|from|"
+ALLOWED_PACKAGE = (r"(?:private import|item def|attribute def|port def|part def|part|allocation|allocate|to|"
+                   r"dependency|from|"
                    r"comment|concern|view)")
 ALLOWED_CONTAINER = r"(?:doc|port|part|ref part|bind|connection|interface|connect)"
 
@@ -1290,6 +1316,11 @@ def test_the_items_and_the_port_definitions_carry_one_item_each_in_one_direction
         body = braced_body(code, f"item def {name}")
         assert re.findall(r"\battribute\s+(\w+)\s*:\s*([\w:]+(?:\[[^\]]*\])?(?:\s+ordered)?)\s*;", body) == \
             attributes, name
+        assert len(re.findall(r"\battribute\b", body)) == len(attributes), name
+    assert re.findall(r"\battribute\s+def\s+(\w+)", code) == list(ATTRIBUTE_DEFS)
+    for name, attributes in ATTRIBUTE_DEFS.items():
+        body = braced_body(code, f"attribute def {name}")
+        assert re.findall(r"\battribute\s+(\w+)\s*:\s*([\w:]+)\s*;", body) == attributes, name
         assert len(re.findall(r"\battribute\b", body)) == len(attributes), name
     assert re.findall(r"\bport\s+def\s+(\w+)", code) == list(PORT_ITEMS)
     for port_def, (direction, item, item_type) in PORT_ITEMS.items():
