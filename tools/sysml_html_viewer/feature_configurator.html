@@ -74,7 +74,7 @@
     -webkit-background-clip:text;background-clip:text;color:transparent;
   }
   @media (prefers-reduced-motion:reduce){
-    .tab.active,.chip-mp,.gold-shine-text{animation:none !important}
+    .tab.active,.chip,.gold-shine-text{animation:none !important}
   }
   /* Lean paint mode: the public page runs in software-composited browsers
      too (the Jetson disables GPU compositing), where backdrop blur and
@@ -138,14 +138,13 @@
     border:1px solid rgba(158,188,255,.35);border-radius:8px;padding:8px 9px;background:rgba(3,10,34,.55);
   }
   #head .back:hover{color:var(--gold);border-color:var(--edge-light)}
-  .chip-mp{font-family:var(--pix);font-weight:700;font-size:12px;color:var(--text);border-radius:8px;padding:8px 10px;
+  .chip{font-family:var(--pix);font-weight:700;font-size:12px;color:var(--text);border-radius:8px;padding:8px 10px;
   border:2px solid rgba(226,196,130,.85);background:#03102ecc;text-decoration:none}
-  .chip-mp b{color:var(--gold)}
-  #btn-sound{
+  #btn-sound,#btn-help{
     font-family:var(--pix);font-weight:700;font-size:11px;color:var(--text);cursor:pointer;
     background:#0a1f52;border:1px solid var(--edge-light);border-radius:8px;padding:9px 11px;
   }
-  #btn-sound:hover{background:#16347e;color:var(--gold)}
+  #btn-sound:hover,#btn-help:hover{background:#16347e;color:var(--gold)}
 
   /* ---------- window titles ---------- */
   .win-title{
@@ -161,13 +160,14 @@
     display:flex;align-items:center;gap:12px;
     padding:7px 8px;border-radius:8px;font-size:18px;line-height:1.15;
   }
-  #slots li .slabel{width:140px;flex:none;font-family:var(--pix);font-weight:700;font-size:11.5px;color:var(--dim);letter-spacing:.5px}
+  #slots li .slabel{width:104px;flex:none;font-family:var(--pix);font-weight:700;font-size:11.5px;color:var(--dim);letter-spacing:.5px}
   #slots li .sname{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #slots li .sauto{font-size:13px;
     background:var(--gold-shine);background-size:280% 100%;
     -webkit-background-clip:text;background-clip:text;color:transparent;
     animation:goldtext 2.8s steps(12) infinite;}
   #slots li.empty .sname{color:#7288c4}
+  #slots li.adapter .sname{font-size:15px}
   #slots li.derived .sname{
     background:var(--gold-shine);background-size:280% 100%;
     -webkit-background-clip:text;background-clip:text;color:transparent;
@@ -261,7 +261,7 @@
     animation:goldtext 2.8s steps(12) infinite;
   }
   #list li .tag{font-size:13px;color:var(--dim);letter-spacing:.5px;white-space:nowrap}
-  #list li .mp{width:56px;flex:none;text-align:right;font-size:15px;color:var(--dim)}
+  #list li .num{width:56px;flex:none;text-align:right;font-size:15px;color:var(--dim)}
   #list li .eqbadge{font-size:13px;color:var(--ok);width:88px;flex:none;white-space:nowrap;text-align:right}
   #list li.blocked{opacity:.5}
   #list li .ref{font-size:12px;padding:1px 6px;border-radius:6px;border:1px solid;margin-left:6px}
@@ -320,6 +320,25 @@
   @keyframes blink{50%{opacity:.15}}
   #foot{grid-column:1/-1;text-align:center;font-size:15px;color:#4d639f;padding-top:2px}
   #foot a{color:#7da2ff;text-decoration:none}
+
+  /* ---------- help ---------- */
+  #help{
+    position:fixed;inset:0;z-index:20;display:flex;align-items:flex-start;justify-content:center;
+    padding:24px 16px;overflow-y:auto;background:rgba(2,6,20,.72);
+  }
+  #help[hidden]{display:none}
+  #help .box{max-width:840px;width:100%;padding:14px 22px 16px}
+  #help .top{display:flex;align-items:center;gap:12px}
+  #help h2{font-family:var(--pix);font-weight:700;font-size:13px;color:var(--gold);letter-spacing:1px;flex:1}
+  #help h3{font-family:var(--pix);font-weight:700;font-size:11px;color:var(--edge-light);letter-spacing:1px;margin:12px 0 4px}
+  #help dl{display:grid;grid-template-columns:130px 1fr;gap:4px 14px;font-size:16px;line-height:1.3}
+  #help dt{font-family:var(--pix);font-weight:700;font-size:11px;padding-top:3px}
+  #help p{font-size:16px;line-height:1.3;color:var(--dim);margin-top:6px}
+  #help .ref{font-size:11px;padding:1px 6px;border-radius:6px;border:1px solid}
+  #help-close{font-family:var(--pix);font-weight:700;font-size:11px;color:var(--text);cursor:pointer;
+    background:#0a1f52;border:1px solid var(--edge-light);border-radius:8px;padding:8px 10px}
+  #help-close:hover{background:#16347e;color:var(--gold)}
+  @media (max-width:640px){#help dl{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -333,10 +352,10 @@
     </div>
     <div class="spacer"></div>
     <a class="back" href="index.html">← MODEL VIEWER</a>
-    <a class="chip-mp" id="model-chip" href="https://sysml-api.de4sdv.org" target="_blank" rel="noopener">API · …</a>
-    <div class="chip-mp">MP <b id="mp">0</b></div>
+    <a class="chip" id="model-chip" href="https://sysml-api.de4sdv.org" target="_blank" rel="noopener">API · …</a>
     <button id="btn-fx">FX: LEAN</button>
     <button id="btn-sound">♪ SOUND: ON</button>
+    <button id="btn-help" aria-haspopup="dialog" aria-controls="help" aria-expanded="false">? HELP</button>
   </header>
 
   <section id="equip" class="win">
@@ -352,7 +371,7 @@
     <div class="win-title">FEATURE BAY <small>— pearl catalogue</small></div>
     <nav id="tabs"></nav>
     <ul id="list"></ul>
-    <div class="hint"><kbd>↑↓</kbd> move · <kbd>←→</kbd> tab · <kbd>↵</kbd> equip / unequip · <kbd>1–9</kbd> charter presets</div>
+    <div class="hint"><kbd>↑↓</kbd> move · <kbd>←→</kbd> tab · <kbd>↵</kbd> equip / unequip · <kbd>1–9</kbd> charter presets · <kbd>?</kbd> help</div>
   </aside>
 
   <section id="info" class="win">
@@ -385,10 +404,47 @@
   </div>
 </div>
 
+<!-- The help defines the words of this page only. It names no feature, rule,
+     configuration or verdict, so it cannot drift from the model the page reads. -->
+<section id="help" role="dialog" aria-modal="true" aria-labelledby="help-title" hidden>
+  <div class="box win">
+    <div class="top">
+      <h2 id="help-title">HELP · HOW TO READ THIS PAGE</h2>
+      <button id="help-close">✕ CLOSE</button>
+    </div>
+    <h3>THE PAGE</h3>
+    <dl>
+      <dt>FEATURE</dt><dd>One choice for a product, shown as a pearl. Click it or press Enter to equip it.</dd>
+      <dt>GROUP</dt><dd>A set of features, such as DRIVING APP. The model says how many of them a product takes.</dd>
+      <dt>RULE</dt><dd>A constraint between features. The C in a number like C012 stands for constraint; a rule without a number shows its name. ✦ auto: a rule equipped the feature for you. ✕: the model forbids the pair.</dd>
+      <dt>ADAPTER</dt><dd>Never picked by hand: a derivation rule of the model picks it from the driving app and the middleware.</dd>
+      <dt>CHARTER</dt><dd>The feature configurations committed in the model. Only these get a verdict. Keys 1–9 load them.</dd>
+    </dl>
+    <h3>THE VERDICT</h3>
+    <dl>
+      <dt>VALID</dt><dd>The product can exist: every group has the right number of features, and every rule holds.</dd>
+      <dt>ADMITTED ★</dt><dd>Valid, and also a planned member: a product that DE4SDV's governed scope plans to build.</dd>
+    </dl>
+    <p>Every admitted product is valid. A valid product is not always admitted. Your own selection gets no verdict unless it equals a charter configuration.</p>
+    <h3>THE TAGS · FROM THE GOVERNED SCOPE</h3>
+    <dl>
+      <dt><span class="ref common">COMMON</span></dt><dd>In every planned member. Still a choice here, because products outside the plan can leave it out.</dd>
+      <dt><span class="ref admitted">ADMITTED</span></dt><dd>A choice that tells the planned members apart.</dd>
+      <dt><span class="ref deferred">DEFERRED</span></dt><dd>A candidate that is not decided yet. A future reviewed scope decision can admit it.</dd>
+      <dt><span class="ref refonly">REF-ONLY</span></dt><dd>Kept for reference and comparison. Not planned for any member.</dd>
+      <dt><span class="ref nosysml">NOT IN SCOPE</span></dt><dd>The governed scope has no element for it.</dd>
+      <dt><span class="ref excluded">EXCLUDED</span></dt><dd>Engineering or evidence content, not part of the product.</dd>
+    </dl>
+    <p>Equip a DEFERRED, REF-ONLY, NOT IN SCOPE or EXCLUDED feature, and the product is not admitted. It can still be valid.</p>
+    <h3>THE SOURCE</h3>
+    <p>Features, docs, rules, tags and verdicts come from the SysML v2 model, at the revision on the API chip. This page adds only labels, colours and sounds. FX: LEAN keeps the effects light; FULL turns the animations on. Esc closes this help.</p>
+  </div>
+</section>
+
 <script>
 "use strict";
 /* ================================================================
-   PRESENTATION — labels, colours, game stats and the tab/slot layout.
+   PRESENTATION — labels, colours and the tab/slot layout.
    Nothing here is model content: the catalogue, its docs, its rules,
    its classifications and its configurations arrive from
    api/feature-model.json, projected from the deployed SysML v2 API.
@@ -437,37 +493,6 @@ const LABELS = {
   'F-CAPABILITY-LANE-KEEP-ASSIST':'Lane Keep Assist',
   'F-CAPABILITY-HMI-DISPLAY':'HMI Display'
 };
-// game-only "cost"; it is not a model property
-const MP = {
-  'F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE':40,
-  'F-PLATFORM-VEHICLE-APPLICATION-OPENPILOT':30,
-  'F-PLATFORM-VEHICLE-APPLICATION-APOLLO':35,
-  'F-PLATFORM-VEHICLE-APPLICATION-AUTOE2E':45,
-  'F-PLATFORM-VEHICLE-APPLICATION-VISIONPILOT':30,
-  'F-PLATFORM-MIDDLEWARE-ECLIPSE-SCORE':30,
-  'F-PLATFORM-MIDDLEWARE-ANDROID-SDV':30,
-  'F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE':40,
-  'F-PLATFORM-MIDDLEWARE-NONE':0,
-  'F-PLATFORM-OS-LINUX':20,
-  'F-PLATFORM-OS-ANDROID':25,
-  'F-PLATFORM-OS-QNX':50,
-  'F-PLATFORM-HYPERVISOR-KVM':15,
-  'F-PLATFORM-HYPERVISOR-QVM':45,
-  'F-PLATFORM-HYPERVISOR-ACRN':25,
-  'F-PLATFORM-HYPERVISOR-NONE':0,
-  'F-PLATFORM-GUEST-OS-ANDROID':20,
-  'F-PLATFORM-GUEST-OS-NONE':0,
-  'F-PLATFORM-GUEST-MIDDLEWARE-ANDROID-SDV':20,
-  'F-PLATFORM-GUEST-MIDDLEWARE-NONE':0,
-  'F-SENSING-PERCEPTION-LIDAR':30,
-  'F-SENSING-PERCEPTION-RADAR':15,
-  'F-SENSING-PERCEPTION-CAMERA':10,
-  'F-CAPABILITY-AEBS-PEDESTRIAN-DETECTION':10,
-  'F-CAPABILITY-AEBS-BICYCLE-DETECTION':10,
-  'F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL':15,
-  'F-CAPABILITY-LANE-KEEP-ASSIST':15,
-  'F-CAPABILITY-HMI-DISPLAY':5
-};
 const GROUP_STYLE = {
   'platformStack.vehicleApplication':{label:'DRIVING APP', color:C.app, tab:'app'},
   'platformStack.middleware':{label:'MIDDLEWARE', color:C.mw, tab:'mw'},
@@ -476,7 +501,7 @@ const GROUP_STYLE = {
   'platformStack.guestOperatingSystem':{label:'GUEST OS', color:C.gos, tab:'guest'},
   'platformStack.guestMiddleware':{label:'GUEST MW', color:C.gmw, tab:'guest'},
   'sensingBoundary.perceptionSensors':{label:'SENSING', color:C.sensor, tab:'sensor'},
-  'capabilities':{label:'ABILITIES', color:C.cap, tab:'cap'}
+  'capabilities':{label:'CAPABILITIES', color:C.cap, tab:'cap'}
 };
 const TAB_LAYOUT = [
   {id:'app',      label:'DRIVING',    groups:['platformStack.vehicleApplication']},
@@ -484,7 +509,7 @@ const TAB_LAYOUT = [
   {id:'platform', label:'PLATFORM',   groups:['platformStack.operatingSystem','platformStack.hypervisor']},
   {id:'guest',    label:'GUEST',      groups:['platformStack.guestOperatingSystem','platformStack.guestMiddleware']},
   {id:'sensor',   label:'SENSING',    groups:['sensingBoundary.perceptionSensors']},
-  {id:'cap',      label:'ABILITIES',  groups:[], free:['capabilities']},
+  {id:'cap',      label:'CAPABILITIES', groups:[], free:['capabilities']},
   {id:'charter',  label:'CHARTER'}
 ];
 const SLOT_LAYOUT = [
@@ -506,6 +531,13 @@ const CONFIG_LABELS = {
   apolloQNXQVMVariant:'APOLLO QNX QVM',
   closedLoopDrivingAutoE2ESCOREReference:'AUTO E2E S-CORE',
   driverAssistanceVisionPilotSCOREReference:'VISIONPILOT S-CORE'
+};
+// presentation titles for the admitted alternatives; any other alternative
+// falls back to its model name, prettified.
+const ALT_LABELS = {
+  standalone:'STANDALONE',
+  aaosIntegrated:'AAOS INTEGRATED',
+  scoreIntegrated:'S-CORE INTEGRATED'
 };
 
 /* ================================================================
@@ -592,7 +624,6 @@ function buildModel(doc){
     id:f.path,
     label:labelOf(f),
     color:colorOf(f),
-    mp:MP[f.short_name] ?? 10,
     doc:f.doc || '',
     tag:STATUS_TAG[f.status] || ''
   }));
@@ -782,19 +813,25 @@ function loadPreset(cid){
   else { log(`★ configuration loaded: ${p.title}`,'e'); if(p.admitted) SFX.star(); }
   render();
 }
-function adapter(){
-  const app=selGroup('platformStack.vehicleApplication')[0],
-        mw=selGroup('platformStack.middleware')[0];
-  if(!app||!mw) return null;
+function adapterFor(appId, mwId){
+  // The adapter the model derives for an application and a middleware. A
+  // charter row asks it for its configuration's pair, the sidebar for the
+  // current selection.
+  if(!appId||!mwId) return null;
   const agreement=(FM.agreement||[]).find(a=>a.derived_variation==='applicationMiddlewareAdapter');
-  const row=agreement && (agreement.rows||[]).find(r=>r.pair[0]===app.id && r.pair[1]===mw.id);
+  const row=agreement && (agreement.rows||[]).find(r=>r.pair[0]===appId && r.pair[1]===mwId);
   if(!row || !row.rules || row.rules.length!==1)
-    return {name:'— ??? —',note:'no derivation rule for this pair'};
+    return {name:'— ??? —',note:'no derivation rule for this pair',derived:false};
   const rule=(DERIVATION && (DERIVATION.rules||[]).find(r=>r.rule===row.rules[0]));
   const result=rule?rule.result:'?';
   return result==='none'
-    ? {name:'— none —',note:'the model derives no adapter when no vehicle middleware'}
-    : {name:result,note:`derived by ${row.rules[0]} (${DERIVATION?DERIVATION.derived_variation:'derivation'})`};
+    ? {name:'— none —',note:'the model derives no adapter when no vehicle middleware',derived:false}
+    : {name:result,note:`derived by ${row.rules[0]} (${DERIVATION?DERIVATION.derived_variation:'derivation'})`,derived:result!=='?'};
+}
+function adapter(){
+  const app=selGroup('platformStack.vehicleApplication')[0],
+        mw=selGroup('platformStack.middleware')[0];
+  return adapterFor(app&&app.id, mw&&mw.id);
 }
 function sameSelection(a,b){
   if(a.length!==b.length) return false;
@@ -811,6 +848,8 @@ function reasonText(r){
   return String(r);
 }
 function evaluate(){
+  if(!state.sel.size)
+    return {level:'', big:'◇ NOTHING EQUIPPED', text:'Pick a feature in the bay to start, or load a charter configuration with 1–9.'};
   const problems=[];
   for(const g of Object.values(GROUPS)){
     const n=selGroup(g.path).length;
@@ -824,9 +863,11 @@ function evaluate(){
     if(!match.valid)
       return {level:'bad', big:`✕ INVALID CONFIGURATION — ${match.title}`,
               text:(match.reasons||[]).map(reasonText).join(' · ') || 'The model rejects this configuration.'};
-    if(match.admitted)
-      return {level:'star', big:`★ ADMITTED — ${String(match.alternative||'governed').toUpperCase()} MEMBER`,
+    if(match.admitted){
+      const alt=match.alternative||'governed';
+      return {level:'star', big:`★ ADMITTED — ${ALT_LABELS[alt] || pretty(alt).toUpperCase()} MEMBER`,
               text:`configuration ${match.title}. ${match.description||''}`.trim()};
+    }
     return {level:'warn', big:`✓ VALID · NOT ADMITTED — ${match.title}`,
             text:((match.admission&&match.admission.reasons)||[]).join(' · ') || 'The configuration is valid but outside the governed scope.'};
   }
@@ -851,21 +892,37 @@ function evaluate(){
    ================================================================ */
 const $=s=>document.querySelector(s);
 let lastVerdictLevel=null;
-function orbHTML(fid, size=''){
+function orbHTML(fid, size='', title=''){
   const f=F[fid];
-  return `<span class="orb ${size} on" style="--mc:${f.color}"></span>`;
+  return `<span class="orb ${size} on" style="--mc:${f.color}"${title?` title="${esc(title)}"`:''}></span>`;
+}
+function charterPearls(p){
+  // A miniature of the equipped sidebar for one configuration: one pearl per
+  // slot, in the slots' order. A slot the configuration leaves unused shows
+  // an empty pearl.
+  const pick=g=>p.selected.map(id=>F[id]).find(f=>f && f.group===g);
+  const app=pick('platformStack.vehicleApplication'), mw=pick('platformStack.middleware');
+  return SLOTS.map(s=>{
+    if(s.derived){
+      const a=adapterFor(app&&app.id, mw&&mw.id);
+      return a && a.derived
+        ? `<span class="orb s20 on locked" style="--mc:#f2dd9c" title="${esc(s.label+': '+a.name)}"></span>`
+        : `<span class="orb s20 off" title="${esc(s.label+': none')}"></span>`;
+    }
+    const f=pick(s.group);
+    return f ? orbHTML(f.id,'s20',`${s.label}: ${f.label}`)
+             : `<span class="orb s20 off" title="${esc(s.label+': open')}"></span>`;
+  }).join('');
 }
 function render(){
-  let mp=0; for(const id of state.sel) mp+=(F[id]?F[id].mp:0);
-  $('#mp').textContent=mp;
   const ul=$('#slots'); ul.innerHTML='';
   for(const s of SLOTS){
     const li=document.createElement('li');
     if(s.derived){
-      const a=adapter();
-      li.className = a?'derived':'empty';
+      const a=adapter(), on=!!(a && a.derived);
+      li.className = (on?'derived':'empty')+' adapter';
       li.innerHTML=`<span class="slabel">${esc(s.label)}</span>
-        <span class="orb s24 on locked" style="--mc:#f2dd9c"></span>
+        ${on?'<span class="orb s24 on locked" style="--mc:#f2dd9c"></span>':'<span class="orb s24 off"></span>'}
         <span class="sname">${a?esc(a.name):'— awaiting pair —'}</span><span class="sauto">DERIVED</span>`;
       li.title = a?a.note:'';
     } else {
@@ -883,7 +940,7 @@ function render(){
   const sensors=selGroup('sensingBoundary.perceptionSensors').map(f=>f.label).join(', ')||'none';
   $('#sensors-line').innerHTML=`<b>SENSING</b> · ${esc(sensors)} · <i style="opacity:.7">motion sensors are common content</i>`;
   const caps=FEATURES.filter(f=>f.owner==='capabilities' && f.selectable && state.sel.has(f.id)).map(f=>f.label).join(', ')||'none';
-  $('#caps-line').innerHTML=`<b>ABILITIES</b> · ${esc(caps)}`;
+  $('#caps-line').innerHTML=`<b>CAPABILITIES</b> · ${esc(caps)}`;
   const v=evaluate();
   const box=$('#verdict');
   box.className=v.level;
@@ -927,12 +984,12 @@ function renderList(){
     CONFIGS.forEach((p,i)=>{
       const li=document.createElement('li');
       li.className='preset'+(state.cursor===i?' hi':'');
-      const mini=p.selected.slice(0,6).map(id=>F[id]?orbHTML(id,'s20'):'').join('');
+      const mini=charterPearls(p);
       const stateText=p.admitted?'★ admitted':(p.valid?'✓ valid · not admitted':'✕ invalid');
       li.innerHTML=`<span class="cursor">☞</span>
         <span class="minirow">${mini}</span>
         <span class="nm">${esc(p.title)}<br><span class="mem">${esc(stateText)}</span></span>
-        <span class="mp">#${i+1}</span>`;
+        <span class="num">#${i+1}</span>`;
       li.onmouseenter=()=>{if(state.cursor!==i){state.cursor=i;SFX.move();renderList();}};
       li.onclick=()=>{state.cursor=i;loadPreset(p.id);};
       ul.appendChild(li);
@@ -950,8 +1007,7 @@ function renderList(){
     li.innerHTML=`<span class="cursor">☞</span>
       ${orbHTML(f.id, eq?'s24':'s24 ')}
       <span class="nm" style="${eq?'':'--x:1'}">${esc(f.label)}${tag}</span>
-      <span class="eqbadge">${eq?(state.origin[f.id]==='auto'?'✦ auto':'✔ equipped'):'&nbsp;'}</span>
-      <span class="mp">${f.mp? 'MP '+f.mp:'—'}</span>`;
+      <span class="eqbadge">${eq?(state.origin[f.id]==='auto'?'✦ auto':'✔ equipped'):'&nbsp;'}</span>`;
     if(!eq) li.querySelector('.orb').classList.add('off');
     li.onmouseenter=()=>{ if(state.cursor!==i){state.cursor=i;SFX.move();showDesc(f);renderList();} };
     li.onclick=()=>{state.cursor=i;showDesc(f);toggle(f.id);};
@@ -969,7 +1025,7 @@ function showDesc(f){
   const scope=(f.classifications||[]).map(c=>`${c.classification} ${c.governed}`).join(' · ');
   const mult=`[${f.multiplicity.lower}..${f.multiplicity.upper===null?'*':f.multiplicity.upper}]`;
   d.innerHTML=`<h3>${esc(f.label)} ${state.sel.has(f.id)?'✔':''}</h3>
-    <div class="idline">${esc(f.short_name||f.path)} · ${esc(groupLabel(f))} · ${mult}${f.mp?' · MP '+f.mp:''}</div>
+    <div class="idline">${esc(f.short_name||f.path)} · ${esc(groupLabel(f))} · ${mult}</div>
     <div class="body">${f.doc?esc(f.doc):'The model declares no documentation for this feature.'}</div>
     <div class="chips">${chips.join('')}${st}${scope?`<span class="rulechip">governed: ${esc(scope)}</span>`:''}</div>`;
 }
@@ -994,8 +1050,13 @@ document.addEventListener('keydown',e=>{
     if(splashReady && (e.key==='Enter'||e.key===' ')) startGame();
     return;
   }
+  if(helpIsOpen()){
+    if(e.key==='Escape'){ e.preventDefault(); closeHelp(); }
+    return;
+  }
   const k=e.key;
-  if(k==='ArrowDown'){e.preventDefault();moveCursor(1)}
+  if(k==='?'){e.preventDefault();openHelp();}
+  else if(k==='ArrowDown'){e.preventDefault();moveCursor(1)}
   else if(k==='ArrowUp'){e.preventDefault();moveCursor(-1)}
   else if(k==='ArrowRight'){e.preventDefault();switchTab(1)}
   else if(k==='ArrowLeft'){e.preventDefault();switchTab(-1)}
@@ -1037,6 +1098,27 @@ $('#btn-fx').onclick=(e)=>{
   SFX.ok();
 };
 
+/* The help dialog: opened by its button or "?", closed by its button,
+   Esc or a click beside it. While it is open the bay takes no keys. */
+function helpIsOpen(){ return !document.getElementById('help').hidden; }
+function openHelp(){
+  if(helpIsOpen()) return;
+  document.getElementById('help').hidden=false;
+  $('#btn-help').setAttribute('aria-expanded','true');
+  SFX.ok();
+  $('#help-close').focus();
+}
+function closeHelp(){
+  if(!helpIsOpen()) return;
+  document.getElementById('help').hidden=true;
+  $('#btn-help').setAttribute('aria-expanded','false');
+  SFX.cancel();
+  $('#btn-help').focus();
+}
+$('#btn-help').onclick=(e)=>{ e.stopPropagation(); helpIsOpen()?closeHelp():openHelp(); };
+$('#help-close').onclick=(e)=>{ e.stopPropagation(); closeHelp(); };
+$('#help').addEventListener('click',e=>{ if(e.target.id==='help') closeHelp(); });
+
 function startGame(){
   SFX.ensure();
   const sp=$('#splash');
@@ -1063,13 +1145,9 @@ async function loadModel(attempt){
     if(!res.ok) throw new Error(`HTTP ${res.status} — ${(await res.text()).slice(0,240)}`);
     const doc=await res.json();
     buildModel(doc);
-    const start=CONFIGS.find(c=>c.admitted)||CONFIGS[0];
-    if(start){
-      state.sel=new Set(start.selected);
-      state.origin={};
-      for(const id of start.selected) state.origin[id]='manual';
-      log(`★ starting charter: ${start.title}`,'e');
-    }
+    // Start from zero: loading the model equips nothing. The user picks
+    // the features, or loads a charter configuration with 1–9.
+    log('★ nothing equipped: pick a feature, or load a charter with 1–9','e');
     splashReady=true;
     splashStatus('— PRESS ENTER —');
     render();
