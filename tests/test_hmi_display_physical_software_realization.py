@@ -15,8 +15,8 @@ settled on top of it:
   appears only in sentences that say what stands in for an element of the vehicle;
 - the seven connections between the VMs and the central computer, each from an out port to an in port of one item,
   and nothing that leads back;
-- eight signal mappings with complete records, the vehicle speed typed by COVESA VSS at the ports, and REQ-HMI-009
-  carried by a dependency from the physical system;
+- eight signal mappings with complete records, the vehicle speed and the distance to the object that the system
+  acts on typed by COVESA VSS at the ports, and REQ-HMI-009 carried by a dependency from the physical system;
 - three views, each framed by a concern of the Physical domain, two of them the phase 1 concerns of the renderer;
 - the texts of record of the design whole, and the guide's Phase 8 section block by block.
 """
@@ -145,13 +145,22 @@ INTERFACES = [(f"{guest}UnderHypervisor", f"{guest}.os.hypervisorPort", "central
 
 #: The item definitions of the package -> (supertype or None, attributes (name, type)).
 ITEMS = {
-    "DisplaySceneMessage": ("DisplaySceneInput", []),
+    "DisplaySceneMessage": ("DisplaySceneInput",
+                            [("obstacleDistance", "Vehicle_ADAS_ObstacleDetection_Distance[0..1]"),
+                             ("lanePoints", "DisplayScenePoint[0..*] ordered"),
+                             ("pathPoints", "DisplayScenePoint[0..*] ordered"),
+                             ("sceneObjects", "DisplaySceneObject[0..*]")]),
     "DisplayVehicleSpeedSample": ("VehicleSpeed", [("speed", "Vehicle_Speed"), ("sampleTime", "Real")]),
     "DisplaySceneTime": (None, [("captureTime", "Real")]),
     "DrawnSceneHeartbeat": (None, [("sceneCaptureTime", "Real")]),
     "DisplayPlane": (None, []),
     "ComposedDisplayFrame": ("DisplayContentOutput", []),
     "CollisionWarningChime": (None, []),
+}
+#: The attribute definitions of the package (the scene-form amendment of phase 10) -> their attributes (name, type).
+ATTRIBUTE_DEFS = {
+    "DisplayScenePoint": [("ahead", "ISQ::LengthValue"), ("left", "ISQ::LengthValue")],
+    "DisplaySceneObject": [("objectPosition", "DisplayScenePoint"), ("level", "ScalarValues::Integer")],
 }
 #: The port definitions of the package -> (direction, item, item type): one item each, one direction.
 PORT_ITEMS = {
@@ -215,7 +224,6 @@ GAPS = {
     "GAP-HMI-001": "gapHmiRendererJudgesSceneCurrency",
     "GAP-HMI-002": "gapHmiBenchSpeedFeed",
     "GAP-HMI-003": "gapHmiDrawingToleranceUnset",
-    "GAP-HMI-004": "gapHmiIdentityMissesPhase8Elements",
 }
 
 STRUCTURE_VIEW = "hmiDisplayPhysicalStructureView"
@@ -339,6 +347,7 @@ IMPORTS = [
     "DE4SDV_HmiDisplayLogicalArchitecture::HmiDisplayLogicalSystem",
     "DE4SDV_HmiDisplayNeedsRequirements::reqRendererSplitAndInputPaths",
     "COVESA_VSS::SignalDefinitions::Vehicle_Speed",
+    "COVESA_VSS::SignalDefinitions::Vehicle_ADAS_ObstacleDetection_Distance",
     "DE4SDV_Stakeholders::*",
     "SAF_Viewpoints::*",
     "SysideViews::**",
@@ -388,12 +397,25 @@ HEADER_PARAGRAPHS = [
     "the start of the sound; both are unmeasured and revisited when a readiness probe measures them. The clocks and "
     "the simulator's mode are those of the driver-assistance increment: simulation time is the time that each value "
     "carries from its source, and wall-clock time is the time of the host. - VSS at the ports only: the vehicle "
-    "speed as Vehicle.Speed, and the warning request in the payload of the driver-assistance increment. The scene, "
-    "the time of a scene, the heartbeat, the planes, the frames of the display and the chime are no vehicle signal, "
-    "and their records say so. No VSS extension is added. - Looks of an outdated element (REQ-HMI-006): the "
+    "speed as Vehicle.Speed, the distance to the object that the system acts on in the scene as "
+    "Vehicle.ADAS.ObstacleDetection.Distance, and the warning request in the payload of the driver-assistance "
+    "increment. Apart from that distance, the scene, the time of a scene, the heartbeat, the planes, the frames of "
+    "the display and the chime are no vehicle signal, and their records say so. No VSS extension is added. - Looks "
+    "of an outdated element (REQ-HMI-006): the "
     "renderer's placeholder covers the scene area, the speed shows no number, and the warning shows one fixed symbol "
     "while it is unavailable. The visual design stays out of scope (hmiHumanFactorsOutOfScope). - The changes to the "
     "projects of the renderer and of the candidate stay gaps; nothing is written to their maintainers.",
+    "Phase 10 amends this realization:",
+    "- The scene-form amendment of phase 10 types DisplaySceneMessage in a form of the display's own, under the owner "
+    "direction of 2026-11-26 recorded about gapHmiDisplayInProductLine: the capture time, the lane points, the path, "
+    "the objects with their levels, and the object that the system acts on with its distance and the speed of the "
+    "closest object. Each driving application gives its scene in that form through a translation of its own; that of "
+    "VisionPilot is open with the scene's way out of the candidate (gapHmiSceneOutput). - GAP-HMI-004 is retired. The "
+    "identity-term amendment of phase 10 makes the term display identity name the builds of the vehicle data "
+    "publisher, of the identity recording service and of the composition, and the image of the SDV Core VM, so a "
+    "change to one of them records another display identity. - HmiDisplayPhysicalSystem specializes the framing's "
+    "HmiDisplaySystem, the system of interest, so that the realization in HMI-CONFIG-001 is the subject of the "
+    "requirements that the cases of phase 10 verify. HmiDisplaySystem declares no feature.",
     "Alternatives recorded and not selected: - ALT-HMI-RECORDERINCORE-001: the identity recorder inside the SDV Core "
     "VM. A recorder in a VM records no image of the IVI or SDV Media VM before their start, which the record has to "
     "precede. - ALT-HMI-SCENESTREAM-001: the app streams its drawn frames to the renderer, which draws them. The "
@@ -414,8 +436,19 @@ HEADER_PARAGRAPHS = [
 DOCS = {
     "item def DisplaySceneMessage :> DisplaySceneInput":
         "The scene as the realization types it on the Data Tunnel topic of the SDV Core VM and through the SDV "
-        "Gateway into the scene drawing app: the scene of one result pass with its capture time in simulation time. "
-        "Its message type is new and stays open until phase 10. A scene is no vehicle signal (MAP-HMI-SCENE).",
+        "Gateway into the scene drawing app: the scene of one result pass with its capture time in simulation time, "
+        "in a form of the display's own (the scene-form amendment of phase 10). It carries the lane points, the "
+        "points of the path and the objects, each with its position and its level, and, from DisplaySceneInput, the "
+        "capture time and, when the scene has an object that the system acts on, its distance and the speed of the "
+        "closest object. A scene is no vehicle signal, except the distance to the object that the system acts on: "
+        "COVESA VSS types it at the port as obstacleDistance (Vehicle_ADAS_ObstacleDetection_Distance, m), the value "
+        "in m of the inherited actedOnObjectDistance (MAP-HMI-SCENE).",
+    "attribute def DisplayScenePoint":
+        "A position in the scene: its distance ahead of the vehicle and its distance to the left of the vehicle, in "
+        "m.",
+    "attribute def DisplaySceneObject":
+        "An object of the scene: its position and its level, 1 for the same lane, 2 for the adjacent lane, and any "
+        "other class as the scene gives it.",
     "item def DisplayVehicleSpeedSample :> VehicleSpeed":
         "The vehicle speed as the realization types it from the vehicle data of the SDV Core VM to the speed message "
         "of the renderer's vehicle data. The speed is typed by COVESA VSS at the port (Vehicle_Speed, km/h); the "
@@ -469,14 +502,15 @@ DOCS = {
         "decision of 2026-11-25). In the vehicle that computer is the central computer; on the bench the guest host "
         "stands in for it. In each run, before it starts the IVI and SDV Media VMs, it records the display identity "
         "as the term of the requirements defines it: the SHA-256 of the files of the build of the high availability "
-        "renderer, of the files of the build of the scene drawing app, of the image of the IVI VM and of the SDV "
-        "Media VM, and of the sound file of the collision warning; the SHA-256 of each configuration file that the "
-        "HMI display reads at its start; and the settings of its start, verbatim. Only then does it start the two "
+        "renderer, of the files of the build of the scene drawing app, of the files of the builds of the vehicle data "
+        "publisher, of this service and of the composition, of the image of the SDV Core VM, of the IVI VM and of the "
+        "SDV Media VM, and of the sound file of the collision warning; the SHA-256 of each configuration file that "
+        "the HMI display reads at its start; and the settings of its start, verbatim. Only then does it start the two "
         "VMs, so the record comes before the first frame of the display (REQ-HMI-010). It follows the pattern of the "
         "identity recording application of the driver-assistance increment, which the platform's launcher starts "
-        "first. The record is a self-report of System 1, a file of the run that System 2 only reads into the "
-        "evidence of the run. It sends nothing to another element of the display, so it has no port. How long the "
-        "recording delays the start of the two VMs is not measured. A build item, named here, not claimed.",
+        "first. The record is a self-report of System 1, a file of the run that System 2 only reads into the evidence "
+        "of the run. It sends nothing to another element of the display, so it has no port. How long the recording "
+        "delays the start of the two VMs is not measured. A build item, named here, not claimed.",
     "part def SceneDrawingApplication :> PhysicalAllocationElement":
         "Carries the scene drawer of phase 7: a DE4SDV Android app in the IVI VM, a build item, named here, not "
         "claimed. It subscribes to the topic of the scene through the SDV Gateway and draws each scene that reaches "
@@ -565,18 +599,19 @@ DOCS = {
     "part def HmiDisplayPhysicalSystem":
         "The physical realization of the HMI display in the vehicle: the central computer and its three VMs. Inside "
         "the display are the identity recording service and the composition on the central computer, the IVI VM with "
-        "the scene drawing app, the SDV Media VM with the high availability renderer, and the paths from the SDV "
-        "Core VM, with the vehicle data publisher in it. The platform of the SDV Core VM, where the inputs reach the "
-        "display, is shared with the Eclipse S-CORE path outside it. The candidate, the S-CORE path and the "
-        "simulator stay in the realization of the driver-assistance increment, and no part here stands for them or "
-        "for an element of the bench. Between the VMs, the scene goes from the SDV Core VM to the IVI VM on the Data "
-        "Tunnel; the speed, the warning request and the time of each scene go from the SDV Core VM to the SDV Media "
-        "VM over the platform's messaging; and the heartbeats go from the IVI VM to the SDV Media VM. The two planes "
-        "go to the composition on the central computer, the renderer's over the IVI plane. Nothing crosses back to "
-        "the SDV Core VM or to the IVI VM. It carries REQ-HMI-009 by the elements that it places on those paths.",
+        "the scene drawing app, the SDV Media VM with the high availability renderer, and the paths from the SDV Core "
+        "VM, with the vehicle data publisher in it. The platform of the SDV Core VM, where the inputs reach the "
+        "display, is shared with the Eclipse S-CORE path outside it. The candidate, the S-CORE path and the simulator "
+        "stay in the realization of the driver-assistance increment, and no part here stands for them or for an "
+        "element of the bench. Between the VMs, the scene goes from the SDV Core VM to the IVI VM on the Data Tunnel; "
+        "the speed, the warning request and the time of each scene go from the SDV Core VM to the SDV Media VM over "
+        "the platform's messaging; and the heartbeats go from the IVI VM to the SDV Media VM. The two planes go to "
+        "the composition on the central computer, the renderer's over the IVI plane. Nothing crosses back to the SDV "
+        "Core VM or to the IVI VM. It carries REQ-HMI-009 by the elements that it places on those paths. It "
+        "specializes the framing's HmiDisplaySystem, the system of interest.",
     "connection sceneTopicToIVIOverDataTunnel":
-        "The scene as the Data Tunnel topic from the SDV Core VM to the SDV Gateway on the IVI VM; its message type "
-        "stays open until phase 10.",
+        "The scene as the Data Tunnel topic from the SDV Core VM to the SDV Gateway on the IVI VM, as "
+        "DisplaySceneMessage.",
     "connection speedToRendererAcrossVMs":
         "The vehicle speed from the vehicle data publisher to the speed message of the renderer's vehicle data, over "
         "the platform's messaging between the VMs.",
@@ -621,7 +656,8 @@ DOCS = {
         "are drawn in no view of this phase; the structure tree shows the hypervisor and each VM's operating system.",
 }
 DOC_IDS = [
-    "DisplaySceneMessage", "DisplayVehicleSpeedSample", "DisplaySceneTime", "DrawnSceneHeartbeat", "DisplayPlane",
+    "DisplaySceneMessage", "DisplayScenePoint", "DisplaySceneObject", "DisplayVehicleSpeedSample", "DisplaySceneTime",
+    "DrawnSceneHeartbeat", "DisplayPlane",
     "ComposedDisplayFrame", "CollisionWarningChime", "DisplaySceneMessageOut", "DisplaySceneMessageIn",
     "DisplayVehicleSpeedSampleOut", "DisplayVehicleSpeedSampleIn", "DisplaySceneTimeOut", "DisplaySceneTimeIn",
     "DrawnSceneHeartbeatOut", "DrawnSceneHeartbeatIn", "DisplayPlaneOut", "DisplayPlaneIn", "ComposedDisplayFrameOut",
@@ -638,7 +674,8 @@ DOC_IDS = [
 RECORD_DOCS = {
     "sceneIngressMappingRecord":
         "The scene from the Data Tunnel topic of the SDV Core VM through the SDV Gateway on the IVI VM into the "
-        "scene drawing app. A scene is no vehicle signal.",
+        "scene drawing app. A scene is no vehicle signal, except the distance to the object that the system acts on, "
+        "which COVESA VSS types at the port.",
     "drawnSceneHeartbeatMappingRecord":
         "The heartbeat of each drawn frame from the scene drawing app in the IVI VM to the renderer in the SDV Media "
         "VM: with the IVI plane, the drawn scenes of phase 7. No vehicle signal.",
@@ -670,19 +707,22 @@ RECORD_VALUES = {
     "sceneIngressMappingRecord": {
         "semanticSource":
             "the scene of one result pass of the candidate with the capture time of its camera image in simulation "
-            "time: the output that the candidate does not give yet (gapHmiSceneOutput), no vehicle signal, so no VSS "
-            "typing applies",
+            "time: the output that the candidate does not give yet (gapHmiSceneOutput), no vehicle signal, except the "
+            "distance to the object that the system acts on, which COVESA VSS types at the port as "
+            "Vehicle_ADAS_ObstacleDetection_Distance (Vehicle.ADAS.ObstacleDetection.Distance, m)",
         "softwareContractArtifact":
             "a Data Tunnel topic of the SDV Core VM that a context stand-in publishes, and the subscription of the "
             "scene drawing app to it through the SDV Gateway on the IVI VM, candidate",
         "softwareContractMessage":
-            "DisplaySceneMessage, one per result pass; a new message type, open until phase 10, candidate",
+            "DisplaySceneMessage, one per result pass; a message type of the display's own, which each driving "
+            "application gives through a translation of its own, candidate",
         "softwareContractField":
-            "the capture time, the lane points, the path, the objects with their levels, and the object that the "
-            "system acts on with its distance and the speed of the closest object; not typed in this model yet",
+            "captureTime; lanePoints and pathPoints, each point ahead and left; sceneObjects, each with its "
+            "objectPosition and its level; and, when the scene has an object that the system acts on, "
+            "actedOnObjectDistance, typed at the port as obstacleDistance, and actedOnObjectSpeed",
         "dataTypeAndUnit":
-            "capture time in simulation seconds; distance in m; speed of the closest object in m/s, negative while "
-            "it approaches",
+            "capture time in simulation seconds; positions and distance in m; speed of the closest object in m/s, "
+            "negative while it approaches; level an integer, 1 for the same lane and 2 for the adjacent lane",
         "timingQualityAndState":
             "one scene per 0.1 s of simulation time; of the display's 0.1 s of wall-clock time, 0.05 s is for the "
             "hop from the SDV Core VM to the app and 0.05 s for the drawing, both unmeasured and revisited when a "
@@ -695,8 +735,8 @@ RECORD_VALUES = {
         "owner":
             "DE4SDV maintainers",
         "nextAction":
-            "settle the scene's way out of the candidate and the message type, then bring the verification cases of "
-            "REQ-HMI-001 and REQ-HMI-002 to evidence of record; none is started",
+            "settle the scene's way out of the candidate and the translation of its scene into DisplaySceneMessage, "
+            "then bring the verification cases of REQ-HMI-001 and REQ-HMI-002 to evidence of record; none is started",
         "evidenceOrGap":
             "no runtime evidence of record; framing gap gapHmiSceneOutput",
     },
@@ -969,26 +1009,24 @@ GAP_DOCS = {
     "GAP-HMI-003":
         "REQ-HMI-001 reads a frame on the display against the scene within the tolerance of a drawn position that "
         "phase 8 states with the drawing. The scale of the scene area and the drawing of the scene drawing app are "
-        "not built, so the tolerance is not set. It is set with the app's drawing, before phase 10.",
-    "GAP-HMI-004":
-        "The display identity of the requirements names the builds of the renderer and of the scene drawing app and "
-        "the images of the IVI and SDV Media VMs. Phase 8 places three more elements inside the display whose builds "
-        "it does not name: the vehicle data publisher in the SDV Core VM, and the identity recording service and the "
-        "composition on the central computer. Nor does it name the image of the SDV Core VM, whose platform carries "
-        "the scene on to the IVI VM and the other inputs to the publisher. A change to one of them records the same "
-        "display identity, so REQ-HMI-010 is not met as worded until the term names them, before phase 10.",
+        "not built, so the tolerance is not set. It is set with the app's drawing; until then the gap stays open, and "
+        "it goes to the baseline open if the drawing does not set it before.",
 }
 
 #: The guide: its Status line, its line in the frame, the next obligation and the check command, as phase 9 moves
 #: them.
 GUIDE_STATUS = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
-    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
-    "architecture, Phase 8 physical and software realization and Phase 9 variability and configuration, "
-    "proposal.**")
+    "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical architecture, "
+    "Phase 8 physical and software realization, Phase 9 variability and configuration and the first slice of Phase 10 "
+    "verification and evidence, proposal.**")
 GUIDE_NEXT = (
-    "The next model obligation is **Phase 10**: the verification cases, one or more for each requirement of the "
-    "increment; its first gate is `verificationCaseVerifiesRequirement`.")
+    "The next model obligation is **Phase 10**: verification and evidence, its second slice, which follows the "
+    "readiness probes and adds the bench, the runs, the retained records and the statuses. The first slice holds the "
+    "cases that `verificationCaseVerifiesRequirement` and `requirementVerifiedByVerificationCase` read; "
+    "`verificationCaseHasEvidenceRecordOrStatus` stays advisory until runs exist. With those two checks met, the "
+    "first open blocking check of the Method Check is Phase 11's `incrementHasBaselineDecision`. Do not jump from the "
+    "cases to implementation before the probes, and claim no runtime gate.")
 GUIDE_HEADING = "## Physical and software realization (Phase 8)"
 GUIDE_LINK = "../../textual-notation-of-model/packages/features/hmi/hmi_display_physical_software_realization.sysml"
 GUIDE_FRAME_LINE = (f"- [SysML physical and software realization]({GUIDE_LINK}): the Phase 8 physical and software "
@@ -996,7 +1034,7 @@ GUIDE_FRAME_LINE = (f"- [SysML physical and software realization]({GUIDE_LINK}):
 GUIDE_CHECK = (
     "`python -m pytest tests/test_hmi_display_framing.py tests/test_hmi_display_functional_architecture.py "
     "tests/test_hmi_display_logical_architecture.py tests/test_hmi_display_physical_software_realization.py "
-    "tests/test_hmi_display_variability_configuration.py -q`")
+    "tests/test_hmi_display_variability_configuration.py tests/test_hmi_display_verification_evidence.py -q`")
 
 #: The guide's Phase 8 section, block by block, whole.
 GUIDE_BLOCKS = [
@@ -1046,16 +1084,22 @@ GUIDE_BLOCKS = [
     "0.05 s to the drawing and to the start of the sound. Both are unmeasured and revisited when a readiness probe "
     "measures them. An outdated scene shows as the renderer's placeholder over the scene area, an outdated speed as "
     "no number, and an unavailable warning as one fixed symbol; the visual design stays out of scope. The speed is "
-    "typed by COVESA VSS at its ports, and the warning request keeps the payload of the driver-assistance increment. "
-    "Every other item says in its mapping record why it is no vehicle signal. There are eight mappings.",
-    "Four gaps of the realization state what is not settled: the renderer's judging of the scene by the term current "
+    "typed by COVESA VSS at its ports, and so is the distance to the object that the system acts on in the scene "
+    "message (`Vehicle.ADAS.ObstacleDetection.Distance`); the warning request keeps the payload of the "
+    "driver-assistance increment. Every other item says in its mapping record why it is no vehicle signal. There are "
+    "eight mappings.",
+    "Three gaps of the realization state what is not settled: the renderer's judging of the scene by the term current "
     "(`gapHmiRendererJudgesSceneCurrency`), the bench's feed of the speed into the SDV Core VM "
-    "(`gapHmiBenchSpeedFeed`), the tolerance of a drawn position (`gapHmiDrawingToleranceUnset`), and the display "
-    "identity, which does not name the builds of the vehicle data publisher, of the identity recording service and "
-    "of the composition, nor the image of the SDV Core VM (`gapHmiIdentityMissesPhase8Elements`). Comments on the "
-    "framing's gaps say what this phase placed: the path to the renderer, the heartbeats, the composition and the "
-    "chime are placed and not observed on the bench. The changes to the projects of the renderer and of the "
-    "candidate stay gaps, and nothing is written to their maintainers.",
+    "(`gapHmiBenchSpeedFeed`) and the tolerance of a drawn position (`gapHmiDrawingToleranceUnset`), which is set "
+    "with the app's drawing and stays open until then, into the baseline if need be. A fourth, GAP-HMI-004, on the "
+    "display identity, is retired: the identity-term amendment of Phase 10 makes the term name the builds of the "
+    "vehicle data publisher, of the identity recording service and of the composition, and the image of the SDV Core "
+    "VM. The scene-form amendment of Phase 10 types `DisplaySceneMessage` in a form of the display's own, and "
+    "`HmiDisplayPhysicalSystem` specializes the framing's `HmiDisplaySystem`, so that the realization is the subject "
+    "of the requirements that the cases verify. Comments on the framing's gaps say what this phase placed: the path "
+    "to the renderer, the heartbeats, the composition and the chime are placed and not observed on the bench. The "
+    "changes to the projects of the renderer and of the candidate stay gaps, and nothing is written to their "
+    "maintainers.",
     "Three alternatives were not selected: the recorder inside the SDV Core VM, the app streaming its drawn frames "
     "to the renderer, and the speed on the Eclipse S-CORE path.",
     "Three views answer the concerns of this phase: the structure as a tree of the SAF Physical Structure Definition "
@@ -1186,9 +1230,9 @@ def test_the_charter_names_the_package_after_the_logical_architecture():
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
     assert artifacts
     names = re.findall(r'"([^"]+)"', artifacts.group(1))
-    # phase 9 follows phase 8 in the charter
-    assert names.index(PACKAGE) == names.index(LOGICAL_PACKAGE) + 1 == len(names) - 2
-    assert names[-1] == "DE4SDV_HmiDisplayVariabilityConfiguration"
+    # phase 9 and the first slice of phase 10 follow phase 8 in the charter
+    assert names.index(PACKAGE) == names.index(LOGICAL_PACKAGE) + 1 == len(names) - 3
+    assert names[-2:] == ["DE4SDV_HmiDisplayVariabilityConfiguration", "DE4SDV_HmiDisplayVerificationEvidence"]
     assert names.count(PACKAGE) == 1
     assert re.search(rf"\bpackage\s+{PACKAGE}\s*\{{", _code())
 
@@ -1225,6 +1269,11 @@ def test_the_four_software_elements_are_the_physical_elements_and_nothing_else_i
         "the import and the four"
     assert re.findall(r"\bpart\s+def\s+(\w+)", code) == ELEMENT_DEFINITIONS + NOT_ELEMENTS
     for name in NOT_ELEMENTS:
+        if name == SYSTEM:
+            # since phase 10 the realization specializes the system of interest of the framing, and nothing else
+            assert re.search(rf"\bpart\s+def\s+{name}\s*:>\s*DE4SDV_HmiDisplayFraming::HmiDisplaySystem\s*\{{",
+                             code), f"{name} specializes the system of interest"
+            continue
         assert re.search(rf"\bpart\s+def\s+{name}\s*\{{", code), f"{name} specializes nothing"
     for definition in ELEMENT_DEFINITIONS:
         assert _doc(f"part def {definition} :> PhysicalAllocationElement").startswith("Carries "), definition
@@ -1250,7 +1299,8 @@ def test_each_container_holds_exactly_its_parts_binds_and_connections(definition
 
 
 #: The member kinds each body may hold, at any indentation, with the continuation words of its multi-line members.
-ALLOWED_PACKAGE = (r"(?:private import|item def|port def|part def|part|allocation|allocate|to|dependency|from|"
+ALLOWED_PACKAGE = (r"(?:private import|item def|attribute def|port def|part def|part|allocation|allocate|to|"
+                   r"dependency|from|"
                    r"comment|concern|view)")
 ALLOWED_CONTAINER = r"(?:doc|port|part|ref part|bind|connection|interface|connect)"
 
@@ -1280,7 +1330,14 @@ def test_the_items_and_the_port_definitions_carry_one_item_each_in_one_direction
     assert [(name, parent or None) for name, parent in declared] == [(n, p) for n, (p, _) in ITEMS.items()]
     for name, (_, attributes) in ITEMS.items():
         body = braced_body(code, f"item def {name}")
-        assert re.findall(r"\battribute\s+(\w+)\s*:\s*(\w+)\s*;", body) == attributes, name
+        assert re.findall(r"\battribute\s+(\w+)\s*:\s*([\w:]+(?:\[[^\]]*\])?(?:\s+ordered)?)\s*;", body) == \
+            attributes, name
+        assert len(re.findall(r"\battribute\b", body)) == len(attributes), name
+    assert re.findall(r"\battribute\s+def\s+(\w+)", code) == list(ATTRIBUTE_DEFS)
+    for name, attributes in ATTRIBUTE_DEFS.items():
+        body = braced_body(code, f"attribute def {name}")
+        assert re.findall(r"\battribute\s+(\w+)\s*:\s*([\w:]+)\s*;", body) == attributes, name
+        assert len(re.findall(r"\battribute\b", body)) == len(attributes), name
     assert re.findall(r"\bport\s+def\s+(\w+)", code) == list(PORT_ITEMS)
     for port_def, (direction, item, item_type) in PORT_ITEMS.items():
         body = braced_body(code, f"port def {port_def}")
@@ -1300,13 +1357,18 @@ def test_the_recorder_has_no_port_records_before_the_vms_start_and_names_every_p
     doc = _doc("part def DisplayIdentityRecordingService :> PhysicalAllocationElement")
     for phrase in ("before it starts the IVI and SDV Media VMs, it records the display identity",
                    "the files of the build of the high availability renderer", "the build of the scene drawing app",
-                   "the image of the IVI VM and of the SDV Media VM", "the sound file of the collision warning",
+                   "the files of the builds of the vehicle data publisher, of this service and of the composition",
+                   "the image of the SDV Core VM, of the IVI VM and of the SDV Media VM",
+                   "the sound file of the collision warning",
                    "each configuration file that the HMI display reads at its start",
                    "the settings of its start, verbatim", "Only then does it start the two VMs",
                    "on the bench the guest host stands in for it", "(owner decision of 2026-11-25)"):
         assert phrase in doc, phrase
     term = _flat(re.search(r"- Display identity:(.*?)(?=- Run:)", NEEDS.read_text(encoding="utf-8"), re.S).group(1))
-    for part in ("of the build of the high availability renderer", "of the image of the IVI VM and of the SDV Media VM",
+    for part in ("of the build of the high availability renderer",
+                 "of the files of the build of the vehicle data publisher in the SDV Core VM",
+                 "of the files of the builds of the identity recording service and of the composition of the display "
+                 "on the central computer", "of the image of the SDV Core VM, of the IVI VM and of the SDV Media VM",
                  "of the sound file of the collision warning", "each configuration file that the HMI display reads at "
                  "its start", "the settings of its start, verbatim"):
         assert part in term, part
@@ -1426,8 +1488,10 @@ def test_the_sdv_core_vm_references_the_platform_boundary_and_holds_the_publishe
 
 def test_vss_types_the_vehicle_speed_at_its_ports_and_the_warning_keeps_its_payload():
     code = _strings_blanked(_code())
-    assert re.findall(r"(?<!:):(?!:)\s*(Vehicle_\w+)", code) == ["Vehicle_Speed"]
+    assert re.findall(r"(?<!:):(?!:)\s*(Vehicle_\w+)", code) == ["Vehicle_ADAS_ObstacleDetection_Distance",
+                                                                "Vehicle_Speed"]
     assert "private import COVESA_VSS::SignalDefinitions::Vehicle_Speed;" in code
+    assert "private import COVESA_VSS::SignalDefinitions::Vehicle_ADAS_ObstacleDetection_Distance;" in code
     assert "DE4SDV_VSS_Extensions" not in code and "VssSignalMetadata" not in code
     assert not re.search(r"\b(?:item|port)\s+def\s+WarningRequestEvent", code), "imported, never redeclared"
     for name in ("WarningRequestEventPayload", "WarningRequestEventIn", "WarningRequestEventOut"):
@@ -1484,6 +1548,9 @@ def test_every_item_that_is_no_vehicle_signal_says_so_and_the_speed_names_its_vs
         source = records[record]["semanticSource"]
         if short == "MAP-HMI-VEHICLE-SPEED":
             assert "COVESA VSS Vehicle_Speed" in source
+        elif short == "MAP-HMI-SCENE":
+            assert "which COVESA VSS types at the port as Vehicle_ADAS_ObstacleDetection_Distance " in source
+            assert "no vehicle signal, except the distance to the object that the system acts on" in source
         elif short == "MAP-HMI-WARNING-REQUEST":
             assert "Vehicle_ADAS_AEBS_DriverWarning_IsActive" in source and "WarningRequestEventPayload" in source
         else:
@@ -1553,22 +1620,17 @@ def test_the_gaps_of_the_realization_are_recorded_with_their_short_names_and_no_
     assert "private import DE4SDV_MethodContext::*;" in code
 
 
-def test_the_display_identity_gap_names_what_the_term_misses():
-    # The term of phase 5 names the builds of the two drawing elements and the images of the IVI and SDV Media VMs;
-    # phase 8 places three more elements inside the display, and the platform of the SDV Core VM carries the inputs
-    # on. The gap stays true while the term does not name them.
-    doc = _doc("part <'GAP-HMI-004'> gapHmiIdentityMissesPhase8Elements : IncrementGap")
-    for phrase in ("the vehicle data publisher in the SDV Core VM",
-                   "the identity recording service and the composition on the central computer.",
-                   "Nor does it name the image of the SDV Core VM, whose platform carries the scene on to the IVI VM "
-                   "and the other inputs to the publisher.",
-                   "A change to one of them records the same display identity",
-                   "so REQ-HMI-010 is not met as worded until the term names them, before phase 10."):
-        assert phrase in doc, phrase
+def test_the_display_identity_gap_is_retired_once_the_term_names_the_phase_8_elements():
+    # The identity-term amendment of phase 10 makes the term name the builds of the publisher, of the recording
+    # service and of the composition and the image of the SDV Core VM, so the record of GAP-HMI-004 leaves the model.
+    raw = _raw()
+    assert "<'GAP-HMI-004'>" not in raw and "gapHmiIdentityMissesPhase8Elements" not in raw
     term = _flat(re.search(r"- Display identity:(.*?)(?=- Run:)", NEEDS.read_text(encoding="utf-8"), re.S).group(1))
-    for element in ("publisher", "recording service", "composition", "SDV Core VM"):
-        assert element not in term, element
-    assert "(`gapHmiIdentityMissesPhase8Elements`)" in " ".join(GUIDE_BLOCKS)
+    for element in ("vehicle data publisher in the SDV Core VM", "identity recording service",
+                    "composition of the display on the central computer", "image of the SDV Core VM"):
+        assert element in term, element
+    assert "gapHmiIdentityMissesPhase8Elements" not in " ".join(GUIDE_BLOCKS)
+    assert "A fourth, GAP-HMI-004, on the display identity, is retired" in " ".join(GUIDE_BLOCKS)
 
 
 @pytest.mark.parametrize("declaration", list(DOCS), ids=DOC_IDS)

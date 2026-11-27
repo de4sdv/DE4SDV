@@ -737,9 +737,9 @@ def test_phase_two_makes_no_timing_safety_or_approval_claim_and_names_no_number(
 def test_the_guide_has_a_phase_two_section():
     guide = GUIDE.read_text(encoding="utf-8")
     assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability "
-            "classification, Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, "
-            "Phase 7 logical architecture, Phase 8 physical and software realization and Phase 9 variability and "
-            "configuration, proposal.**") in _flat(guide)
+            "classification, Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase "
+            "7 logical architecture, Phase 8 physical and software realization, Phase 9 variability and configuration "
+            "and the first slice of Phase 10 verification and evidence, proposal.**") in _flat(guide)
     assert "](../../textual-notation-of-model/packages/features/hmi/hmi_display_operational_context.sysml)" in guide
     assert guide.index("## Concerns (Phase 1)") < guide.index("## Operational context and story (Phase 2)") \
         < guide.index("## What the framing already records as open")
@@ -788,8 +788,13 @@ def test_the_guide_names_the_next_obligation_after_phase_two():
     rest = flat.replace(NEXT_OBLIGATION_PHASE_THREE, "")
     assert not PHASE_THREE_CLAIM.search(rest), PHASE_THREE_CLAIM.search(rest)
     assert "simulator" not in rest
-    for phrase in ("The next model obligation is **Phase 10**: the verification cases, one or more for each "
-                   "requirement of the increment; its first gate is `verificationCaseVerifiesRequirement`.",
+    for phrase in ("The next model obligation is **Phase 10**: verification and evidence, its second slice, which "
+                   "follows the readiness probes and adds the bench, the runs, the retained records and the statuses. "
+                   "The first slice holds the cases that `verificationCaseVerifiesRequirement` and "
+                   "`requirementVerifiedByVerificationCase` read; `verificationCaseHasEvidenceRecordOrStatus` stays "
+                   "advisory until runs exist. With those two checks met, the first open blocking check of the Method "
+                   "Check is Phase 11's `incrementHasBaselineDecision`. Do not jump from the cases to implementation "
+                   "before the probes, and claim no runtime gate.",
                    "Phase 3 and later phases waited for the revision of the governed scope, which the model now "
                    "holds"):
         assert phrase in flat, phrase

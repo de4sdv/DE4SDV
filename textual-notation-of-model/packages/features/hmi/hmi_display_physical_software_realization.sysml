@@ -68,17 +68,39 @@
  *   probe measures them. The clocks and the simulator's mode are those of the
  *   driver-assistance increment: simulation time is the time that each value
  *   carries from its source, and wall-clock time is the time of the host.
- * - VSS at the ports only: the vehicle speed as Vehicle.Speed, and the warning
- *   request in the payload of the driver-assistance increment. The scene, the
- *   time of a scene, the heartbeat, the planes, the frames of the display and
- *   the chime are no vehicle signal, and their records say so. No VSS
- *   extension is added.
+ * - VSS at the ports only: the vehicle speed as Vehicle.Speed, the distance to
+ *   the object that the system acts on in the scene as
+ *   Vehicle.ADAS.ObstacleDetection.Distance, and the warning request in the
+ *   payload of the driver-assistance increment. Apart from that distance, the
+ *   scene, the time of a scene, the heartbeat, the planes, the frames of the
+ *   display and the chime are no vehicle signal, and their records say so. No
+ *   VSS extension is added.
  * - Looks of an outdated element (REQ-HMI-006): the renderer's placeholder
  *   covers the scene area, the speed shows no number, and the warning shows
  *   one fixed symbol while it is unavailable. The visual design stays out of
  *   scope (hmiHumanFactorsOutOfScope).
  * - The changes to the projects of the renderer and of the candidate stay
  *   gaps; nothing is written to their maintainers.
+ *
+ * Phase 10 amends this realization:
+ *
+ * - The scene-form amendment of phase 10 types DisplaySceneMessage in a form
+ *   of the display's own, under the owner direction of 2026-11-26 recorded
+ *   about gapHmiDisplayInProductLine: the capture time, the lane points, the
+ *   path, the objects with their levels, and the object that the system acts
+ *   on with its distance and the speed of the closest object. Each driving
+ *   application gives its scene in that form through a translation of its
+ *   own; that of VisionPilot is open with the scene's way out of the
+ *   candidate (gapHmiSceneOutput).
+ * - GAP-HMI-004 is retired. The identity-term amendment of phase 10 makes the
+ *   term display identity name the builds of the vehicle data publisher, of
+ *   the identity recording service and of the composition, and the image of
+ *   the SDV Core VM, so a change to one of them records another display
+ *   identity.
+ * - HmiDisplayPhysicalSystem specializes the framing's HmiDisplaySystem, the
+ *   system of interest, so that the realization in HMI-CONFIG-001 is the
+ *   subject of the requirements that the cases of phase 10 verify.
+ *   HmiDisplaySystem declares no feature.
  *
  * Alternatives recorded and not selected:
  * - ALT-HMI-RECORDERINCORE-001: the identity recorder inside the SDV Core VM.
@@ -134,6 +156,7 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
   private import DE4SDV_HmiDisplayLogicalArchitecture::HmiDisplayLogicalSystem;
   private import DE4SDV_HmiDisplayNeedsRequirements::reqRendererSplitAndInputPaths;
   private import COVESA_VSS::SignalDefinitions::Vehicle_Speed;
+  private import COVESA_VSS::SignalDefinitions::Vehicle_ADAS_ObstacleDetection_Distance;
   private import DE4SDV_Stakeholders::*;
   private import SAF_Viewpoints::*;
   private import SysideViews::**;
@@ -145,10 +168,40 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
     doc /*
      * The scene as the realization types it on the Data Tunnel topic of the
      * SDV Core VM and through the SDV Gateway into the scene drawing app: the
-     * scene of one result pass with its capture time in simulation time. Its
-     * message type is new and stays open until phase 10. A scene is no vehicle
-     * signal (MAP-HMI-SCENE).
+     * scene of one result pass with its capture time in simulation time, in a
+     * form of the display's own (the scene-form amendment of phase 10). It
+     * carries the lane points, the points of the path and the objects, each
+     * with its position and its level, and, from DisplaySceneInput, the
+     * capture time and, when the scene has an object that the system acts on,
+     * its distance and the speed of the closest object. A scene is no vehicle
+     * signal, except the distance to the object that the system acts on:
+     * COVESA VSS types it at the port as obstacleDistance
+     * (Vehicle_ADAS_ObstacleDetection_Distance, m), the value in m of the
+     * inherited actedOnObjectDistance (MAP-HMI-SCENE).
      */
+    attribute obstacleDistance : Vehicle_ADAS_ObstacleDetection_Distance[0..1];
+    attribute lanePoints : DisplayScenePoint[0..*] ordered;
+    attribute pathPoints : DisplayScenePoint[0..*] ordered;
+    attribute sceneObjects : DisplaySceneObject[0..*];
+  }
+
+  attribute def DisplayScenePoint {
+    doc /*
+     * A position in the scene: its distance ahead of the vehicle and its
+     * distance to the left of the vehicle, in m.
+     */
+    attribute ahead : ISQ::LengthValue;
+    attribute left : ISQ::LengthValue;
+  }
+
+  attribute def DisplaySceneObject {
+    doc /*
+     * An object of the scene: its position and its level, 1 for the same
+     * lane, 2 for the adjacent lane, and any other class as the scene gives
+     * it.
+     */
+    attribute objectPosition : DisplayScenePoint;
+    attribute level : ScalarValues::Integer;
   }
 
   item def DisplayVehicleSpeedSample :> VehicleSpeed {
@@ -275,18 +328,20 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
      * before it starts the IVI and SDV Media VMs, it records the display
      * identity as the term of the requirements defines it: the SHA-256 of the
      * files of the build of the high availability renderer, of the files of
-     * the build of the scene drawing app, of the image of the IVI VM and of
-     * the SDV Media VM, and of the sound file of the collision warning; the
-     * SHA-256 of each configuration file that the HMI display reads at its
-     * start; and the settings of its start, verbatim. Only then does it start
-     * the two VMs, so the record comes before the first frame of the display
-     * (REQ-HMI-010). It follows the pattern of the identity recording
-     * application of the driver-assistance increment, which the platform's
-     * launcher starts first. The record is a self-report of System 1, a file
-     * of the run that System 2 only reads into the evidence of the run. It
-     * sends nothing to another element of the display, so it has no port. How
-     * long the recording delays the start of the two VMs is not measured. A
-     * build item, named here, not claimed.
+     * the build of the scene drawing app, of the files of the builds of the
+     * vehicle data publisher, of this service and of the composition, of the
+     * image of the SDV Core VM, of the IVI VM and of the SDV Media VM, and of
+     * the sound file of the collision warning; the SHA-256 of each
+     * configuration file that the HMI display reads at its start; and the
+     * settings of its start, verbatim. Only then does it start the two VMs, so
+     * the record comes before the first frame of the display (REQ-HMI-010). It
+     * follows the pattern of the identity recording application of the
+     * driver-assistance increment, which the platform's launcher starts first.
+     * The record is a self-report of System 1, a file of the run that System 2
+     * only reads into the evidence of the run. It sends nothing to another
+     * element of the display, so it has no port. How long the recording delays
+     * the start of the two VMs is not measured. A build item, named here, not
+     * claimed.
      */
   }
 
@@ -524,7 +579,7 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
     bind displayFrameOut = planeComposition.displayFrameOut;
   }
 
-  part def HmiDisplayPhysicalSystem {
+  part def HmiDisplayPhysicalSystem :> DE4SDV_HmiDisplayFraming::HmiDisplaySystem {
     doc /*
      * The physical realization of the HMI display in the vehicle: the central
      * computer and its three VMs. Inside the display are the identity
@@ -542,7 +597,8 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
      * from the IVI VM to the SDV Media VM. The two planes go to the
      * composition on the central computer, the renderer's over the IVI plane.
      * Nothing crosses back to the SDV Core VM or to the IVI VM. It carries
-     * REQ-HMI-009 by the elements that it places on those paths.
+     * REQ-HMI-009 by the elements that it places on those paths. It
+     * specializes the framing's HmiDisplaySystem, the system of interest.
      */
     part centralComputer : HmiDisplayCentralComputer;
     part hmiSDVCoreGuest : HmiDisplaySDVCoreGuest;
@@ -557,7 +613,7 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
     connection sceneTopicToIVIOverDataTunnel connect hmiSDVCoreGuest.sceneMessageOut to hmiIVIGuest.sceneMessageIn {
       doc /*
        * The scene as the Data Tunnel topic from the SDV Core VM to the SDV
-       * Gateway on the IVI VM; its message type stays open until phase 10.
+       * Gateway on the IVI VM, as DisplaySceneMessage.
        */
     }
     connection speedToRendererAcrossVMs connect hmiSDVCoreGuest.speedSampleOut to hmiSDVMediaGuest.speedSampleIn {
@@ -646,18 +702,19 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
       doc /*
        * The scene from the Data Tunnel topic of the SDV Core VM through the
        * SDV Gateway on the IVI VM into the scene drawing app. A scene is no
-       * vehicle signal.
+       * vehicle signal, except the distance to the object that the system acts
+       * on, which COVESA VSS types at the port.
        */
-      attribute :>> semanticSource = "the scene of one result pass of the candidate with the capture time of its camera image in simulation time: the output that the candidate does not give yet (gapHmiSceneOutput), no vehicle signal, so no VSS typing applies";
+      attribute :>> semanticSource = "the scene of one result pass of the candidate with the capture time of its camera image in simulation time: the output that the candidate does not give yet (gapHmiSceneOutput), no vehicle signal, except the distance to the object that the system acts on, which COVESA VSS types at the port as Vehicle_ADAS_ObstacleDetection_Distance (Vehicle.ADAS.ObstacleDetection.Distance, m)";
       attribute :>> softwareContractArtifact = "a Data Tunnel topic of the SDV Core VM that a context stand-in publishes, and the subscription of the scene drawing app to it through the SDV Gateway on the IVI VM, candidate";
-      attribute :>> softwareContractMessage = "DisplaySceneMessage, one per result pass; a new message type, open until phase 10, candidate";
-      attribute :>> softwareContractField = "the capture time, the lane points, the path, the objects with their levels, and the object that the system acts on with its distance and the speed of the closest object; not typed in this model yet";
-      attribute :>> dataTypeAndUnit = "capture time in simulation seconds; distance in m; speed of the closest object in m/s, negative while it approaches";
+      attribute :>> softwareContractMessage = "DisplaySceneMessage, one per result pass; a message type of the display's own, which each driving application gives through a translation of its own, candidate";
+      attribute :>> softwareContractField = "captureTime; lanePoints and pathPoints, each point ahead and left; sceneObjects, each with its objectPosition and its level; and, when the scene has an object that the system acts on, actedOnObjectDistance, typed at the port as obstacleDistance, and actedOnObjectSpeed";
+      attribute :>> dataTypeAndUnit = "capture time in simulation seconds; positions and distance in m; speed of the closest object in m/s, negative while it approaches; level an integer, 1 for the same lane and 2 for the adjacent lane";
       attribute :>> timingQualityAndState = "one scene per 0.1 s of simulation time; of the display's 0.1 s of wall-clock time, 0.05 s is for the hop from the SDV Core VM to the app and 0.05 s for the drawing, both unmeasured and revisited when a readiness probe measures them";
       attribute :>> transformationRule = "none on the path: the capture time reaches the app unchanged, and the app draws the scene as the candidate gives it";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "settle the scene's way out of the candidate and the message type, then bring the verification cases of REQ-HMI-001 and REQ-HMI-002 to evidence of record; none is started";
+      attribute :>> nextAction = "settle the scene's way out of the candidate and the translation of its scene into DisplaySceneMessage, then bring the verification cases of REQ-HMI-001 and REQ-HMI-002 to evidence of record; none is started";
       attribute :>> evidenceOrGap = "no runtime evidence of record; framing gap gapHmiSceneOutput";
     }
   }
@@ -922,23 +979,9 @@ package DE4SDV_HmiDisplayPhysicalSoftwareRealization {
      * REQ-HMI-001 reads a frame on the display against the scene within the
      * tolerance of a drawn position that phase 8 states with the drawing. The
      * scale of the scene area and the drawing of the scene drawing app are
-     * not built, so the tolerance is not set. It is set with the app's drawing,
-     * before phase 10.
-     */
-  }
-
-  part <'GAP-HMI-004'> gapHmiIdentityMissesPhase8Elements : IncrementGap {
-    doc /*
-     * The display identity of the requirements names the builds of the
-     * renderer and of the scene drawing app and the images of the IVI and SDV
-     * Media VMs. Phase 8 places three more elements inside the display whose
-     * builds it does not name: the vehicle data publisher in the SDV Core VM,
-     * and the identity recording service and the composition on the central
-     * computer. Nor does it name the image of the SDV Core VM, whose platform
-     * carries the scene on to the IVI VM and the other inputs to the
-     * publisher. A change to one of them records the same display identity, so
-     * REQ-HMI-010 is not met as worded until the term names them, before phase
-     * 10.
+     * not built, so the tolerance is not set. It is set with the app's drawing;
+     * until then the gap stays open, and it goes to the baseline open if the
+     * drawing does not set it before.
      */
   }
 

@@ -94,12 +94,9 @@ DEPENDENCIES = {
     "configuredProductSceneCurrencyGap": ("configuredProduct",
                                           f"{PHYSICAL_PACKAGE}::gapHmiRendererJudgesSceneCurrency"),
     "configuredProductDrawingToleranceGap": ("configuredProduct", f"{PHYSICAL_PACKAGE}::gapHmiDrawingToleranceUnset"),
-    "configuredProductDisplayIdentityGap": ("configuredProduct",
-                                            f"{PHYSICAL_PACKAGE}::gapHmiIdentityMissesPhase8Elements"),
 }
-#: the gaps of phase 8 by short name: the three above, and the bench's, which the product does not inherit
-PRODUCT_GAPS = {"GAP-HMI-001": "gapHmiRendererJudgesSceneCurrency", "GAP-HMI-003": "gapHmiDrawingToleranceUnset",
-                "GAP-HMI-004": "gapHmiIdentityMissesPhase8Elements"}
+#: the gaps of phase 8 by short name: the two above, and the bench's, which the product does not inherit
+PRODUCT_GAPS = {"GAP-HMI-001": "gapHmiRendererJudgesSceneCurrency", "GAP-HMI-003": "gapHmiDrawingToleranceUnset"}
 BENCH_GAP = ("GAP-HMI-002", "gapHmiBenchSpeedFeed")
 
 #: Rule 5, dependency form, owned with their clients (link name -> (client, feature)). A requirement links only what
@@ -126,17 +123,22 @@ GUIDE_HEADING = "## Variability and configuration (Phase 9)"
 GUIDE_STATUS = (
     "**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 capability classification, "
     "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical architecture, "
-    "Phase 8 physical and software realization and Phase 9 variability and configuration, proposal.**")
+    "Phase 8 physical and software realization, Phase 9 variability and configuration and the first slice of Phase 10 "
+    "verification and evidence, proposal.**")
 GUIDE_NEXT = (
-    "The next model obligation is **Phase 10**: the verification cases, one or more for each requirement of the "
-    "increment; its first gate is `verificationCaseVerifiesRequirement`.")
+    "The next model obligation is **Phase 10**: verification and evidence, its second slice, which follows the "
+    "readiness probes and adds the bench, the runs, the retained records and the statuses. The first slice holds the "
+    "cases that `verificationCaseVerifiesRequirement` and `requirementVerifiedByVerificationCase` read; "
+    "`verificationCaseHasEvidenceRecordOrStatus` stays advisory until runs exist. With those two checks met, the "
+    "first open blocking check of the Method Check is Phase 11's `incrementHasBaselineDecision`. Do not jump from the "
+    "cases to implementation before the probes, and claim no runtime gate.")
 GUIDE_LINK = "../../textual-notation-of-model/packages/features/hmi/hmi_display_variability_configuration.sysml"
 GUIDE_FRAME_LINE = (f"- [SysML variability and configuration]({GUIDE_LINK}): the Phase 9 configured product of the "
                     "HMI display.")
 GUIDE_CHECK = (
     "`python -m pytest tests/test_hmi_display_framing.py tests/test_hmi_display_functional_architecture.py "
     "tests/test_hmi_display_logical_architecture.py tests/test_hmi_display_physical_software_realization.py "
-    "tests/test_hmi_display_variability_configuration.py -q`")
+    "tests/test_hmi_display_variability_configuration.py tests/test_hmi_display_verification_evidence.py -q`")
 
 _NOT_CODE = re.compile(r"/\*.*?\*/|//[^\n]*|\"(?:[^\"\\]|\\.)*\"", re.S)
 _TYPED_BY = r"\b(?:ref\s+)?part\s+\w+\s*(?:\[[^\]]*\]\s*)?:(?![:>])[^;{{]*\b{definition}\b"
@@ -284,9 +286,9 @@ def test_the_configured_product_is_no_member_product() -> None:
         (IDENTITY, "configuredProduct", PRODUCT_DEF)]
 
 
-def test_the_configured_product_traces_the_realization_and_the_three_gaps_it_inherits() -> None:
-    """GAP-HMI-001, -003 and -004 are product content; GAP-HMI-002 is the bench's speed feed, which the car's design
-    does not have."""
+def test_the_configured_product_traces_the_realization_and_the_two_gaps_it_inherits() -> None:
+    """GAP-HMI-001 and -003 are product content (GAP-HMI-004 is retired in phase 10); GAP-HMI-002 is the bench's
+    speed feed, which the car's design does not have."""
     code = " ".join(_code(SLICE).split())
     found = re.findall(r"\bdependency\s+(\w+)\s+from\s+([\w:]+)\s+to\s+([\w:]+)\s*;", code)
     assert {name: (client, supplier) for name, client, supplier in found} == DEPENDENCIES
@@ -481,9 +483,10 @@ def test_the_views_index_lists_the_two_phase_9_views() -> None:
     assert re.findall(r"^### `(\w+)`", section, re.M) == [view for view, _viewpoint, _concern in VIEWS]
 
 
-def test_the_charter_names_the_phase_9_package_last() -> None:
+def test_the_charter_names_the_phase_9_package_before_the_phase_10_package() -> None:
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", FRAMING.read_text(encoding="utf-8"), re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[-2:] == [PHYSICAL_PACKAGE, PACKAGE]
+    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[-3:] == [
+        PHYSICAL_PACKAGE, PACKAGE, "DE4SDV_HmiDisplayVerificationEvidence"]
     assert re.findall(r"(?m)^package\s+(\w+)\s*\{", _code(SLICE)) == [PACKAGE], "one global package per file"
 
 
@@ -505,7 +508,7 @@ def test_the_guide_describes_phase_9_and_names_phase_10_next() -> None:
     for text in (IDENTITY, f"`{CONFIGURATION_NAME}`", f"`{PROJECTION}`", "`HmiDisplayPhysicalSystem`",
                  "valid, and the governed scope does not admit it", "the privileged PLE authority run does not start",
                  "Two bindings", "The operating system of the SDV Media VM stays unbound",
-                 "So the stack is not their only owner", "GAP-HMI-001, GAP-HMI-003 and GAP-HMI-004",
+                 "So the stack is not their only owner", "GAP-HMI-001 and GAP-HMI-003. GAP-HMI-002",
                  "GAP-HMI-002 is not among them", "2026-11-17", f"({GUIDE_LINK})"):
         assert text in section, text
     flat = " ".join(guide.split())
@@ -544,11 +547,10 @@ GUIDE_BLOCKS: list[str] = [
      "guest. The guest layers of the realization stay owned: Android in the SDV Core VM and in the IVI VM, and the "
      "AAOS SDV middleware in the SDV Core VM, beside the guest operating system and the guest middleware of the "
      "stack. So the stack is not their only owner, and a test keeps them typed by the definitions of the selected "
-     "variants. The identity binds the SHA-256 of the receipt, and Phase 10 evidence binds the identity. "
-     "Dependencies record the trace to the Phase 8 usage and the three open gaps of Phase 8 that the product "
-     "inherits, GAP-HMI-001, GAP-HMI-003 and GAP-HMI-004. GAP-HMI-002 is not among them: on the bench the simulator "
-     "stands in for the ECU that measures the vehicle speed, and the gap is the feed of that stand-in. The "
-     "definition specializes no member-product type."),
+     "variants. The identity binds the SHA-256 of the receipt, and Phase 10 evidence binds the identity. Dependencies "
+     "record the trace to the Phase 8 usage and the two open gaps of Phase 8 that the product inherits, GAP-HMI-001 "
+     "and GAP-HMI-003. GAP-HMI-002 is not among them: on the bench the simulator stands in for the ECU that measures "
+     "the vehicle speed, and the gap is the feed of that stand-in. The definition specializes no member-product type."),
 # ---- unit: the links of the system of interest ------------------------------------------------------------------
     ("- **The links of rule 5.** Until the configuration evaluator reads links of increment elements and the "
      "existing links have moved, rule 5 takes its dependency form (ADR 0027 decision 8). The links are declared with"
@@ -660,20 +662,19 @@ TEXTS_OF_RECORD: list[str] = [
      "driver-assistance increment binds DRIVING-CONFIG-002. The identity is bound to the exact receipt that the "
      "configurator generated the platform-stack projection from. receiptSha256 is the SHA-256 of "
      "model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json, the receipt that "
-     "records the evaluation of the feature configuration driverAssistanceVisionPilotSCOREReference. A receipt "
-     "re-cut keeps this identity and rebinds receiptSha256 here. The pull request that rebinds it states whether the"
-     " configuration's own receipt record changed. By the decision of 2026-11-17 that the identity of "
+     "records the evaluation of the feature configuration driverAssistanceVisionPilotSCOREReference. A receipt re-cut "
+     "keeps this identity and rebinds receiptSha256 here. The pull request that rebinds it states whether the "
+     "configuration's own receipt record changed. By the decision of 2026-11-17 that the identity of "
      "DRIVING-CONFIG-001 records, the record has not changed when its only difference is added states omitted for "
      "features that it does not select, and every other entry is the same: validity, reasons, derived variants with "
      "their variant ids, admission, the selected features, projection name, source, description and element id. "
-     "Evidence that binds HMI-CONFIG-001 also records the receipt SHA-256 it ran against. The product inherits three"
-     " open gaps of phase 8: the renderer's judging of the scene by the term current (GAP-HMI-001), the tolerance of"
-     " a drawn position (GAP-HMI-003), and the elements that the display identity does not name (GAP-HMI-004). On "
-     "the bench, the guest host of INC-DRIVING-001 stands in for the central computer, with the SDV Media VM as a "
-     "third guest, and the simulator stands in for the ECU that measures the vehicle speed and for the vehicle "
-     "network; the feed of that speed (GAP-HMI-002) is a gap of the bench, not of this product. Configuration "
-     "evidence only. This usage proves no renderer, app, composition or platform behavior and no requirement "
-     "satisfaction."),
+     "Evidence that binds HMI-CONFIG-001 also records the receipt SHA-256 it ran against. The product inherits two "
+     "open gaps of phase 8: the renderer's judging of the scene by the term current (GAP-HMI-001) and the tolerance "
+     "of a drawn position (GAP-HMI-003). On the bench, the guest host of INC-DRIVING-001 stands in for the central "
+     "computer, with the SDV Media VM as a third guest, and the simulator stands in for the ECU that measures the "
+     "vehicle speed and for the vehicle network; the feed of that speed (GAP-HMI-002) is a gap of the bench, not of "
+     "this product. Configuration evidence only. This usage proves no renderer, app, composition or platform behavior "
+     "and no requirement satisfaction."),
     ("Product-line engineers, system architects and open-source reviewers need the variant selections of "
      "HMI-CONFIG-001 in the platform-stack projection that the configurator generates from its receipt, the "
      "projection of the VisionPilot configuration. The main side selects VisionPilot, Eclipse S-CORE and Linux. The "
@@ -719,8 +720,6 @@ package DE4SDV_HmiDisplayVariabilityConfiguration {
  DE4SDV_HmiDisplayPhysicalSoftwareRealization::gapHmiRendererJudgesSceneCurrency;
   dependency configuredProductDrawingToleranceGap from configuredProduct to\
  DE4SDV_HmiDisplayPhysicalSoftwareRealization::gapHmiDrawingToleranceUnset;
-  dependency configuredProductDisplayIdentityGap from configuredProduct to\
- DE4SDV_HmiDisplayPhysicalSoftwareRealization::gapHmiIdentityMissesPhase8Elements;
   concern hmiDisplayProductLineConfigurationConcern : ProductLineConfigurationConcern {
     doc /*…*/
     subject;
@@ -774,7 +773,7 @@ package DE4SDV_HmiDisplayVariabilityConfiguration {
 
 #: Exchange and relation keywords -> how often the stripped file holds each: the two bindings, the four dependencies
 #: and the five imports, and none of any other form.
-KEYWORD_COUNTS = {"bind": 2, "binding": 2, "dependency": 4, "import": 5, "flow": 0, "interface": 0, "message": 0,
+KEYWORD_COUNTS = {"bind": 2, "binding": 2, "dependency": 3, "import": 5, "flow": 0, "interface": 0, "message": 0,
                   "succession": 0, "first": 0, "then": 0, "connection": 0, "connect": 0, "end": 0, "allocation": 0,
                   "allocate": 0, "satisfy": 0, "verify": 0, "perform": 0, "exhibit": 0, "include": 0, "ref": 0,
                   "redefines": 0, "subsets": 0, "references": 0, "specializes": 0, "variant": 0, "variation": 0}
@@ -891,14 +890,14 @@ LINK_COMMENTS[FRAMING.name] = (
 OWNER_DIRECTION = (
     "Owner direction of 2026-11-26: the display of every member is to show the vehicle speed, the collision warning, "
     "the outdated marks and the scene, and the HMI display is to stay independent of the driving application that "
-    "feeds it. It is to take each input in a form that does not depend on that application, and each application "
-    "that feeds it is to give its inputs in that form through a translation of its own. The vehicle speed has such a "
-    "form, as COVESA VSS types it, and the warning request has the form that the driver-assistance increment gives "
-    "it. The scene has the form of the scene of the panel of VisionPilot (termsHmiDisplayRequirements), and its "
-    "message type stays open until phase 10 (DisplaySceneMessage). In this increment VisionPilot is the source of "
-    "the scene, which it does not give at its boundary yet (gapHmiSceneOutput), and of the warning request. It is a "
-    "direction for the scope decisions that hmiDisplayContentScopeDecisions lists, for the AEBS requirements on the "
-    "warning and for the message type of the scene; it changes no member here.")
+    "feeds it. It is to take each input in a form that does not depend on that application, and each application that "
+    "feeds it is to give its inputs in that form through a translation of its own. The vehicle speed has such a form, "
+    "as COVESA VSS types it, and the warning request has the form that the driver-assistance increment gives it. The "
+    "scene has the form of the scene of the panel of VisionPilot (termsHmiDisplayRequirements), and the scene-form "
+    "amendment of phase 10 types its message in a form of the display's own (DisplaySceneMessage). In this increment "
+    "VisionPilot is the source of the scene, which it does not give at its boundary yet (gapHmiSceneOutput), and of "
+    "the warning request. It is a direction for the scope decisions that hmiDisplayContentScopeDecisions lists, for "
+    "the AEBS requirements on the warning and for the message type of the scene; it changes no member here.")
 # ---- end of the unit --------------------------------------------------------------------------------------------
 #: The opening of a plain comment on the links of rule 5.
 LINK_COMMENT_OPENING = "Rule 5 of the increment workflow, in its dependency form"

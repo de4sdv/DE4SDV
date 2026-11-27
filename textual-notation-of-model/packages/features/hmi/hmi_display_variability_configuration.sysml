@@ -105,10 +105,9 @@ package DE4SDV_HmiDisplayVariabilityConfiguration {
      * description and element id. Evidence that binds HMI-CONFIG-001 also
      * records the receipt SHA-256 it ran against.
      *
-     * The product inherits three open gaps of phase 8: the renderer's
-     * judging of the scene by the term current (GAP-HMI-001), the tolerance
-     * of a drawn position (GAP-HMI-003), and the elements that the display
-     * identity does not name (GAP-HMI-004). On the bench, the guest host of
+     * The product inherits two open gaps of phase 8: the renderer's judging
+     * of the scene by the term current (GAP-HMI-001) and the tolerance of a
+     * drawn position (GAP-HMI-003). On the bench, the guest host of
      * INC-DRIVING-001 stands in for the central computer, with the SDV Media
      * VM as a third guest, and the simulator stands in for the ECU that
      * measures the vehicle speed and for the vehicle network; the feed of
@@ -129,9 +128,6 @@ package DE4SDV_HmiDisplayVariabilityConfiguration {
   dependency configuredProductDrawingToleranceGap
     from configuredProduct
     to DE4SDV_HmiDisplayPhysicalSoftwareRealization::gapHmiDrawingToleranceUnset;
-  dependency configuredProductDisplayIdentityGap
-    from configuredProduct
-    to DE4SDV_HmiDisplayPhysicalSoftwareRealization::gapHmiIdentityMissesPhase8Elements;
 
   concern hmiDisplayProductLineConfigurationConcern : ProductLineConfigurationConcern {
     doc /*

@@ -349,8 +349,13 @@ def test_the_guide_names_the_next_obligation_after_the_classification():
     for phrase in ("Phase 3, the capability classification, records no feature-model delta, and review judges it: "
                    "its one blocking check has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, "
                    "with a prompt for review.",
-                   "The next model obligation is **Phase 10**: the verification cases, one or more for each "
-                   "requirement of the increment; its first gate is `verificationCaseVerifiesRequirement`."):
+                   "The next model obligation is **Phase 10**: verification and evidence, its second slice, which "
+                   "follows the readiness probes and adds the bench, the runs, the retained records and the statuses. "
+                   "The first slice holds the cases that `verificationCaseVerifiesRequirement` and "
+                   "`requirementVerifiedByVerificationCase` read; `verificationCaseHasEvidenceRecordOrStatus` stays "
+                   "advisory until runs exist. With those two checks met, the first open blocking check of the Method "
+                   "Check is Phase 11's `incrementHasBaselineDecision`. Do not jump from the cases to implementation "
+                   "before the probes, and claim no runtime gate."):
         assert flat.count(phrase) == 1, phrase
     assert "The next model obligation is **Phase 3**" not in flat
     assert "The next model obligation is **Phase 4**" not in flat
