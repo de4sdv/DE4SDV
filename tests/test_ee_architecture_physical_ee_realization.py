@@ -162,7 +162,10 @@ ALLOCATIONS = [('eeRecorderToNetworkSide', 'eeIdentityRecorder', 'eeCentralCompu
                ('eeCarrierToNetworkSide', 'eeCommandCarrier', 'eeCentralComputer::eeNetworkSide'),
                ('eeCarrierToActuationZoneController', 'eeCommandCarrier', 'eeActuationZoneController'),
                ('eeActuationEndToActuationECU', 'eeActuationEnd', 'eeActuationECU')]
-#: (allocation, short name, record, logical element, target chain under the usage)
+#: (allocation, short name, record, logical element, target under the usage). A target below a node is a feature
+#: chain from the usage; a node directly under the usage is named by its qualified name, as the allocations name it.
+#: Why: the licensed tree and interconnection renders list a part that an allocation reaches by a two-step chain
+#: (usage.part) in the usage's compartment and draw no box for it, so its ports and the edges to them are missing.
 MAPPINGS = [('eeScoreCommandMapping',
              'MAP-EE-SCORE-COMMAND',
              'eeScoreCommandMappingRecord',
@@ -1445,7 +1448,7 @@ package DE4SDV_EEArchitecturePhysicalEERealization {
  REQ-EE-003, REQ-EE-004 and REQ-EE-007 to evidence of record; none is started";
       attribute :>> evidenceOrGap = "no runtime evidence of record; gap gapEEConfigurationNamedByRole";
   allocation eeActuationFrameMapping : SystemToSoftwareSignalMappingCandidate allocate\
- EEVehicleNetworkLogicalSystem::eeActuationEnd to eeVehicleNetworkPhysicalSystem.eeActuationECU {
+ EEVehicleNetworkLogicalSystem::eeActuationEnd to eeVehicleNetworkPhysicalSystem::eeActuationECU {
     item <'MAP-EE-ACTUATION-FRAME'> eeActuationFrameMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*…*/
       attribute :>> semanticSource = "the command frame of the vehicle network, typed at the two ports of the\
@@ -2035,7 +2038,8 @@ def test_each_crossing_has_one_signal_mapping_with_a_complete_record():
     found = re.findall(r"\ballocation\s+(\w+)\s*:\s*SystemToSoftwareSignalMappingCandidate\s+allocate\s+(\S+)\s+to\s+"
                        r"([^\s{;]+)\s*\{\s*item\s+<'([A-Z-]+)'>\s+(\w+)\s*:\s*LogicalToSoftwareSignalMappingRecord",
                        code)
-    assert found == [(name, f"{LOGICAL_SYSTEM}::{logical}", f"{SYSTEM_USAGE}.{target}", short, record)
+    assert found == [(name, f"{LOGICAL_SYSTEM}::{logical}",
+                      f"{SYSTEM_USAGE}{'.' if '.' in target else '::'}{target}", short, record)
                      for name, short, record, logical, target in MAPPINGS]
     assert len(re.findall(r"\bSystemToSoftwareSignalMappingCandidate\b", code)) == len(MAPPINGS) + 1
     for record, values in _records().items():
