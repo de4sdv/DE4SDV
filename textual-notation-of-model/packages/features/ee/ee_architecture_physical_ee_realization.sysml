@@ -605,7 +605,7 @@ package DE4SDV_EEArchitecturePhysicalEERealization {
 
   allocation eeActuationFrameMapping : SystemToSoftwareSignalMappingCandidate
     allocate EEVehicleNetworkLogicalSystem::eeActuationEnd
-    to eeVehicleNetworkPhysicalSystem.eeActuationECU {
+    to eeVehicleNetworkPhysicalSystem::eeActuationECU {
     item <'MAP-EE-ACTUATION-FRAME'> eeActuationFrameMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*
        * The command frame as the actuation ECU takes it, from the CAN FD bus
