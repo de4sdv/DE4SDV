@@ -318,6 +318,34 @@ def test_sha_names_are_documented_non_governed():
     assert "SHA-1" in check_naming._EXTERNAL_ID_NAMES
 
 
+def test_a_release_designation_that_an_upstream_record_cites_is_non_governed():
+    """A specification's release designation, R with a two-digit year and month, reaches no scan in an upstream
+    record's text or link; the same characters after a governed prefix's hyphen stay one governed token, and so do a
+    longer form, a thirteenth month, another letter and the form outside Markdown."""
+    text = "release R99-01 of [the source](https://example.org/standards/R99-01/source.pdf)"
+    assert [m.group(0) for m in check_naming._ID_TOKEN.finditer(text)] == ["R99-01", "R99-01"]
+    prepared = check_naming._prepare_text_for_suffix(text, suffix=".md")
+    assert [m.group(0) for m in check_naming._ID_TOKEN.finditer(prepared)] == []
+    governed = check_naming._prepare_text_for_suffix("REQ-R99-01", suffix=".md")
+    assert [m.group(0) for m in check_naming._ID_TOKEN.finditer(governed)] == ["REQ-R99-01"]
+    for token in ("R99-011", "R99-01-EE", "R99-13", "S99-01"):
+        prepared = check_naming._prepare_text_for_suffix(token, suffix=".md")
+        assert [m.group(0) for m in check_naming._ID_TOKEN.finditer(prepared)] == [token]
+    assert check_naming.check_identifier_tokens_in_text("part <'R99-01'> x;", "x.sysml", ".sysml")
+
+
+def test_a_release_designation_occurs_only_in_an_upstream_record_and_the_tests_that_pin_it():
+    """The release designation that the scan strips is met only in an upstream record, the framing test's whole-record
+    pin of it and this file's synthetic example."""
+    import subprocess as sp
+
+    pattern = r"(^|[^A-Za-z0-9-])R[0-9]{2}-[0-9]{2}([^A-Za-z0-9-]|$)"
+    listed = sp.run(["git", "grep", "-lE", pattern], cwd=check_naming.ROOT, capture_output=True,
+                    text=True).stdout.split()
+    assert [path for path in listed if not path.endswith("/upstream.md")] == [
+        "tests/test_check_naming.py", "tests/test_ee_architecture_framing.py"], listed
+
+
 def _ignored_runtime_fixture(tmp_path: Path):
     """Create an isolated git repository mirroring the bench ignore rules.
 

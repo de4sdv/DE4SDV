@@ -486,6 +486,14 @@ def _is_ignored_runtime_path(path: Path, repository: Path | None = None) -> bool
 # section 5.
 _URL_LINE_ANCHOR = re.compile(r"#L\d+(?:-L\d+)?")
 
+# The release designation of a specification, R with a two-digit year and a
+# month (01 to 12), as an upstream record cites it in its text and its link,
+# is the source's label, never a governed identifier. It is stripped from
+# Markdown alone, the form of an upstream record, so a SysML short name or a
+# YAML value of that form stays governed; the same characters after a
+# governed prefix's hyphen stay part of that token.
+_RELEASE_DESIGNATION = re.compile(r"(?<![A-Za-z0-9-])R\d{2}-(?:0[1-9]|1[0-2])(?![A-Za-z0-9-])")
+
 # A quoted SysML short name (`<'INC-AEBS-010'>`) is an element's identity, not
 # prose. A basic short name (`<incTest>`) is an unquoted code token that the
 # scrub keeps anyway, and it cannot hold a hyphenated identifier.
@@ -522,6 +530,7 @@ def _prepare_text_for_suffix(text: str, suffix: str) -> str:
         text = _scrub_sysml_keeping_short_names(text)
     elif suffix == ".md":
         text = _MD_FENCE.sub(" ", text)
+        text = _RELEASE_DESIGNATION.sub(" ", text)
     text = _URL_LINE_ANCHOR.sub(" ", text)
     text = _CONFIG_IDENTITY.sub("", text)
     for name in _EXTERNAL_ID_NAMES:

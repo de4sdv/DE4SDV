@@ -1,10 +1,10 @@
 # E/E architecture: upstream provenance
 
-These are the public sources that the framing of the E/E architecture
-increment, INC-EE-001, read for its gap on the zone controller route. They are
-not an adopted dependency set or an execution manifest. No upstream
-implementation is vendored. For this increment DE4SDV has built and run
-nothing.
+These are the public sources that the texts of the E/E architecture increment,
+INC-EE-001, read: the framing for its gap on the zone controller route, and
+phase 8 for the transport of the command frame. They are not an adopted
+dependency set or an execution manifest. No upstream implementation is
+vendored. For this increment DE4SDV has built and run nothing.
 
 ## Zone controller route
 
@@ -55,6 +55,21 @@ and each supports it only as far as its entry says.
 No source read shows a production vehicle whose brake command passes through a
 zone controller. The framing therefore takes that route as a candidate beside
 a direct link and judges both.
+
+## Frame transport
+
+Read for phase 8 of INC-EE-001 on 2026-11-26. It is the source of the
+IEEE 1722 packet of the
+[E/E realization](ee_architecture_physical_ee_realization.sysml), and supports
+it only as far as this entry says.
+
+- [AUTOSAR, the IEEE 1722 transport layer of the classic platform](https://www.autosar.org/fileadmin/standards/R23-11/CP/AUTOSAR_CP_SWS_IEEE1722TransportLayer.pdf),
+  release R23-11. It transports "encapsulated bus frames (ACF_CAN,
+  ACF_CAN_BRIEF and ACF_LIN)" over an IEEE 1722 stream, and an ACF_CAN message
+  is a "Controller Area Network (CAN)/CAN with Flexible Data-Rate (CAN FD)
+  message". Supports: one CAN FD frame carried whole inside an IEEE 1722
+  packet on the backbone. Does not support: any claim on the timing of that
+  transport or on the detection parts.
 
 ## Command source
 

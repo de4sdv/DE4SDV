@@ -55,6 +55,7 @@ HMI_P = FEATURES / "hmi/hmi_display_physical_software_realization.sysml"
 EE_N = FEATURES / "ee/ee_architecture_needs_requirements.sysml"
 EE_F = FEATURES / "ee/ee_architecture_functional_architecture.sysml"
 EE_L = FEATURES / "ee/ee_architecture_logical_architecture.sysml"
+EE_P = FEATURES / "ee/ee_architecture_physical_ee_realization.sysml"
 
 FUNCTION, LOGICAL, PHYSICAL = "AllocatableFunction", "LogicalAllocationElement", "PhysicalAllocationElement"
 REQUIREMENT = "RequirementCandidate"
@@ -100,7 +101,13 @@ GOVERNED = {
     EE_F: (FUNCTION, {"EERecordNetworkIdentity", "EETakeDrivingCommand", "EECarryDrivingCommand",
                       "EECheckDrivingCommand", "EEApplyDrivingCommand"}),
     EE_L: (LOGICAL, {"EEIdentityRecorder", "EECommandCarrier", "EEActuationEnd"}),
+    EE_P: (PHYSICAL, {"EECentralComputerNetworkSide", "EEActuationZoneController", "EEActuationECU"}),
 }
+# A governed definition's header names its base alone, apart from these listed bases beside it, per file. The E/E
+# realization types every node that software runs on as a vehicle compute node of the execution environments, so
+# its two nodes that carry a logical element take two bases (the default of 2026-11-26). VehicleComputeNode is no kernel
+# class and no layer, so each definition keeps one direct governed lineage.
+EXTRA_BASES = {EE_P: ("VehicleComputeNode",)}
 NOT_ENDPOINTS = {
     VIS_F: {"AebsVisualizationFunctionalFlow"},
     VIS_L: {"AEBSVisualizationLogicalSystem", "AEBSVisualizationLogicalInstrument"},
@@ -125,6 +132,8 @@ NOT_ENDPOINTS = {
             "HmiDisplaySDVMediaGuest", "HmiDisplayCentralComputer", "HmiDisplayPhysicalSystem"},
     EE_F: {"EEVehicleNetworkFunctionalFlow"},
     EE_L: {"EEVehicleNetworkLogicalSystem"},
+    EE_P: {"EECentralComputer", "EEOtherZoneController", "EEEthernetBackbone", "EEActuationZoneCANFDBus",
+           "EEOtherZoneCANFDBus", "EEDirectCANFDLink", "EEActuatedVehicle", "EEVehicleNetworkPhysicalSystem"},
 }
 # Allocation definition -> governed end pair. Excluded mappings stay outside.
 PAIRS = {
@@ -171,10 +180,12 @@ ALLOCATION_FILES = {
             (LOGICAL, PHYSICAL)),
     EE_F: ((EE_F, EE_N), {(REQUIREMENT, FUNCTION): 10}, {}, (REQUIREMENT, FUNCTION)),
     EE_L: ((EE_L, EE_F), {(FUNCTION, LOGICAL): 5}, {}, (FUNCTION, LOGICAL)),
+    EE_P: ((EE_P, EE_L), {(LOGICAL, PHYSICAL): 4}, {"SystemToSoftwareSignalMappingCandidate": 7},
+           (LOGICAL, PHYSICAL)),
 }
 LINEAGE_FILES = (VIS_F, VIS_L, VIS_P, VIS_N, MW_F, MW_L, MW_P, AEBS_P, AEBS_F, AEBS_L, AEBS_SIM, AEBS_NEEDS,
                  DRIVING_F, DRIVING_L, DRIVING_P, ASSIST_F, ASSIST_L, ASSIST_P, HMI_F, HMI_L, HMI_P, EE_F,
-                 EE_L, KERNEL / "de4sdv_method_context.sysml")
+                 EE_L, EE_P, KERNEL / "de4sdv_method_context.sysml")
 # AEBS core endpoint lineage, pinned exactly. The two composites are a
 # recorded pre-existing deviation (w6-transition-record.md), not a pattern.
 AEBS_CORE_LINEAGE = {
@@ -325,9 +336,10 @@ def test_exact_endpoint_definitions_carry_one_direct_governed_lineage(path):
     base, names = GOVERNED[path]
     actual = set(re.findall(rf"\b(?:part|action)\s+def\s+(\w+)\s*:>\s*{base}\b", code))
     assert actual == names
+    allowed = {f":> {base}"} | {f":> {base}, {extra}" for extra in EXTRA_BASES.get(path, ())}
     for name in names:
         header, _ = definition([code], name)
-        assert header == f":> {base}", (name, header)
+        assert header in allowed, (name, header)
     assert code.count(f"private import DE4SDV_TraceVocabulary::{base};") == 1
     assert not re.search(rf"\bdef\s+{base}\b", code), "local homonym would shadow the kernel identity"
     others = {FUNCTION, LOGICAL, PHYSICAL} - {base}

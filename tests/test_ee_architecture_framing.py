@@ -346,7 +346,7 @@ def test_increment_declares_the_phase_zero_shape():
     assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [
         PACKAGE, "DE4SDV_EEArchitectureOperationalContext", "DE4SDV_EEArchitectureCapabilityClassification",
         "DE4SDV_EEArchitectureNeedsRequirements", "DE4SDV_EEArchitectureFunctionalArchitecture",
-        "DE4SDV_EEArchitectureLogicalArchitecture"], \
+        "DE4SDV_EEArchitectureLogicalArchitecture", "DE4SDV_EEArchitecturePhysicalEERealization"], \
         "the charter names only the packages that hold content"
     evidence = re.search(r"expectedReviewEvidence\s*=\s*\((.*?)\);", charter, re.S)
     assert evidence and re.findall(r'"([^"]+)"', evidence.group(1)) == [
@@ -789,7 +789,9 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
     assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 "
             "capability classification, Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional "
-            "architecture and Phase 7 logical architecture, proposal.**") in _flat(guide)
+            "architecture, Phase 7 logical architecture and the E/E realization of Phase 8, proposal.**") in \
+        _flat(guide)
+    assert "Phase 6 functional architecture and Phase 7 logical architecture, proposal.**" not in _flat(guide)
     assert "Phase 4 stakeholder needs and Phase 5 requirements, proposal.**" not in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part eeArchitectureQuestion : IncrementEngineeringQuestion"), \
@@ -835,13 +837,11 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "Starting this increment launches no compute and authorizes no spend.",
                    "Phase 3, the capability classification, records no feature-model delta, and review judges it: "
                    "its one blocking check has nothing to evaluate",
-                   "The next model obligation is **Phase 8**: the E/E and software realization, which "
-                   "allocates each logical element to a physical element; its first gate is "
-                   "`logicalElementAllocatedToPhysicalElement`.",
                    "The owner decided on 2026-11-18 to carry out Phases 1 to 3 of this increment before the "
                    "baseline of the driver-assistance increment, whose driving command it carries.",
                    "After that baseline, the owner decided on 2026-11-21 to start Phase 4, on 2026-11-22 to go "
-                   "on with Phase 5, on 2026-11-24 to go on with Phase 6 and on 2026-11-25 to go on with Phase 7.",
+                   "on with Phase 5, on 2026-11-24 to go on with Phase 6, on 2026-11-25 to go on with Phase 7 and "
+                   "on 2026-11-26 to go on with Phase 8 in three pull requests.",
                    "The testbed with its readiness probe waits for a further decision of the owner.",
                    "open gaps and Phase 1 concerns.",
                    "None of them asks these properties of a vehicle network; Phase 5 of this increment derives its "
@@ -849,6 +849,9 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
         assert phrase in flat, phrase
     assert "The next model obligation is **Phase 6**" not in flat, "phase 6 moved the next obligation to phase 7"
     assert "The next model obligation is **Phase 7**" not in flat, "phase 7 moved the next obligation to phase 8"
+    assert "The next model obligation is **Phase 8**: the E/E and software realization" not in flat, \
+        "the E/E realization moved the next obligation; the phase 8 test pins its new wording"
+    assert flat.count("The next model obligation is") == 1
     decision = _doc("part eeArchitectureDecision : IncrementLifecycleDecision")
     assert decision.startswith("Decide whether the product line admits ")
     assert "The increment supports one decision: " + decision[len("Decide "):] in flat, \
@@ -884,12 +887,23 @@ def test_the_guide_lists_each_gap_as_an_open_point_in_the_models_own_words():
             f"{name}: the open point is not a passage of the gap's own text"
 
 
-#: the upstream record's intro and its last two sections, flat and whole: no later phase adds a reading there
+#: the upstream record's intro, its phase 8 section and its last two sections, flat and whole; the intro names the
+#: two readings of the record, the framing's and that of phase 8
 UPSTREAM_INTRO = (
-    "# E/E architecture: upstream provenance These are the public sources that the framing of the E/E architecture "
-    "increment, INC-EE-001, read for its gap on the zone controller route. They are not an adopted dependency set "
-    "or an execution manifest. No upstream implementation is vendored. For this increment DE4SDV has built and run "
-    "nothing."
+    "# E/E architecture: upstream provenance These are the public sources that the texts of the E/E architecture "
+    "increment, INC-EE-001, read: the framing for its gap on the zone controller route, and phase 8 for the "
+    "transport of the command frame. They are not an adopted dependency set or an execution manifest. No "
+    "upstream implementation is vendored. For this increment DE4SDV has built and run nothing."
+)
+UPSTREAM_FRAME_TRANSPORT = (
+    "Read for phase 8 of INC-EE-001 on 2026-11-26. It is the source of the IEEE 1722 packet of the [E/E "
+    "realization](ee_architecture_physical_ee_realization.sysml), and supports it only as far as this entry "
+    "says. - [AUTOSAR, the IEEE 1722 transport layer of the classic "
+    "platform](https://www.autosar.org/fileadmin/standards/R23-11/CP/AUTOSAR_CP_SWS_IEEE1722TransportLayer.pdf), "
+    "release R23-11. It transports \"encapsulated bus frames (ACF_CAN, ACF_CAN_BRIEF and ACF_LIN)\" over an IEEE "
+    "1722 stream, and an ACF_CAN message is a \"Controller Area Network (CAN)/CAN with Flexible Data-Rate (CAN "
+    "FD) message\". Supports: one CAN FD frame carried whole inside an IEEE 1722 packet on the backbone. Does not "
+    "support: any claim on the timing of that transport or on the detection parts."
 )
 UPSTREAM_COMMAND_SOURCE = (
     "The source of the driving command on the central computer is the one of the earlier increments: the driving "
@@ -907,9 +921,10 @@ def test_the_upstream_record_holds_the_sources_of_the_route_gap():
     record = UPSTREAM_RECORD.read_text(encoding="utf-8")
     assert record.startswith("# E/E architecture: upstream provenance\n")
     assert [line[3:] for line in record.splitlines() if line.startswith("## ")] == [
-        "Zone controller route", "Command source", "Upstream contact"]
+        "Zone controller route", "Frame transport", "Command source", "Upstream contact"]
     intro = _flat(record.split("\n## ", 1)[0])
-    for phrase in ("read for its gap on the zone controller route.",
+    for phrase in ("read: the framing for its gap on the zone controller route, and phase 8 for the transport of the "
+                   "command frame.",
                    "No upstream implementation is vendored.",
                    "For this increment DE4SDV has built and run nothing."):
         assert phrase in intro, phrase
@@ -964,6 +979,9 @@ def test_the_upstream_record_holds_the_sources_of_the_route_gap():
     assert closing == ("No source read shows a production vehicle whose brake command passes through a zone "
                        "controller. The framing therefore takes that route as a candidate beside a direct link and "
                        "judges both.")
+    transport = _record_section(record, "Frame transport")
+    assert "(ee_architecture_physical_ee_realization.sysml)" in transport
+    assert _flat(transport) == UPSTREAM_FRAME_TRANSPORT, "the frame transport section is pinned whole"
     source = _record_section(record, "Command source")
     assert "(../driving/upstream.md)" in source
     assert "This increment reads no further upstream code for it." in _flat(source)
